@@ -27,6 +27,13 @@ void ProjectState::ensureInitialPage(TemplateType templateType)
     createPage(templateType);
 }
 
+void ProjectState::startNewSession(TemplateType templateType)
+{
+    m_pages.clear();
+    m_currentPageIndex = -1;
+    createPage(templateType);
+}
+
 void ProjectState::createPage(TemplateType templateType)
 {
     PageState page;
@@ -152,14 +159,28 @@ void ProjectState::assignImageToSlot(int slotIndex, const QString &path)
     }
 
     auto &slot = page->slots[slotIndex];
+    slot = SlotState{};
     slot.hasImage = true;
     slot.imagePath = path;
-    slot.cropOffset = QPointF(0.0, 0.0);
     if (!slot.selected) {
         selectSlot(slotIndex);
     }
 
     emit pagesChanged();
+    emit slotsChanged();
+}
+
+void ProjectState::configureSlot(int slotIndex, bool fillCrop, int rotation, bool mirrored)
+{
+    auto *page = currentPage();
+    if (!page || slotIndex < 0 || slotIndex >= page->slots.size() || !page->slots[slotIndex].hasImage) {
+        return;
+    }
+    auto &slot = page->slots[slotIndex];
+    slot.fillMode = fillCrop ? FillMode::FillCrop : FillMode::FitInside;
+    slot.rotation = ((rotation % 360) + 360) % 360;
+    slot.mirrored = mirrored;
+    slot.cropOffset = QPointF(0.0, 0.0);
     emit slotsChanged();
 }
 
@@ -378,6 +399,16 @@ bool ProjectState::isPageValid(int pageIndex) const
         return false;
     }
     return m_pages.at(pageIndex).isValid();
+}
+
+bool ProjectState::hasValidPages() const
+{
+    for (const auto &page : m_pages) {
+        if (page.isValid()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 PageState *ProjectState::currentPage()

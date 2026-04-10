@@ -34,6 +34,7 @@ public:
     explicit ProjectState(QObject *parent = nullptr);
 
     Q_INVOKABLE void ensureInitialPage(TemplateType templateType);
+    Q_INVOKABLE void startNewSession(TemplateType templateType);
     Q_INVOKABLE void createPage(TemplateType templateType);
     Q_INVOKABLE void deleteCurrentPage();
     Q_INVOKABLE void switchToPage(int pageIndex);
@@ -52,6 +53,7 @@ public:
 
     Q_INVOKABLE void selectSlot(int slotIndex);
     Q_INVOKABLE void assignImageToSlot(int slotIndex, const QString &path);
+    Q_INVOKABLE void configureSlot(int slotIndex, bool fillCrop, int rotation, bool mirrored);
     Q_INVOKABLE void rotateSelectedSlot90();
     Q_INVOKABLE void mirrorSelectedSlot();
     Q_INVOKABLE void toggleSelectedSlotFillMode();
@@ -64,6 +66,7 @@ public:
     [[nodiscard]] int currentPageIndex() const;
     [[nodiscard]] int pageCount() const;
     [[nodiscard]] bool isPageValid(int pageIndex) const;
+    [[nodiscard]] bool hasValidPages() const;
 
     [[nodiscard]] int pageTemplateChoice(int pageIndex) const;
     [[nodiscard]] int pageSlotCount(int pageIndex) const;

@@ -101,6 +101,7 @@ private:
 
     QString m_lastExportMessage;
     bool m_lastExportSuccess = false;
+    int m_thumbnailVersion = 0;
 };
 
 } // namespace pte

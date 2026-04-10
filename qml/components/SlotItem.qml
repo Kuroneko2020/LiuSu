@@ -43,15 +43,24 @@ Rectangle {
         anchors.margins: 2
         source: imagePath
         visible: hasImage && source !== ""
-        fillMode: fillCropMode ? Image.PreserveAspectCrop : Image.PreserveAspectFit
+        fillMode: fillCropMode ? Image.Stretch : Image.PreserveAspectFit
         smooth: true
         cache: true
+        readonly property real srcW: Math.max(1, sourceSize.width)
+        readonly property real srcH: Math.max(1, sourceSize.height)
+        readonly property real targetRatio: Math.max(0.001, width / Math.max(1, height))
+        readonly property real srcRatio: srcW / srcH
+        readonly property real cropW: srcRatio > targetRatio ? srcH * targetRatio : srcW
+        readonly property real cropH: srcRatio > targetRatio ? srcH : (srcW / targetRatio)
+        readonly property real rangeX: Math.max(0, srcW - cropW)
+        readonly property real rangeY: Math.max(0, srcH - cropH)
+        sourceClipRect: fillCropMode
+                        ? Qt.rect((rangeX / 2) + (Math.max(-1, Math.min(1, cropOffsetX)) * rangeX * 0.5),
+                                  (rangeY / 2) + (Math.max(-1, Math.min(1, cropOffsetY)) * rangeY * 0.5),
+                                  cropW, cropH)
+                        : Qt.rect(0, 0, srcW, srcH)
 
         transform: [
-            Translate {
-                x: fillCropMode ? cropOffsetX * photo.width * 0.08 : 0
-                y: fillCropMode ? cropOffsetY * photo.height * 0.08 : 0
-            },
             Rotation {
                 angle: slotRoot.rotationDegrees
                 origin.x: photo.width / 2
@@ -118,20 +127,27 @@ Rectangle {
 
         property int sourceSlot: -1
 
-        Drag.active: dragArea.drag.active
+        Drag.active: dragHandler.active
+        Drag.source: swapHandle
         Drag.hotSpot.x: width / 2
         Drag.hotSpot.y: height / 2
 
-        MouseArea {
-            id: dragArea
-            anchors.fill: parent
-            drag.target: parent
-            onPressed: {
-                swapHandle.sourceSlot = slotRoot.slotIndex
+        DragHandler {
+            id: dragHandler
+            target: null
+            xAxis.enabled: true
+            yAxis.enabled: true
+            onActiveChanged: {
+                if (active) {
+                    swapHandle.sourceSlot = slotRoot.slotIndex
+                }
             }
-            onReleased: {
-                parent.x = 0
-                parent.y = 0
+        }
+
+        TapHandler {
+            acceptedButtons: Qt.LeftButton
+            onTapped: {
+                swapHandle.sourceSlot = slotRoot.slotIndex
             }
         }
     }

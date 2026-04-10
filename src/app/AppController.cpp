@@ -2,8 +2,10 @@
 #include <QDir>
 
 #include <QFileDialog>
+#include <QImageReader>
 #include <QSettings>
 #include <QStandardPaths>
+#include "services/TemplateLayout.h"
 
 namespace pte {
 
@@ -23,21 +25,21 @@ AppController::AppController(QObject *parent)
         m_exportSettings.path = m_settings.defaultPath;
     }
 
-    connect(&m_project, &ProjectState::slotsChanged, this, &AppController::thumbnailsChanged);
-    connect(&m_project, &ProjectState::pagesChanged, this, &AppController::thumbnailsChanged);
+    connect(&m_project, &ProjectState::slotsChanged, this, [this]() { ++m_thumbnailVersion; emit thumbnailsChanged(); });
+    connect(&m_project, &ProjectState::pagesChanged, this, [this]() { ++m_thumbnailVersion; emit thumbnailsChanged(); });
 }
 
 ProjectState *AppController::project() { return &m_project; }
 
 void AppController::startManualLayout(int choice)
 {
-    m_project.ensureInitialPage(toTemplateType(choice));
+    m_project.startNewSession(toTemplateType(choice));
     emit requestNavigateToEditor();
 }
 
 void AppController::startAutoLayout(int choice)
 {
-    m_project.ensureInitialPage(toTemplateType(choice));
+    m_project.startNewSession(toTemplateType(choice));
 
     const QStringList images = m_imageService.importMultipleImages();
     if (images.isEmpty()) {
@@ -58,6 +60,28 @@ void AppController::startAutoLayout(int choice)
             break;
         }
         m_project.assignImageToSlot(targetSlot, images.at(imported));
+
+        const QRectF slotRect = m_project.slotRectNormalized(targetSlot);
+        const qreal slotAspect = slotRect.width() > 0 && slotRect.height() > 0 ? slotRect.width() / slotRect.height() : 1.0;
+        QImageReader reader(images.at(imported));
+        const QSize sz = reader.size();
+        const qreal imageAspect = sz.height() > 0 ? static_cast<qreal>(sz.width()) / sz.height() : 1.0;
+
+        bool fillCrop = true;
+        int rotation = 0;
+        bool mirrored = false;
+        if (m_settings.autoPreset == QStringLiteral("证件照优先")) {
+            fillCrop = false;
+        } else if (m_settings.autoPreset == QStringLiteral("人像优先")) {
+            if (imageAspect > 1.05) {
+                rotation = 90;
+            }
+            fillCrop = true;
+        } else { // 均衡填充
+            const qreal mismatch = qMax(imageAspect / slotAspect, slotAspect / imageAspect);
+            fillCrop = mismatch < 1.5;
+        }
+        m_project.configureSlot(targetSlot, fillCrop, rotation, mirrored);
         ++imported;
     }
 
@@ -162,7 +186,7 @@ void AppController::runExport()
 
 QString AppController::pageThumbnailSource(int pageIndex)
 {
-    return m_exportService.renderPageThumbnail(m_project, pageIndex, 220, 140);
+    return m_exportService.renderPageThumbnail(m_project, pageIndex, 220, 140) + QStringLiteral("?v=%1").arg(m_thumbnailVersion);
 }
 
 QString AppController::exportPath() const { return m_exportSettings.path; }
