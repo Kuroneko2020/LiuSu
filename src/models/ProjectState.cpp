@@ -257,6 +257,83 @@ QString ProjectState::pagePreviewImagePath(int pageIndex) const
     return m_pages.at(pageIndex).previewImagePath();
 }
 
+
+int ProjectState::pageTemplateChoice(int pageIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return 2;
+    }
+    return static_cast<int>(m_pages.at(pageIndex).templateType);
+}
+
+int ProjectState::pageSlotCount(int pageIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return 0;
+    }
+    return m_pages.at(pageIndex).slots.size();
+}
+
+bool ProjectState::pageSlotHasImage(int pageIndex, int slotIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return false;
+    }
+    const auto &slots = m_pages.at(pageIndex).slots;
+    if (slotIndex < 0 || slotIndex >= slots.size()) {
+        return false;
+    }
+    return slots.at(slotIndex).hasImage;
+}
+
+QString ProjectState::pageSlotImagePath(int pageIndex, int slotIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return {};
+    }
+    const auto &slots = m_pages.at(pageIndex).slots;
+    if (slotIndex < 0 || slotIndex >= slots.size()) {
+        return {};
+    }
+    return slots.at(slotIndex).imagePath;
+}
+
+int ProjectState::pageSlotRotation(int pageIndex, int slotIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return 0;
+    }
+    const auto &slots = m_pages.at(pageIndex).slots;
+    if (slotIndex < 0 || slotIndex >= slots.size()) {
+        return 0;
+    }
+    return slots.at(slotIndex).rotation;
+}
+
+bool ProjectState::pageSlotMirrored(int pageIndex, int slotIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return false;
+    }
+    const auto &slots = m_pages.at(pageIndex).slots;
+    if (slotIndex < 0 || slotIndex >= slots.size()) {
+        return false;
+    }
+    return slots.at(slotIndex).mirrored;
+}
+
+bool ProjectState::pageSlotFillCrop(int pageIndex, int slotIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return false;
+    }
+    const auto &slots = m_pages.at(pageIndex).slots;
+    if (slotIndex < 0 || slotIndex >= slots.size()) {
+        return false;
+    }
+    return slots.at(slotIndex).fillMode == FillMode::FillCrop;
+}
+
 int ProjectState::currentPageIndex() const
 {
     return m_currentPageIndex;

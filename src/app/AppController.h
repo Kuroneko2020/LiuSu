@@ -17,6 +17,9 @@ class AppController : public QObject {
     Q_PROPERTY(QString resolutionPreset READ resolutionPreset WRITE setResolutionPreset NOTIFY exportSettingsChanged)
     Q_PROPERTY(int customPpi READ customPpi WRITE setCustomPpi NOTIFY exportSettingsChanged)
     Q_PROPERTY(bool cropMarks READ cropMarks WRITE setCropMarks NOTIFY exportSettingsChanged)
+    Q_PROPERTY(QString exportScope READ exportScope NOTIFY exportSettingsChanged)
+    Q_PROPERTY(QString lastExportMessage READ lastExportMessage NOTIFY exportResultChanged)
+    Q_PROPERTY(bool lastExportSuccess READ lastExportSuccess NOTIFY exportResultChanged)
 
     Q_PROPERTY(QString autoLayoutPreset READ autoLayoutPreset WRITE setAutoLayoutPreset NOTIFY appSettingsChanged)
     Q_PROPERTY(QString defaultExportPath READ defaultExportPath WRITE setDefaultExportPath NOTIFY appSettingsChanged)
@@ -38,6 +41,8 @@ public:
     Q_INVOKABLE void batchImport();
     Q_INVOKABLE void exportCurrentPage();
     Q_INVOKABLE void exportQueue();
+    Q_INVOKABLE void chooseExportPath();
+    Q_INVOKABLE void runExport();
 
     [[nodiscard]] QString exportPath() const;
     void setExportPath(const QString &value);
@@ -51,6 +56,10 @@ public:
     void setCustomPpi(int value);
     [[nodiscard]] bool cropMarks() const;
     void setCropMarks(bool value);
+    [[nodiscard]] QString exportScope() const;
+
+    [[nodiscard]] QString lastExportMessage() const;
+    [[nodiscard]] bool lastExportSuccess() const;
 
     [[nodiscard]] QString autoLayoutPreset() const;
     void setAutoLayoutPreset(const QString &value);
@@ -69,20 +78,27 @@ public:
 
 signals:
     void requestNavigateToEditor();
+    void requestNavigateToExport();
     void exportSettingsChanged();
+    void exportResultChanged();
     void appSettingsChanged();
 
 private:
-    struct ExportSettings { QString path{"~/Pictures"}; QString format{"JPG"}; QString naming{"组合命名"}; QString resolution{"300 PPI"}; int customPpi{300}; bool cropMarks{false}; };
-    struct SettingsModel { QString autoPreset{"均衡填充"}; QString defaultPath{"~/Pictures"}; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; bool defaultCrop{false}; QString theme{"系统"}; };
+    struct ExportSettings { QString path; QString format{"JPG"}; QString naming{"组合命名"}; QString resolution{"300 PPI"}; int customPpi{300}; bool cropMarks{false}; ExportService::Scope scope{ExportService::Scope::CurrentPage}; };
+    struct SettingsModel { QString autoPreset{"均衡填充"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; bool defaultCrop{false}; QString theme{"系统"}; };
 
     [[nodiscard]] static TemplateType toTemplateType(int choice);
+    void loadSettings();
+    void persistExportDefaults() const;
 
     ProjectState m_project;
     ImageService m_imageService;
     ExportService m_exportService;
     ExportSettings m_exportSettings;
     SettingsModel m_settings;
+
+    QString m_lastExportMessage;
+    bool m_lastExportSuccess = false;
 };
 
 } // namespace pte

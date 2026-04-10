@@ -16,6 +16,9 @@ ApplicationWindow {
         function onRequestNavigateToEditor() {
             root.currentPage = 1
         }
+        function onRequestNavigateToExport() {
+            root.currentPage = 2
+        }
     }
 
     header: ToolBar {

@@ -1,16 +1,40 @@
 #pragma once
 
 #include <QObject>
+#include <QStringList>
 
 namespace pte {
+
+class ProjectState;
 
 class ExportService : public QObject {
     Q_OBJECT
 public:
+    enum class Scope { CurrentPage, Queue };
+    Q_ENUM(Scope)
+
+    struct Request {
+        QString outputDir;
+        QString format;          // JPG/PNG
+        QString namingRule;      // 组合命名/日期-序号
+        QString resolutionPreset; // 300 PPI / 600 PPI / 自定义 PPI
+        int customPpi = 300;
+        bool cropMarks = false;
+        Scope scope = Scope::CurrentPage;
+    };
+
+    struct Result {
+        bool success = false;
+        QString message;
+        QStringList exportedFiles;
+    };
+
     explicit ExportService(QObject *parent = nullptr);
 
-    Q_INVOKABLE bool exportCurrentPagePlaceholder();
-    Q_INVOKABLE bool exportQueuePlaceholder();
+    Result exportPages(const ProjectState &project, const Request &request) const;
+
+private:
+    [[nodiscard]] int resolvePpi(const Request &request) const;
 };
 
 } // namespace pte

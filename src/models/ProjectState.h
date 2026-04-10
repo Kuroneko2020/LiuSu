@@ -60,6 +60,14 @@ public:
     [[nodiscard]] int pageCount() const;
     [[nodiscard]] bool isPageValid(int pageIndex) const;
 
+    [[nodiscard]] int pageTemplateChoice(int pageIndex) const;
+    [[nodiscard]] int pageSlotCount(int pageIndex) const;
+    [[nodiscard]] bool pageSlotHasImage(int pageIndex, int slotIndex) const;
+    [[nodiscard]] QString pageSlotImagePath(int pageIndex, int slotIndex) const;
+    [[nodiscard]] int pageSlotRotation(int pageIndex, int slotIndex) const;
+    [[nodiscard]] bool pageSlotMirrored(int pageIndex, int slotIndex) const;
+    [[nodiscard]] bool pageSlotFillCrop(int pageIndex, int slotIndex) const;
+
 signals:
     void pagesChanged();
     void currentPageChanged();
