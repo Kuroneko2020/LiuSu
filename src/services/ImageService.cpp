@@ -3,17 +3,39 @@
 
 #include <QCollator>
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QDir>
 #include <QFileDialog>
+#include <QFile>
 #include <QFileInfo>
 #include <QImageReader>
 #include <QStandardPaths>
 
 namespace pte {
 
+namespace {
+void cleanupCacheDir(const QString &dirPath, int days)
+{
+    QDir dir(dirPath);
+    if (!dir.exists()) {
+        return;
+    }
+    const QDateTime threshold = QDateTime::currentDateTimeUtc().addDays(-days);
+    const auto files = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+    for (const auto &fi : files) {
+        if (fi.lastModified().toUTC() < threshold) {
+            QFile::remove(fi.absoluteFilePath());
+        }
+    }
+}
+}
+
 ImageService::ImageService(QObject *parent)
     : QObject(parent)
 {
+    const QString tempRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
+    cleanupCacheDir(tempRoot + QStringLiteral("/cache"), 14);
+    cleanupCacheDir(tempRoot + QStringLiteral("/thumbs"), 14);
 }
 
 ImageResource ImageService::importSingleImage()

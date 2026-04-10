@@ -26,6 +26,7 @@ class AppController : public QObject {
     Q_PROPERTY(bool rememberLastPath READ rememberLastPath WRITE setRememberLastPath NOTIFY appSettingsChanged)
     Q_PROPERTY(QString defaultExportFormat READ defaultExportFormat WRITE setDefaultExportFormat NOTIFY appSettingsChanged)
     Q_PROPERTY(QString defaultExportResolution READ defaultExportResolution WRITE setDefaultExportResolution NOTIFY appSettingsChanged)
+    Q_PROPERTY(int defaultCustomPpi READ defaultCustomPpi WRITE setDefaultCustomPpi NOTIFY appSettingsChanged)
     Q_PROPERTY(bool defaultCropMarks READ defaultCropMarks WRITE setDefaultCropMarks NOTIFY appSettingsChanged)
     Q_PROPERTY(QString themePlaceholder READ themePlaceholder WRITE setThemePlaceholder NOTIFY appSettingsChanged)
 
@@ -44,6 +45,7 @@ public:
     Q_INVOKABLE void chooseExportPath();
     Q_INVOKABLE void runExport();
     Q_INVOKABLE QString pageThumbnailSource(int pageIndex);
+    Q_INVOKABLE void confirmStartNewSession(bool accepted);
 
     [[nodiscard]] QString exportPath() const;
     void setExportPath(const QString &value);
@@ -72,6 +74,8 @@ public:
     void setDefaultExportFormat(const QString &value);
     [[nodiscard]] QString defaultExportResolution() const;
     void setDefaultExportResolution(const QString &value);
+    [[nodiscard]] int defaultCustomPpi() const;
+    void setDefaultCustomPpi(int value);
     [[nodiscard]] bool defaultCropMarks() const;
     void setDefaultCropMarks(bool value);
     [[nodiscard]] QString themePlaceholder() const;
@@ -80,6 +84,7 @@ public:
 signals:
     void requestNavigateToEditor();
     void requestNavigateToExport();
+    void requestConfirmNewSession();
     void exportSettingsChanged();
     void exportResultChanged();
     void thumbnailsChanged();
@@ -87,7 +92,7 @@ signals:
 
 private:
     struct ExportSettings { QString path; QString format{"JPG"}; QString naming{"组合命名"}; QString resolution{"300 PPI"}; int customPpi{300}; bool cropMarks{false}; ExportService::Scope scope{ExportService::Scope::CurrentPage}; };
-    struct SettingsModel { QString autoPreset{"均衡填充"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; bool defaultCrop{false}; QString theme{"系统"}; };
+    struct SettingsModel { QString autoPreset{"均衡填充"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; };
 
     [[nodiscard]] static TemplateType toTemplateType(int choice);
     void loadSettings();
@@ -102,6 +107,8 @@ private:
     QString m_lastExportMessage;
     bool m_lastExportSuccess = false;
     int m_thumbnailVersion = 0;
+    int m_pendingTemplateChoice = 2;
+    bool m_pendingAutoMode = false;
 };
 
 } // namespace pte

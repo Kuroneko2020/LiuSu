@@ -17,15 +17,16 @@ Rectangle {
             Layout.fillHeight: true
             orientation: ListView.Horizontal
             spacing: 8
-            model: appController.project.pageCount
+            model: appController.project.visiblePageCount()
 
             delegate: Rectangle {
                 required property int index
                 width: 90
                 height: 100
                 radius: 6
-                border.width: appController.project.currentPageIndex === index ? 2 : 1
-                border.color: appController.project.currentPageIndex === index ? "#4f7cff" : "#bbbbbb"
+                property int pageIndex: appController.project.visiblePageIndexAt(index)
+                border.width: appController.project.currentPageIndex === pageIndex ? 2 : 1
+                border.color: appController.project.currentPageIndex === pageIndex ? "#4f7cff" : "#bbbbbb"
                 color: "#ffffff"
                 clip: true
 
@@ -42,20 +43,20 @@ Rectangle {
 
                         Image {
                             anchors.fill: parent
-                            source: appController.pageThumbnailSource(index)
+                            source: appController.pageThumbnailSource(pageIndex)
                             fillMode: Image.PreserveAspectFit
                         }
                     }
 
                     Label {
-                        text: "第" + (index + 1) + "页"
+                        text: "第" + (pageIndex + 1) + "页"
                         font.pixelSize: 11
                     }
                 }
 
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: appController.project.switchToPage(index)
+                    onClicked: appController.project.switchToPage(pageIndex)
                 }
             }
         }

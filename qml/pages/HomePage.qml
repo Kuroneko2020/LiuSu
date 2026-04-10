@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "../components"
 
+
 Item {
     id: home
     focus: true
@@ -10,6 +11,23 @@ Item {
 
     property int expandedTemplate: -1
     property bool suppressNextCollapse: false
+
+    Dialog {
+        id: confirmNewTaskDialog
+        title: "开始新任务"
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onAccepted: appController.confirmStartNewSession(true)
+        onRejected: appController.confirmStartNewSession(false)
+        Label { text: "开始新任务将清空当前排版，是否继续？"; wrapMode: Text.WordWrap }
+    }
+
+    Connections {
+        target: appController
+        function onRequestConfirmNewSession() {
+            confirmNewTaskDialog.open()
+        }
+    }
 
     MouseArea {
         anchors.fill: parent

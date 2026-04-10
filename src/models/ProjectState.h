@@ -68,7 +68,9 @@ public:
     [[nodiscard]] int currentPageIndex() const;
     [[nodiscard]] int pageCount() const;
     [[nodiscard]] bool isPageValid(int pageIndex) const;
-    [[nodiscard]] bool hasValidPages() const;
+    Q_INVOKABLE bool hasValidPages() const;
+    Q_INVOKABLE int visiblePageCount() const;
+    Q_INVOKABLE int visiblePageIndexAt(int visibleIndex) const;
 
     [[nodiscard]] int pageTemplateChoice(int pageIndex) const;
     [[nodiscard]] int pageSlotCount(int pageIndex) const;

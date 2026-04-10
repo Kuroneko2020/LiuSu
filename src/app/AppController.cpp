@@ -33,12 +33,25 @@ ProjectState *AppController::project() { return &m_project; }
 
 void AppController::startManualLayout(int choice)
 {
+    m_pendingTemplateChoice = choice;
+    m_pendingAutoMode = false;
+    if (m_project.hasValidPages()) {
+        emit requestConfirmNewSession();
+        return;
+    }
     m_project.startNewSession(toTemplateType(choice));
     emit requestNavigateToEditor();
 }
 
 void AppController::startAutoLayout(int choice)
 {
+    m_pendingTemplateChoice = choice;
+    m_pendingAutoMode = true;
+    if (m_project.hasValidPages()) {
+        emit requestConfirmNewSession();
+        return;
+    }
+
     m_project.startNewSession(toTemplateType(choice));
 
     const auto images = m_imageService.importMultipleImages();
@@ -82,6 +95,24 @@ void AppController::startAutoLayout(int choice)
 
     m_exportSettings.scope = ExportService::Scope::Queue;
     runExport();
+}
+
+
+void AppController::confirmStartNewSession(bool accepted)
+{
+    if (!accepted) {
+        m_pendingAutoMode = false;
+        return;
+    }
+
+    if (m_pendingAutoMode) {
+        m_project.startNewSession(toTemplateType(m_pendingTemplateChoice));
+        startAutoLayout(m_pendingTemplateChoice);
+    } else {
+        m_project.startNewSession(toTemplateType(m_pendingTemplateChoice));
+        emit requestNavigateToEditor();
+    }
+    m_pendingAutoMode = false;
 }
 
 void AppController::createBlankPage(int choice)
@@ -201,6 +232,8 @@ QString AppController::defaultExportFormat() const { return m_settings.defaultFo
 void AppController::setDefaultExportFormat(const QString &value) { if (m_settings.defaultFormat == value) return; m_settings.defaultFormat = value; m_exportSettings.format = value; persistExportDefaults(); emit appSettingsChanged(); emit exportSettingsChanged(); }
 QString AppController::defaultExportResolution() const { return m_settings.defaultResolution; }
 void AppController::setDefaultExportResolution(const QString &value) { if (m_settings.defaultResolution == value) return; m_settings.defaultResolution = value; m_exportSettings.resolution = value; persistExportDefaults(); emit appSettingsChanged(); emit exportSettingsChanged(); }
+int AppController::defaultCustomPpi() const { return m_settings.defaultCustomPpi; }
+void AppController::setDefaultCustomPpi(int value) { if (m_settings.defaultCustomPpi == value) return; m_settings.defaultCustomPpi = qBound(72, value, 1200); m_exportSettings.customPpi = m_settings.defaultCustomPpi; persistExportDefaults(); emit appSettingsChanged(); emit exportSettingsChanged(); }
 bool AppController::defaultCropMarks() const { return m_settings.defaultCrop; }
 void AppController::setDefaultCropMarks(bool value) { if (m_settings.defaultCrop == value) return; m_settings.defaultCrop = value; m_exportSettings.cropMarks = value; persistExportDefaults(); emit appSettingsChanged(); emit exportSettingsChanged(); }
 QString AppController::themePlaceholder() const { return m_settings.theme; }
@@ -222,11 +255,13 @@ void AppController::loadSettings()
     m_settings.defaultFormat = settings.value(QStringLiteral("export/defaultFormat"), QStringLiteral("JPG")).toString();
     m_settings.defaultResolution = settings.value(QStringLiteral("export/defaultResolution"), QStringLiteral("300 PPI")).toString();
     m_settings.defaultCrop = settings.value(QStringLiteral("export/defaultCropMarks"), false).toBool();
+    m_settings.defaultCustomPpi = settings.value(QStringLiteral("export/defaultCustomPpi"), 300).toInt();
 
     m_exportSettings.path = m_settings.defaultPath;
     m_exportSettings.format = m_settings.defaultFormat;
     m_exportSettings.resolution = m_settings.defaultResolution;
     m_exportSettings.cropMarks = m_settings.defaultCrop;
+    m_exportSettings.customPpi = m_settings.defaultCustomPpi;
 }
 
 void AppController::persistExportDefaults() const
@@ -238,6 +273,7 @@ void AppController::persistExportDefaults() const
     settings.setValue(QStringLiteral("export/defaultFormat"), m_settings.defaultFormat);
     settings.setValue(QStringLiteral("export/defaultResolution"), m_settings.defaultResolution);
     settings.setValue(QStringLiteral("export/defaultCropMarks"), m_settings.defaultCrop);
+    settings.setValue(QStringLiteral("export/defaultCustomPpi"), m_settings.defaultCustomPpi);
 }
 
 } // namespace pte

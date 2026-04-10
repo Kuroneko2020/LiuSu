@@ -44,6 +44,15 @@ ScrollView {
             onActivated: appController.defaultExportResolution = currentText
         }
 
+
+        SpinBox {
+            Layout.fillWidth: true
+            from: 72
+            to: 1200
+            value: appController.defaultCustomPpi
+            enabled: appController.defaultExportResolution === "自定义 PPI"
+            onValueModified: appController.defaultCustomPpi = value
+        }
         CheckBox {
             text: "默认裁切标记"
             checked: appController.defaultCropMarks
