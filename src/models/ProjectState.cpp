@@ -12,6 +12,16 @@ bool PageState::isValid() const
     return false;
 }
 
+QString PageState::previewImagePath() const
+{
+    for (const auto &slot : slots) {
+        if (slot.hasImage) {
+            return slot.imagePath;
+        }
+    }
+    return {};
+}
+
 ProjectState::ProjectState(QObject *parent)
     : QObject(parent)
 {
@@ -42,9 +52,14 @@ void ProjectState::deleteCurrentPage()
     if (m_currentPageIndex < 0 || m_currentPageIndex >= m_pages.size()) {
         return;
     }
+    const TemplateType removedType = m_pages.at(m_currentPageIndex).templateType;
     m_pages.remove(m_currentPageIndex);
     if (m_pages.isEmpty()) {
-        m_currentPageIndex = -1;
+        PageState page;
+        page.templateType = removedType;
+        page.slots.resize(slotCount(removedType));
+        m_pages.append(page);
+        m_currentPageIndex = 0;
     } else if (m_currentPageIndex >= m_pages.size()) {
         m_currentPageIndex = m_pages.size() - 1;
     }
@@ -69,6 +84,12 @@ int ProjectState::currentTemplateSlotCount() const
     return page ? page->slots.size() : 0;
 }
 
+int ProjectState::currentTemplateChoice() const
+{
+    const auto *page = currentPage();
+    return page ? static_cast<int>(page->templateType) : 2;
+}
+
 bool ProjectState::slotHasImage(int slotIndex) const
 {
     const auto *page = currentPage();
@@ -87,6 +108,15 @@ bool ProjectState::slotSelected(int slotIndex) const
     return page->slots.at(slotIndex).selected;
 }
 
+QString ProjectState::slotImagePath(int slotIndex) const
+{
+    const auto *page = currentPage();
+    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
+        return {};
+    }
+    return page->slots.at(slotIndex).imagePath;
+}
+
 QString ProjectState::slotImageLabel(int slotIndex) const
 {
     const auto *page = currentPage();
@@ -95,6 +125,33 @@ QString ProjectState::slotImageLabel(int slotIndex) const
     }
     const auto &slot = page->slots.at(slotIndex);
     return slot.hasImage ? QStringLiteral("图片 %1").arg(slotIndex + 1) : QString();
+}
+
+int ProjectState::slotRotation(int slotIndex) const
+{
+    const auto *page = currentPage();
+    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
+        return 0;
+    }
+    return page->slots.at(slotIndex).rotation;
+}
+
+bool ProjectState::slotMirrored(int slotIndex) const
+{
+    const auto *page = currentPage();
+    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
+        return false;
+    }
+    return page->slots.at(slotIndex).mirrored;
+}
+
+bool ProjectState::slotFillCrop(int slotIndex) const
+{
+    const auto *page = currentPage();
+    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
+        return false;
+    }
+    return page->slots.at(slotIndex).fillMode == FillMode::FillCrop;
 }
 
 void ProjectState::selectSlot(int slotIndex)
@@ -120,7 +177,9 @@ void ProjectState::assignImageToSlot(int slotIndex, const QString &path)
     auto &slot = page->slots[slotIndex];
     slot.hasImage = true;
     slot.imagePath = path;
-    selectSlot(slotIndex);
+    if (!slot.selected) {
+        selectSlot(slotIndex);
+    }
 
     emit pagesChanged();
     emit slotsChanged();
@@ -168,6 +227,34 @@ bool ProjectState::selectedSlotInFillCrop() const
         return false;
     }
     return page->slots.at(index).fillMode == FillMode::FillCrop;
+}
+
+int ProjectState::findNextAvailableSlot() const
+{
+    const auto *page = currentPage();
+    if (!page) {
+        return -1;
+    }
+
+    const int selectedIndex = selectedSlotIndex();
+    if (selectedIndex >= 0 && selectedIndex < page->slots.size() && !page->slots.at(selectedIndex).hasImage) {
+        return selectedIndex;
+    }
+
+    for (int i = 0; i < page->slots.size(); ++i) {
+        if (!page->slots.at(i).hasImage) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+QString ProjectState::pagePreviewImagePath(int pageIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return {};
+    }
+    return m_pages.at(pageIndex).previewImagePath();
 }
 
 int ProjectState::currentPageIndex() const

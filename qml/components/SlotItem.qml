@@ -5,21 +5,49 @@ import QtQuick.Layouts
 Rectangle {
     id: slotRoot
     radius: 8
-    color: hasImage ? "#dfe8ff" : "#f0f0f0"
+    color: hasImage ? "#111" : "#f0f0f0"
     border.color: selected ? "#4f7cff" : "#c5c5c5"
     border.width: selected ? 2 : 1
+    clip: true
 
     property int slotIndex: -1
     property bool hasImage: false
     property bool selected: false
     property string imageLabel: ""
+    property string imagePath: ""
     property bool fillCropMode: false
+    property int rotationDegrees: 0
+    property bool mirrored: false
 
     signal addClicked()
     signal slotClicked()
     signal rotateClicked()
     signal mirrorClicked()
     signal toggleFillMode()
+
+    Image {
+        id: photo
+        anchors.fill: parent
+        anchors.margins: 2
+        source: imagePath
+        visible: hasImage && source !== ""
+        fillMode: fillCropMode ? Image.PreserveAspectCrop : Image.PreserveAspectFit
+        smooth: true
+        cache: true
+        transform: [
+            Rotation {
+                angle: slotRoot.rotationDegrees
+                origin.x: photo.width / 2
+                origin.y: photo.height / 2
+            },
+            Scale {
+                xScale: slotRoot.mirrored ? -1 : 1
+                yScale: 1
+                origin.x: photo.width / 2
+                origin.y: photo.height / 2
+            }
+        ]
+    }
 
     MouseArea {
         anchors.fill: parent
@@ -28,8 +56,9 @@ Rectangle {
 
     Label {
         anchors.centerIn: parent
-        text: hasImage ? imageLabel : "+"
-        font.pixelSize: hasImage ? 16 : 36
+        visible: !hasImage
+        text: "+"
+        font.pixelSize: 36
         color: "#4b4b4b"
     }
 
@@ -66,7 +95,7 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 6
-        Text { anchors.centerIn: parent; text: "内容拖动入口"; font.pixelSize: 10 }
+        Text { anchors.centerIn: parent; text: "内容拖动入口"; font.pixelSize: 10; color: "#eee" }
 
         MouseArea {
             anchors.fill: parent

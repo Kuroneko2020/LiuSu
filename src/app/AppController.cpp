@@ -29,14 +29,34 @@ void AppController::createBlankPage(int choice)
 
 void AppController::importToSlot(int slotIndex)
 {
-    m_project.assignImageToSlot(slotIndex, m_imageService.importSinglePlaceholder());
+    const QString path = m_imageService.importSingleImage();
+    if (path.isEmpty()) {
+        return;
+    }
+    m_project.assignImageToSlot(slotIndex, path);
 }
 
 void AppController::batchImport()
 {
-    const auto images = m_imageService.importBatchPlaceholder(m_project.currentTemplateSlotCount());
-    for (int i = 0; i < images.size(); ++i) {
-        m_project.assignImageToSlot(i, images.at(i));
+    const QStringList images = m_imageService.importMultipleImages();
+    if (images.isEmpty()) {
+        return;
+    }
+
+    int imported = 0;
+    while (imported < images.size()) {
+        int targetSlot = m_project.findNextAvailableSlot();
+        if (targetSlot < 0) {
+            m_project.createPage(toTemplateType(m_project.currentTemplateChoice()));
+            targetSlot = m_project.findNextAvailableSlot();
+        }
+
+        if (targetSlot < 0) {
+            break;
+        }
+
+        m_project.assignImageToSlot(targetSlot, images.at(imported));
+        ++imported;
     }
 }
 

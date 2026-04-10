@@ -1,68 +1,63 @@
-# 第一阶段实现计划（Qt 6 + C++ + QML）
+# 实现计划（更新到 Phase-2）
 
-## 1. 目录结构与分层
+## 1. 当前分层（保持不变）
 
 ```text
 src/
-  app/        # 应用入口、路由、控制器
-  models/     # 状态模型（项目、页面、槽位、导出、设置）
-  services/   # 图像导入处理、导出服务（接口先行）
-  ui/         # QML 暴露桥接对象（ViewModel / Controller）
+  app/        # 应用入口、路由、控制器（AppController）
+  models/     # 状态模型（Project/Page/Slot）
+  services/   # 图像导入处理、导出服务
+  ui/         # 预留 ViewModel/Adapter
 qml/
-  pages/      # Home/Edit/Export/Settings 页面
-  components/ # 复用组件（模板卡、槽位、队列等）
+  pages/      # Home/Edit/Export/Settings
+  components/ # TemplateCard/TemplateCanvas/SlotItem/FilmStrip
 docs/
 assets/
 ```
 
-设计理由：
-- QML 专注展示与交互编排。
-- C++ 持有核心状态，便于后续单元测试与性能优化。
-- `services` 将图像/导出引擎边界前置，避免后期重构成本。
+## 2. Phase-2 实施内容
 
-## 2. 第一阶段开发清单
+### 2.1 图片导入（真实）
+- `ImageService` 使用 `QFileDialog` 打开本地文件选择器。
+- 单图导入：返回用户选定图片路径。
+- 批量导入：多选后按文件名排序并返回有效列表。
+- 过滤格式：JPG/JPEG/PNG/WebP/BMP/TIFF（HEIC/HEIF 放在过滤器里但依赖系统插件）。
 
-### 2.1 工程初始化
-- CMake 配置 Qt 6（Core/Gui/Qml/Quick/QuickControls2）。
-- 创建主程序入口 `main.cpp`，加载 `qml/Main.qml`。
-- 注册 C++ 控制器到 QML（`AppController`）。
+### 2.2 EXIF 方向修正
+- 在 `ImageService` 内统一通过 `QImageReader::setAutoTransform(true)` 读取校验。
+- 导入前先验证可读并触发自动方向变换链路（主要覆盖 JPG/JPEG 手机照片方向问题）。
 
-### 2.2 状态模型
-- `TemplateType`（Two/Four/Six）。
-- `SlotState`：槽位图片状态、选中、旋转、镜像、填充模式、拖拽占位接口。
-- `PageState`：模板类型、槽位列表、有效页判定。
-- `ProjectState`：页面队列、当前页索引。
-- `ExportSettings` 与 `AppSettings`：导出与应用设置参数。
+### 2.3 状态模型增强
+- `ProjectState` 新增槽位图像路径、旋转、镜像、填充模式读取接口。
+- 批量填充支持“当前页空槽开始、当前页满则自动建下一页、不覆盖已存在图片”。
+- 删除最后一页时自动补一页空白，保证编辑器可继续使用。
 
-### 2.3 服务边界
-- `ImageService`：
-  - 单图导入接口（槽位）
-  - 批量导入接口（编辑页入口）
-  - 未来扩展：格式识别、EXIF 纠正、内部位图标准化
-- `ExportService`：
-  - 导出当前页/全队列接口
-  - 第一阶段返回占位结果并打通调用路径
+### 2.4 编辑页真实显示
+- `SlotItem` 使用 `Image` 组件渲染真实图片。
+- “完整放入/铺满裁切”映射为 `PreserveAspectFit/PreserveAspectCrop`。
+- 旋转和镜像使用 QML 变换，状态由 C++ 模型驱动。
+- 空槽位保持加号和单图导入入口。
 
-### 2.4 QML 页面
-- `Main.qml`：顶部导航 + `StackLayout` 页面切换。
-- `HomePage.qml`：模板卡片展开/收起交互。
-- `EditorPage.qml`：预览区、队列栏、工具按钮、批量导入入口。
-- `ExportPage.qml`：导出参数表单。
-- `SettingsPage.qml`：设置参数表单占位。
+### 2.5 胶片栏联动
+- 每页显示基于首张图片的简化缩略图。
+- 支持当前页高亮与点击切页。
+- 新建空白页与删除页流程可用。
 
-### 2.5 编辑器组件
-- `TemplateCanvas.qml`：根据模板渲染槽位网格。
-- `SlotItem.qml`：空槽位加号、有图槽位选中态、操作条、拖拽入口占位。
-- `FilmStrip.qml`：底部页面队列、当前页高亮、导出全队列按钮。
+## 3. 暂不实现（按范围控制）
+- 真实导出引擎与裁切标记绘制。
+- HEIC/HEIF 稳定完整支持（仅提示依赖系统插件）。
+- 槽位交换拖拽落地。
+- 铺满裁切模式下手动构图偏移。
+- 设置页持久化。
 
-## 3. 平台与依赖说明
-- 依赖：Qt 6.5+（建议），需要 `qtdeclarative` 与 `qtquickcontrols2`。
-- HEIC/HEIF 实际解码可能依赖系统插件（后续阶段接入）。
-- 若本地缺少 Qt 开发包，`cmake` 配置会失败（环境问题，不影响代码结构）。
+## 4. 依赖与平台注意事项
+- 需要 Qt 6.5+：Core/Gui/Qml/Quick/QuickControls2/Widgets。
+- 文件选择器使用 `QFileDialog`，在不同平台样式由系统决定。
+- HEIC/HEIF 能否成功读取取决于系统编解码插件，不影响常见格式导入。
 
-## 4. 第二阶段建议
-1. 接入真实文件选择器与图片解码管线。
-2. 完成槽位交换拖拽与图像偏移拖拽。
-3. 落地导出引擎（PPI、裁切标记、命名规则）。
-4. 增加项目持久化（自动保存/恢复）。
-5. 补充模型单测与关键交互自动化测试。
+## 5. Phase-3 建议
+1. 图像标准化缓存（统一内部位图）与内存管理。
+2. 铺满裁切手动偏移和手势交互。
+3. 槽位交换拖拽。
+4. 导出引擎（分辨率、命名规则、裁切标记）。
+5. 项目状态持久化与恢复。

@@ -21,6 +21,7 @@ struct PageState {
     QVector<SlotState> slots;
 
     [[nodiscard]] bool isValid() const;
+    [[nodiscard]] QString previewImagePath() const;
 };
 
 class ProjectState : public QObject {
@@ -36,9 +37,14 @@ public:
     Q_INVOKABLE void switchToPage(int pageIndex);
 
     Q_INVOKABLE int currentTemplateSlotCount() const;
+    Q_INVOKABLE int currentTemplateChoice() const;
     Q_INVOKABLE bool slotHasImage(int slotIndex) const;
     Q_INVOKABLE bool slotSelected(int slotIndex) const;
+    Q_INVOKABLE QString slotImagePath(int slotIndex) const;
     Q_INVOKABLE QString slotImageLabel(int slotIndex) const;
+    Q_INVOKABLE int slotRotation(int slotIndex) const;
+    Q_INVOKABLE bool slotMirrored(int slotIndex) const;
+    Q_INVOKABLE bool slotFillCrop(int slotIndex) const;
 
     Q_INVOKABLE void selectSlot(int slotIndex);
     Q_INVOKABLE void assignImageToSlot(int slotIndex, const QString &path);
@@ -46,6 +52,9 @@ public:
     Q_INVOKABLE void mirrorSelectedSlot();
     Q_INVOKABLE void toggleSelectedSlotFillMode();
     Q_INVOKABLE bool selectedSlotInFillCrop() const;
+
+    Q_INVOKABLE int findNextAvailableSlot() const;
+    Q_INVOKABLE QString pagePreviewImagePath(int pageIndex) const;
 
     [[nodiscard]] int currentPageIndex() const;
     [[nodiscard]] int pageCount() const;

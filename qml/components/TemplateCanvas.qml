@@ -32,7 +32,10 @@ Rectangle {
                 hasImage: appController.project.slotHasImage(index)
                 selected: appController.project.slotSelected(index)
                 imageLabel: appController.project.slotImageLabel(index)
-                fillCropMode: appController.project.selectedSlotInFillCrop() && selected
+                imagePath: appController.project.slotImagePath(index)
+                fillCropMode: appController.project.slotFillCrop(index)
+                rotationDegrees: appController.project.slotRotation(index)
+                mirrored: appController.project.slotMirrored(index)
 
                 onAddClicked: appController.importToSlot(slotIndex)
                 onSlotClicked: appController.project.selectSlot(slotIndex)

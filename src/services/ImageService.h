@@ -10,10 +10,12 @@ class ImageService : public QObject {
 public:
     explicit ImageService(QObject *parent = nullptr);
 
-    Q_INVOKABLE QString importSinglePlaceholder();
-    Q_INVOKABLE QStringList importBatchPlaceholder(int count);
+    Q_INVOKABLE QString importSingleImage();
+    Q_INVOKABLE QStringList importMultipleImages();
 
     [[nodiscard]] QStringList supportedInputFormats() const;
+    [[nodiscard]] QString fileDialogFilter() const;
+    [[nodiscard]] QString heifSupportNote() const;
 };
 
 } // namespace pte
