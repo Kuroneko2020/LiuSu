@@ -3,6 +3,7 @@
 #include "models/Types.h"
 
 #include <QObject>
+#include <QPointF>
 #include <QVector>
 
 namespace pte {
@@ -14,6 +15,8 @@ struct SlotState {
     int rotation = 0;
     bool mirrored = false;
     FillMode fillMode = FillMode::FitInside;
+    QPointF cropOffset = QPointF(0.0, 0.0);
+    qreal zoom = 1.0;
 };
 
 struct PageState {
@@ -21,7 +24,6 @@ struct PageState {
     QVector<SlotState> slots;
 
     [[nodiscard]] bool isValid() const;
-    [[nodiscard]] QString previewImagePath() const;
 };
 
 class ProjectState : public QObject {
@@ -41,10 +43,12 @@ public:
     Q_INVOKABLE bool slotHasImage(int slotIndex) const;
     Q_INVOKABLE bool slotSelected(int slotIndex) const;
     Q_INVOKABLE QString slotImagePath(int slotIndex) const;
-    Q_INVOKABLE QString slotImageLabel(int slotIndex) const;
     Q_INVOKABLE int slotRotation(int slotIndex) const;
     Q_INVOKABLE bool slotMirrored(int slotIndex) const;
     Q_INVOKABLE bool slotFillCrop(int slotIndex) const;
+    Q_INVOKABLE qreal slotOffsetX(int slotIndex) const;
+    Q_INVOKABLE qreal slotOffsetY(int slotIndex) const;
+    Q_INVOKABLE QRectF slotRectNormalized(int slotIndex) const;
 
     Q_INVOKABLE void selectSlot(int slotIndex);
     Q_INVOKABLE void assignImageToSlot(int slotIndex, const QString &path);
@@ -52,9 +56,10 @@ public:
     Q_INVOKABLE void mirrorSelectedSlot();
     Q_INVOKABLE void toggleSelectedSlotFillMode();
     Q_INVOKABLE bool selectedSlotInFillCrop() const;
+    Q_INVOKABLE void adjustSelectedSlotOffset(qreal dx, qreal dy);
+    Q_INVOKABLE void swapOrMoveSlots(int fromIndex, int toIndex);
 
     Q_INVOKABLE int findNextAvailableSlot() const;
-    Q_INVOKABLE QString pagePreviewImagePath(int pageIndex) const;
 
     [[nodiscard]] int currentPageIndex() const;
     [[nodiscard]] int pageCount() const;
@@ -67,6 +72,8 @@ public:
     [[nodiscard]] int pageSlotRotation(int pageIndex, int slotIndex) const;
     [[nodiscard]] bool pageSlotMirrored(int pageIndex, int slotIndex) const;
     [[nodiscard]] bool pageSlotFillCrop(int pageIndex, int slotIndex) const;
+    [[nodiscard]] QPointF pageSlotOffset(int pageIndex, int slotIndex) const;
+    [[nodiscard]] QRectF pageSlotRectNormalized(int pageIndex, int slotIndex) const;
 
 signals:
     void pagesChanged();

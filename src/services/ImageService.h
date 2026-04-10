@@ -16,6 +16,9 @@ public:
     [[nodiscard]] QStringList supportedInputFormats() const;
     [[nodiscard]] QString fileDialogFilter() const;
     [[nodiscard]] QString heifSupportNote() const;
+
+private:
+    [[nodiscard]] QString normalizeAndCache(const QString &path) const;
 };
 
 } // namespace pte

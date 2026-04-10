@@ -56,8 +56,8 @@ Rectangle {
                 Grid {
                     anchors.fill: parent
                     anchors.margins: 8
-                    columns: card.slotCount <= 2 ? 1 : (card.slotCount === 4 ? 2 : 3)
-                    rows: card.slotCount <= 2 ? 2 : 2
+                    columns: card.slotCount <= 2 ? 2 : (card.slotCount === 4 ? 2 : 3)
+                    rows: card.slotCount <= 2 ? 1 : 2
                     spacing: 4
 
                     Repeater {

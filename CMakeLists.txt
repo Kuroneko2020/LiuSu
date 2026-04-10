@@ -17,6 +17,7 @@ qt_add_executable(photo_template_editor
     src/models/ProjectState.cpp
     src/services/ImageService.cpp
     src/services/ExportService.cpp
+    src/services/TemplateLayout.cpp
 )
 
 target_include_directories(photo_template_editor PRIVATE src)

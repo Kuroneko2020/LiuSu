@@ -32,6 +32,7 @@ public:
     explicit ExportService(QObject *parent = nullptr);
 
     Result exportPages(const ProjectState &project, const Request &request) const;
+    QString renderPageThumbnail(const ProjectState &project, int pageIndex, int width = 240, int height = 160) const;
 
 private:
     [[nodiscard]] int resolvePpi(const Request &request) const;

@@ -1,4 +1,5 @@
 #include "app/AppController.h"
+#include <QDir>
 
 #include <QFileDialog>
 #include <QSettings>
@@ -21,6 +22,9 @@ AppController::AppController(QObject *parent)
     if (m_exportSettings.path.isEmpty()) {
         m_exportSettings.path = m_settings.defaultPath;
     }
+
+    connect(&m_project, &ProjectState::slotsChanged, this, &AppController::thumbnailsChanged);
+    connect(&m_project, &ProjectState::pagesChanged, this, &AppController::thumbnailsChanged);
 }
 
 ProjectState *AppController::project() { return &m_project; }
@@ -34,8 +38,41 @@ void AppController::startManualLayout(int choice)
 void AppController::startAutoLayout(int choice)
 {
     m_project.ensureInitialPage(toTemplateType(choice));
-    batchImport();
-    emit requestNavigateToEditor();
+
+    const QStringList images = m_imageService.importMultipleImages();
+    if (images.isEmpty()) {
+        m_lastExportSuccess = false;
+        m_lastExportMessage = QStringLiteral("自动模式已取消：未选择图片。");
+        emit exportResultChanged();
+        return;
+    }
+
+    int imported = 0;
+    while (imported < images.size()) {
+        int targetSlot = m_project.findNextAvailableSlot();
+        if (targetSlot < 0) {
+            m_project.createPage(toTemplateType(m_project.currentTemplateChoice()));
+            targetSlot = m_project.findNextAvailableSlot();
+        }
+        if (targetSlot < 0) {
+            break;
+        }
+        m_project.assignImageToSlot(targetSlot, images.at(imported));
+        ++imported;
+    }
+
+    if (m_exportSettings.path.isEmpty() || !QDir(m_exportSettings.path).exists()) {
+        chooseExportPath();
+        if (m_exportSettings.path.isEmpty() || !QDir(m_exportSettings.path).exists()) {
+            m_lastExportSuccess = false;
+            m_lastExportMessage = QStringLiteral("自动模式失败：导出目录无效。");
+            emit exportResultChanged();
+            return;
+        }
+    }
+
+    m_exportSettings.scope = ExportService::Scope::Queue;
+    runExport();
 }
 
 void AppController::createBlankPage(int choice)
@@ -123,6 +160,11 @@ void AppController::runExport()
     }
 }
 
+QString AppController::pageThumbnailSource(int pageIndex)
+{
+    return m_exportService.renderPageThumbnail(m_project, pageIndex, 220, 140);
+}
+
 QString AppController::exportPath() const { return m_exportSettings.path; }
 void AppController::setExportPath(const QString &value) { if (m_exportSettings.path == value) return; m_exportSettings.path = value; emit exportSettingsChanged(); }
 QString AppController::exportFormat() const { return m_exportSettings.format; }
@@ -141,7 +183,7 @@ QString AppController::lastExportMessage() const { return m_lastExportMessage; }
 bool AppController::lastExportSuccess() const { return m_lastExportSuccess; }
 
 QString AppController::autoLayoutPreset() const { return m_settings.autoPreset; }
-void AppController::setAutoLayoutPreset(const QString &value) { if (m_settings.autoPreset == value) return; m_settings.autoPreset = value; emit appSettingsChanged(); }
+void AppController::setAutoLayoutPreset(const QString &value) { if (m_settings.autoPreset == value) return; m_settings.autoPreset = value; persistExportDefaults(); emit appSettingsChanged(); }
 QString AppController::defaultExportPath() const { return m_settings.defaultPath; }
 void AppController::setDefaultExportPath(const QString &value) { if (m_settings.defaultPath == value) return; m_settings.defaultPath = value; persistExportDefaults(); emit appSettingsChanged(); }
 bool AppController::rememberLastPath() const { return m_settings.rememberPath; }
@@ -165,6 +207,7 @@ TemplateType AppController::toTemplateType(int choice)
 void AppController::loadSettings()
 {
     QSettings settings(QStringLiteral("PhotoTemplateEditor"), QStringLiteral("PhotoTemplateEditor"));
+    m_settings.autoPreset = settings.value(QStringLiteral("auto/preset"), QStringLiteral("均衡填充")).toString();
     m_settings.defaultPath = settings.value(QStringLiteral("export/defaultPath"), defaultPicturesDir()).toString();
     m_settings.rememberPath = settings.value(QStringLiteral("export/rememberLastPath"), true).toBool();
     m_settings.defaultFormat = settings.value(QStringLiteral("export/defaultFormat"), QStringLiteral("JPG")).toString();
@@ -180,6 +223,7 @@ void AppController::loadSettings()
 void AppController::persistExportDefaults() const
 {
     QSettings settings(QStringLiteral("PhotoTemplateEditor"), QStringLiteral("PhotoTemplateEditor"));
+    settings.setValue(QStringLiteral("auto/preset"), m_settings.autoPreset);
     settings.setValue(QStringLiteral("export/defaultPath"), m_settings.defaultPath);
     settings.setValue(QStringLiteral("export/rememberLastPath"), m_settings.rememberPath);
     settings.setValue(QStringLiteral("export/defaultFormat"), m_settings.defaultFormat);

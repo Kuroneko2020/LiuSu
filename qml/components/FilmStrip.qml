@@ -42,16 +42,8 @@ Rectangle {
 
                         Image {
                             anchors.fill: parent
-                            source: appController.project.pagePreviewImagePath(index)
-                            fillMode: Image.PreserveAspectCrop
-                            visible: source !== ""
-                        }
-
-                        Label {
-                            anchors.centerIn: parent
-                            text: "空白"
-                            visible: appController.project.pagePreviewImagePath(index) === ""
-                            font.pixelSize: 11
+                            source: appController.pageThumbnailSource(index)
+                            fillMode: Image.PreserveAspectFit
                         }
                     }
 

@@ -1,6 +1,7 @@
 #include "services/ExportService.h"
 
 #include "models/ProjectState.h"
+#include "services/TemplateLayout.h"
 
 #include <QDate>
 #include <QDir>
@@ -8,38 +9,12 @@
 #include <QImage>
 #include <QImageReader>
 #include <QPainter>
+#include <QPointF>
 #include <QRegularExpression>
+#include <QStandardPaths>
 
 namespace pte {
 namespace {
-
-QVector<QRectF> templateRects(int templateChoice, const QSize &canvasSize)
-{
-    QVector<QRectF> rects;
-    const qreal w = canvasSize.width();
-    const qreal h = canvasSize.height();
-    const qreal gap = qMax<qreal>(4.0, w * 0.005);
-    const qreal margin = qMax<qreal>(8.0, w * 0.01);
-
-    auto grid = [&](int cols, int rows) {
-        const qreal cellW = (w - margin * 2 - gap * (cols - 1)) / cols;
-        const qreal cellH = (h - margin * 2 - gap * (rows - 1)) / rows;
-        for (int r = 0; r < rows; ++r) {
-            for (int c = 0; c < cols; ++c) {
-                rects << QRectF(margin + c * (cellW + gap), margin + r * (cellH + gap), cellW, cellH);
-            }
-        }
-    };
-
-    if (templateChoice == 2) {
-        grid(1, 2);
-    } else if (templateChoice == 4) {
-        grid(2, 2);
-    } else {
-        grid(3, 2);
-    }
-    return rects;
-}
 
 QString sanitizeName(const QString &input)
 {
@@ -69,7 +44,7 @@ QString uniquePath(const QDir &dir, const QString &baseName, const QString &ext)
 QImage transformImage(const QString &path, int rotation, bool mirrored)
 {
     QImageReader reader(path);
-    reader.setAutoTransform(true);
+    reader.setAutoTransform(false);
     QImage image = reader.read();
     if (image.isNull()) {
         return image;
@@ -89,7 +64,7 @@ QImage transformImage(const QString &path, int rotation, bool mirrored)
     return image;
 }
 
-void drawImageInRect(QPainter &painter, const QImage &image, const QRectF &target, bool fillCrop)
+void drawImageInRect(QPainter &painter, const QImage &image, const QRectF &target, bool fillCrop, const QPointF &offset)
 {
     if (image.isNull()) {
         return;
@@ -101,10 +76,14 @@ void drawImageInRect(QPainter &painter, const QImage &image, const QRectF &targe
         QRectF src;
         if (srcRatio > targetRatio) {
             const qreal width = image.height() * targetRatio;
-            src = QRectF((image.width() - width) / 2.0, 0, width, image.height());
+            const qreal range = image.width() - width;
+            const qreal shift = qBound(-1.0, offset.x(), 1.0) * range * 0.5;
+            src = QRectF((range / 2.0) + shift, 0, width, image.height());
         } else {
             const qreal height = image.width() / targetRatio;
-            src = QRectF(0, (image.height() - height) / 2.0, image.width(), height);
+            const qreal range = image.height() - height;
+            const qreal shift = qBound(-1.0, offset.y(), 1.0) * range * 0.5;
+            src = QRectF(0, (range / 2.0) + shift, image.width(), height);
         }
         painter.drawImage(target, image, src);
     } else {
@@ -145,6 +124,38 @@ void drawCropMarks(QPainter &painter, const QSize &size, const QVector<QRectF> &
     }
 }
 
+QImage renderPageImage(const ProjectState &project, int pageIndex, const QSize &size, bool cropMarks)
+{
+    QImage canvas(size, QImage::Format_ARGB32_Premultiplied);
+    canvas.fill(Qt::white);
+
+    QPainter painter(&canvas);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+
+    const int templateChoice = project.pageTemplateChoice(pageIndex);
+    const QVector<QRectF> rects = layout::slotRectsPixels(templateChoice, size);
+
+    for (int slot = 0; slot < rects.size(); ++slot) {
+        if (!project.pageSlotHasImage(pageIndex, slot)) {
+            continue;
+        }
+        const QString path = project.pageSlotImagePath(pageIndex, slot);
+        const QImage image = transformImage(path, project.pageSlotRotation(pageIndex, slot), project.pageSlotMirrored(pageIndex, slot));
+        if (image.isNull()) {
+            continue;
+        }
+        drawImageInRect(painter, image, rects.at(slot), project.pageSlotFillCrop(pageIndex, slot), project.pageSlotOffset(pageIndex, slot));
+    }
+
+    if (cropMarks) {
+        drawCropMarks(painter, size, rects);
+    }
+
+    painter.end();
+    return canvas;
+}
+
 } // namespace
 
 ExportService::ExportService(QObject *parent)
@@ -164,7 +175,7 @@ ExportService::Result ExportService::exportPages(const ProjectState &project, co
 
     QVector<int> pageIndexes;
     if (request.scope == Scope::CurrentPage) {
-        if (project.currentPageIndex() >= 0) {
+        if (project.currentPageIndex() >= 0 && project.isPageValid(project.currentPageIndex())) {
             pageIndexes << project.currentPageIndex();
         }
     } else {
@@ -181,40 +192,20 @@ ExportService::Result ExportService::exportPages(const ProjectState &project, co
     }
 
     const int ppi = resolvePpi(request);
-    const QSize exportSize(ppi * 6, ppi * 4);
+    const QSizeF mm = layout::physicalSizeMm(2);
+    const QSize exportSize(qRound(mm.width() / 25.4 * ppi), qRound(mm.height() / 25.4 * ppi));
     const QString extension = request.format.compare("PNG", Qt::CaseInsensitive) == 0 ? "png" : "jpg";
 
     int sequence = 1;
     for (int pageIndex : pageIndexes) {
-        QImage canvas(exportSize, QImage::Format_ARGB32_Premultiplied);
-        canvas.fill(Qt::white);
-
-        QPainter painter(&canvas);
-        painter.setRenderHint(QPainter::Antialiasing, true);
-        painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-
-        const int templateChoice = project.pageTemplateChoice(pageIndex);
-        const QVector<QRectF> rects = templateRects(templateChoice, exportSize);
+        const QImage canvas = renderPageImage(project, pageIndex, exportSize, request.cropMarks);
 
         QStringList usedNames;
-        for (int slot = 0; slot < rects.size(); ++slot) {
-            if (!project.pageSlotHasImage(pageIndex, slot)) {
-                continue;
+        for (int slot = 0; slot < project.pageSlotCount(pageIndex); ++slot) {
+            if (project.pageSlotHasImage(pageIndex, slot)) {
+                usedNames << QFileInfo(project.pageSlotImagePath(pageIndex, slot)).completeBaseName();
             }
-            const QString path = project.pageSlotImagePath(pageIndex, slot);
-            const QImage image = transformImage(path, project.pageSlotRotation(pageIndex, slot), project.pageSlotMirrored(pageIndex, slot));
-            if (image.isNull()) {
-                continue;
-            }
-            usedNames << QFileInfo(path).completeBaseName();
-            drawImageInRect(painter, image, rects.at(slot), project.pageSlotFillCrop(pageIndex, slot));
         }
-
-        if (request.cropMarks) {
-            drawCropMarks(painter, exportSize, rects);
-        }
-
-        painter.end();
 
         QString baseName;
         if (request.namingRule == QStringLiteral("日期-序号")) {
@@ -237,6 +228,20 @@ ExportService::Result ExportService::exportPages(const ProjectState &project, co
     result.success = true;
     result.message = QStringLiteral("导出成功，共 %1 个文件。").arg(result.exportedFiles.size());
     return result;
+}
+
+QString ExportService::renderPageThumbnail(const ProjectState &project, int pageIndex, int width, int height) const
+{
+    if (pageIndex < 0 || pageIndex >= project.pageCount()) {
+        return {};
+    }
+    const QImage image = renderPageImage(project, pageIndex, QSize(width, height), false);
+
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/thumbs");
+    QDir().mkpath(dir);
+    const QString path = dir + QStringLiteral("/page_%1.png").arg(pageIndex);
+    image.save(path, "PNG");
+    return path;
 }
 
 int ExportService::resolvePpi(const Request &request) const

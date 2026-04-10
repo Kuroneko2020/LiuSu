@@ -13,17 +13,29 @@ Rectangle {
     property int slotIndex: -1
     property bool hasImage: false
     property bool selected: false
-    property string imageLabel: ""
     property string imagePath: ""
     property bool fillCropMode: false
     property int rotationDegrees: 0
     property bool mirrored: false
+    property real cropOffsetX: 0
+    property real cropOffsetY: 0
 
     signal addClicked()
     signal slotClicked()
     signal rotateClicked()
     signal mirrorClicked()
     signal toggleFillMode()
+    signal swapRequested(int fromIndex, int toIndex)
+    signal contentDragged(real dx, real dy)
+
+    DropArea {
+        anchors.fill: parent
+        onDropped: (drop) => {
+            if (drop.source && drop.source.sourceSlot >= 0 && drop.source.sourceSlot !== slotRoot.slotIndex) {
+                slotRoot.swapRequested(drop.source.sourceSlot, slotRoot.slotIndex)
+            }
+        }
+    }
 
     Image {
         id: photo
@@ -34,7 +46,12 @@ Rectangle {
         fillMode: fillCropMode ? Image.PreserveAspectCrop : Image.PreserveAspectFit
         smooth: true
         cache: true
+
         transform: [
+            Translate {
+                x: fillCropMode ? cropOffsetX * photo.width * 0.08 : 0
+                y: fillCropMode ? cropOffsetY * photo.height * 0.08 : 0
+            },
             Rotation {
                 angle: slotRoot.rotationDegrees
                 origin.x: photo.width / 2
@@ -47,6 +64,24 @@ Rectangle {
                 origin.y: photo.height / 2
             }
         ]
+
+        MouseArea {
+            anchors.fill: parent
+            enabled: hasImage && selected && fillCropMode
+            property real lastX
+            property real lastY
+            onPressed: {
+                lastX = mouse.x
+                lastY = mouse.y
+            }
+            onPositionChanged: {
+                const dx = (mouse.x - lastX) / width
+                const dy = (mouse.y - lastY) / height
+                lastX = mouse.x
+                lastY = mouse.y
+                slotRoot.contentDragged(dx * 2.0, dy * 2.0)
+            }
+        }
     }
 
     MouseArea {
@@ -70,7 +105,8 @@ Rectangle {
     }
 
     Rectangle {
-        visible: hasImage
+        id: swapHandle
+        visible: hasImage && !(selected && fillCropMode)
         width: 18
         height: 18
         radius: 9
@@ -80,26 +116,23 @@ Rectangle {
         anchors.margins: 6
         Text { anchors.centerIn: parent; text: "⇅"; color: "white"; font.pixelSize: 10 }
 
-        MouseArea {
-            anchors.fill: parent
-            onPressed: console.log("slot swap handle pressed", slotIndex)
-        }
-    }
+        property int sourceSlot: -1
 
-    Rectangle {
-        visible: hasImage
-        width: parent.width * 0.7
-        height: parent.height * 0.2
-        color: "transparent"
-        border.color: "#7f7f7f"
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 6
-        Text { anchors.centerIn: parent; text: "内容拖动入口"; font.pixelSize: 10; color: "#eee" }
+        Drag.active: dragArea.drag.active
+        Drag.hotSpot.x: width / 2
+        Drag.hotSpot.y: height / 2
 
         MouseArea {
+            id: dragArea
             anchors.fill: parent
-            onPressed: console.log("content drag area pressed", slotIndex)
+            drag.target: parent
+            onPressed: {
+                swapHandle.sourceSlot = slotRoot.slotIndex
+            }
+            onReleased: {
+                parent.x = 0
+                parent.y = 0
+            }
         }
     }
 

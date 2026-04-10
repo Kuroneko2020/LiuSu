@@ -1,5 +1,7 @@
 #include "models/ProjectState.h"
 
+#include "services/TemplateLayout.h"
+
 namespace pte {
 
 bool PageState::isValid() const
@@ -10,16 +12,6 @@ bool PageState::isValid() const
         }
     }
     return false;
-}
-
-QString PageState::previewImagePath() const
-{
-    for (const auto &slot : slots) {
-        if (slot.hasImage) {
-            return slot.imagePath;
-        }
-    }
-    return {};
 }
 
 ProjectState::ProjectState(QObject *parent)
@@ -92,11 +84,7 @@ int ProjectState::currentTemplateChoice() const
 
 bool ProjectState::slotHasImage(int slotIndex) const
 {
-    const auto *page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
-        return false;
-    }
-    return page->slots.at(slotIndex).hasImage;
+    return pageSlotHasImage(m_currentPageIndex, slotIndex);
 }
 
 bool ProjectState::slotSelected(int slotIndex) const
@@ -110,48 +98,37 @@ bool ProjectState::slotSelected(int slotIndex) const
 
 QString ProjectState::slotImagePath(int slotIndex) const
 {
-    const auto *page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
-        return {};
-    }
-    return page->slots.at(slotIndex).imagePath;
-}
-
-QString ProjectState::slotImageLabel(int slotIndex) const
-{
-    const auto *page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
-        return QString();
-    }
-    const auto &slot = page->slots.at(slotIndex);
-    return slot.hasImage ? QStringLiteral("图片 %1").arg(slotIndex + 1) : QString();
+    return pageSlotImagePath(m_currentPageIndex, slotIndex);
 }
 
 int ProjectState::slotRotation(int slotIndex) const
 {
-    const auto *page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
-        return 0;
-    }
-    return page->slots.at(slotIndex).rotation;
+    return pageSlotRotation(m_currentPageIndex, slotIndex);
 }
 
 bool ProjectState::slotMirrored(int slotIndex) const
 {
-    const auto *page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
-        return false;
-    }
-    return page->slots.at(slotIndex).mirrored;
+    return pageSlotMirrored(m_currentPageIndex, slotIndex);
 }
 
 bool ProjectState::slotFillCrop(int slotIndex) const
 {
-    const auto *page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
-        return false;
-    }
-    return page->slots.at(slotIndex).fillMode == FillMode::FillCrop;
+    return pageSlotFillCrop(m_currentPageIndex, slotIndex);
+}
+
+qreal ProjectState::slotOffsetX(int slotIndex) const
+{
+    return pageSlotOffset(m_currentPageIndex, slotIndex).x();
+}
+
+qreal ProjectState::slotOffsetY(int slotIndex) const
+{
+    return pageSlotOffset(m_currentPageIndex, slotIndex).y();
+}
+
+QRectF ProjectState::slotRectNormalized(int slotIndex) const
+{
+    return pageSlotRectNormalized(m_currentPageIndex, slotIndex);
 }
 
 void ProjectState::selectSlot(int slotIndex)
@@ -177,6 +154,7 @@ void ProjectState::assignImageToSlot(int slotIndex, const QString &path)
     auto &slot = page->slots[slotIndex];
     slot.hasImage = true;
     slot.imagePath = path;
+    slot.cropOffset = QPointF(0.0, 0.0);
     if (!slot.selected) {
         selectSlot(slotIndex);
     }
@@ -229,6 +207,44 @@ bool ProjectState::selectedSlotInFillCrop() const
     return page->slots.at(index).fillMode == FillMode::FillCrop;
 }
 
+void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
+{
+    auto *page = currentPage();
+    const int index = selectedSlotIndex();
+    if (!page || index < 0) {
+        return;
+    }
+    auto &slot = page->slots[index];
+    if (slot.fillMode != FillMode::FillCrop || !slot.hasImage) {
+        return;
+    }
+    slot.cropOffset.setX(qBound(-1.0, slot.cropOffset.x() + dx, 1.0));
+    slot.cropOffset.setY(qBound(-1.0, slot.cropOffset.y() + dy, 1.0));
+    emit slotsChanged();
+}
+
+void ProjectState::swapOrMoveSlots(int fromIndex, int toIndex)
+{
+    auto *page = currentPage();
+    if (!page || fromIndex < 0 || toIndex < 0 || fromIndex >= page->slots.size() || toIndex >= page->slots.size() || fromIndex == toIndex) {
+        return;
+    }
+
+    if (page->slots[toIndex].hasImage) {
+        qSwap(page->slots[fromIndex], page->slots[toIndex]);
+    } else {
+        page->slots[toIndex] = page->slots[fromIndex];
+        page->slots[fromIndex] = SlotState{};
+    }
+
+    for (int i = 0; i < page->slots.size(); ++i) {
+        page->slots[i].selected = (i == toIndex);
+    }
+
+    emit pagesChanged();
+    emit slotsChanged();
+}
+
 int ProjectState::findNextAvailableSlot() const
 {
     const auto *page = currentPage();
@@ -248,15 +264,6 @@ int ProjectState::findNextAvailableSlot() const
     }
     return -1;
 }
-
-QString ProjectState::pagePreviewImagePath(int pageIndex) const
-{
-    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
-        return {};
-    }
-    return m_pages.at(pageIndex).previewImagePath();
-}
-
 
 int ProjectState::pageTemplateChoice(int pageIndex) const
 {
@@ -332,6 +339,27 @@ bool ProjectState::pageSlotFillCrop(int pageIndex, int slotIndex) const
         return false;
     }
     return slots.at(slotIndex).fillMode == FillMode::FillCrop;
+}
+
+QPointF ProjectState::pageSlotOffset(int pageIndex, int slotIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return {};
+    }
+    const auto &slots = m_pages.at(pageIndex).slots;
+    if (slotIndex < 0 || slotIndex >= slots.size()) {
+        return {};
+    }
+    return slots.at(slotIndex).cropOffset;
+}
+
+QRectF ProjectState::pageSlotRectNormalized(int pageIndex, int slotIndex) const
+{
+    const auto rects = layout::slotRectsNormalized(pageTemplateChoice(pageIndex));
+    if (slotIndex < 0 || slotIndex >= rects.size()) {
+        return {};
+    }
+    return rects.at(slotIndex);
 }
 
 int ProjectState::currentPageIndex() const

@@ -43,6 +43,7 @@ public:
     Q_INVOKABLE void exportQueue();
     Q_INVOKABLE void chooseExportPath();
     Q_INVOKABLE void runExport();
+    Q_INVOKABLE QString pageThumbnailSource(int pageIndex);
 
     [[nodiscard]] QString exportPath() const;
     void setExportPath(const QString &value);
@@ -81,6 +82,7 @@ signals:
     void requestNavigateToExport();
     void exportSettingsChanged();
     void exportResultChanged();
+    void thumbnailsChanged();
     void appSettingsChanged();
 
 private:

@@ -2,9 +2,12 @@
 #include "services/ImageService.h"
 
 #include <QCollator>
+#include <QCryptographicHash>
+#include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QImageReader>
+#include <QStandardPaths>
 
 namespace pte {
 
@@ -19,18 +22,7 @@ QString ImageService::importSingleImage()
     if (path.isEmpty()) {
         return {};
     }
-
-    QImageReader reader(path);
-    reader.setAutoTransform(true);
-    if (!reader.canRead()) {
-        return {};
-    }
-
-    // 通过 QImageReader 的自动变换保证 EXIF 方向已在此阶段修正。
-    if (reader.read().isNull()) {
-        return {};
-    }
-    return path;
+    return normalizeAndCache(path);
 }
 
 QStringList ImageService::importMultipleImages()
@@ -47,15 +39,10 @@ QStringList ImageService::importMultipleImages()
     });
 
     QStringList validPaths;
-    validPaths.reserve(paths.size());
     for (const auto &path : paths) {
-        QImageReader reader(path);
-        reader.setAutoTransform(true);
-        if (!reader.canRead()) {
-            continue;
-        }
-        if (!reader.read().isNull()) {
-            validPaths << path;
+        const QString normalized = normalizeAndCache(path);
+        if (!normalized.isEmpty()) {
+            validPaths << normalized;
         }
     }
     return validPaths;
@@ -77,6 +64,28 @@ QString ImageService::fileDialogFilter() const
 QString ImageService::heifSupportNote() const
 {
     return QStringLiteral("HEIC/HEIF 依赖系统解码插件，若当前平台无插件会导入失败。");
+}
+
+QString ImageService::normalizeAndCache(const QString &path) const
+{
+    QImageReader reader(path);
+    reader.setAutoTransform(true);
+    if (!reader.canRead()) {
+        return {};
+    }
+
+    const QImage image = reader.read();
+    if (image.isNull()) {
+        return {};
+    }
+
+    const QString baseDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/cache");
+    QDir().mkpath(baseDir);
+
+    const QByteArray digest = QCryptographicHash::hash(path.toUtf8(), QCryptographicHash::Sha1).toHex();
+    const QString outPath = baseDir + QStringLiteral("/%1.png").arg(QString::fromUtf8(digest));
+    image.save(outPath, "PNG");
+    return outPath;
 }
 
 } // namespace pte
