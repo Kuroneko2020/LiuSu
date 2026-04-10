@@ -6,7 +6,6 @@ Rectangle {
     id: slotRoot
     radius: 8
     color: hasImage ? "#111" : "#f0f0f0"
-    border.color: selected ? "#4f7cff" : "#c5c5c5"
     border.width: selected ? 2 : 1
     clip: true
 
@@ -19,6 +18,7 @@ Rectangle {
     property bool mirrored: false
     property real cropOffsetX: 0
     property real cropOffsetY: 0
+    property bool dropHover: false
 
     signal addClicked()
     signal slotClicked()
@@ -30,12 +30,16 @@ Rectangle {
 
     DropArea {
         anchors.fill: parent
+        onEntered: slotRoot.dropHover = true
+        onExited: slotRoot.dropHover = false
         onDropped: (drop) => {
+            slotRoot.dropHover = false
             if (drop.source && drop.source.sourceSlot >= 0 && drop.source.sourceSlot !== slotRoot.slotIndex) {
                 slotRoot.swapRequested(drop.source.sourceSlot, slotRoot.slotIndex)
             }
         }
     }
+    border.color: dropHover ? "#ff8c00" : (selected ? "#4f7cff" : "#c5c5c5")
 
     Image {
         id: photo
@@ -167,5 +171,13 @@ Rectangle {
             text: fillCropMode ? "铺满裁切" : "完整放入"
             onClicked: slotRoot.toggleFillMode()
         }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: "transparent"
+        border.width: selected && fillCropMode ? 2 : 0
+        border.color: "#57b3ff"
+        radius: slotRoot.radius
     }
 }

@@ -5,7 +5,7 @@
 #include <QImageReader>
 #include <QSettings>
 #include <QStandardPaths>
-#include "services/TemplateLayout.h"
+#include "services/AutoLayoutPolicy.h"
 
 namespace pte {
 
@@ -41,7 +41,7 @@ void AppController::startAutoLayout(int choice)
 {
     m_project.startNewSession(toTemplateType(choice));
 
-    const QStringList images = m_imageService.importMultipleImages();
+    const auto images = m_imageService.importMultipleImages();
     if (images.isEmpty()) {
         m_lastExportSuccess = false;
         m_lastExportMessage = QStringLiteral("自动模式已取消：未选择图片。");
@@ -59,29 +59,14 @@ void AppController::startAutoLayout(int choice)
         if (targetSlot < 0) {
             break;
         }
-        m_project.assignImageToSlot(targetSlot, images.at(imported));
+        const auto &resource = images.at(imported);
+        m_project.assignImageToSlot(targetSlot, resource);
 
-        const QRectF slotRect = m_project.slotRectNormalized(targetSlot);
-        const qreal slotAspect = slotRect.width() > 0 && slotRect.height() > 0 ? slotRect.width() / slotRect.height() : 1.0;
-        QImageReader reader(images.at(imported));
+        QImageReader reader(resource.cachePath);
         const QSize sz = reader.size();
         const qreal imageAspect = sz.height() > 0 ? static_cast<qreal>(sz.width()) / sz.height() : 1.0;
-
-        bool fillCrop = true;
-        int rotation = 0;
-        bool mirrored = false;
-        if (m_settings.autoPreset == QStringLiteral("证件照优先")) {
-            fillCrop = false;
-        } else if (m_settings.autoPreset == QStringLiteral("人像优先")) {
-            if (imageAspect > 1.05) {
-                rotation = 90;
-            }
-            fillCrop = true;
-        } else { // 均衡填充
-            const qreal mismatch = qMax(imageAspect / slotAspect, slotAspect / imageAspect);
-            fillCrop = mismatch < 1.5;
-        }
-        m_project.configureSlot(targetSlot, fillCrop, rotation, mirrored);
+        const auto decision = AutoLayoutPolicy::decide(m_settings.autoPreset, imageAspect, m_project.slotRectNormalized(targetSlot));
+        m_project.configureSlot(targetSlot, decision.fillCrop, decision.rotation, decision.mirrored);
         ++imported;
     }
 
@@ -106,16 +91,16 @@ void AppController::createBlankPage(int choice)
 
 void AppController::importToSlot(int slotIndex)
 {
-    const QString path = m_imageService.importSingleImage();
-    if (path.isEmpty()) {
+    const auto resource = m_imageService.importSingleImage();
+    if (resource.cachePath.isEmpty()) {
         return;
     }
-    m_project.assignImageToSlot(slotIndex, path);
+    m_project.assignImageToSlot(slotIndex, resource);
 }
 
 void AppController::batchImport()
 {
-    const QStringList images = m_imageService.importMultipleImages();
+    const auto images = m_imageService.importMultipleImages();
     if (images.isEmpty()) {
         return;
     }

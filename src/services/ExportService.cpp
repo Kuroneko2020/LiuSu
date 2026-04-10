@@ -203,7 +203,12 @@ ExportService::Result ExportService::exportPages(const ProjectState &project, co
         QStringList usedNames;
         for (int slot = 0; slot < project.pageSlotCount(pageIndex); ++slot) {
             if (project.pageSlotHasImage(pageIndex, slot)) {
-                usedNames << QFileInfo(project.pageSlotImagePath(pageIndex, slot)).completeBaseName();
+                const QString rawName = project.pageSlotOriginalBaseName(pageIndex, slot);
+                if (!rawName.isEmpty()) {
+                    usedNames << rawName;
+                } else {
+                    usedNames << QFileInfo(project.pageSlotImagePath(pageIndex, slot)).completeBaseName();
+                }
             }
         }
 

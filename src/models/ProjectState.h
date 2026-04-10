@@ -1,6 +1,7 @@
 #pragma once
 
 #include "models/Types.h"
+#include "models/ImageResource.h"
 
 #include <QObject>
 #include <QPointF>
@@ -10,7 +11,7 @@ namespace pte {
 
 struct SlotState {
     bool hasImage = false;
-    QString imagePath;
+    ImageResource image;
     bool selected = false;
     int rotation = 0;
     bool mirrored = false;
@@ -44,6 +45,7 @@ public:
     Q_INVOKABLE bool slotHasImage(int slotIndex) const;
     Q_INVOKABLE bool slotSelected(int slotIndex) const;
     Q_INVOKABLE QString slotImagePath(int slotIndex) const;
+    Q_INVOKABLE QString slotOriginalBaseName(int slotIndex) const;
     Q_INVOKABLE int slotRotation(int slotIndex) const;
     Q_INVOKABLE bool slotMirrored(int slotIndex) const;
     Q_INVOKABLE bool slotFillCrop(int slotIndex) const;
@@ -52,8 +54,8 @@ public:
     Q_INVOKABLE QRectF slotRectNormalized(int slotIndex) const;
 
     Q_INVOKABLE void selectSlot(int slotIndex);
-    Q_INVOKABLE void assignImageToSlot(int slotIndex, const QString &path);
-    Q_INVOKABLE void configureSlot(int slotIndex, bool fillCrop, int rotation, bool mirrored);
+    void assignImageToSlot(int slotIndex, const pte::ImageResource &resource);
+    void configureSlot(int slotIndex, bool fillCrop, int rotation, bool mirrored);
     Q_INVOKABLE void rotateSelectedSlot90();
     Q_INVOKABLE void mirrorSelectedSlot();
     Q_INVOKABLE void toggleSelectedSlotFillMode();
@@ -72,6 +74,7 @@ public:
     [[nodiscard]] int pageSlotCount(int pageIndex) const;
     [[nodiscard]] bool pageSlotHasImage(int pageIndex, int slotIndex) const;
     [[nodiscard]] QString pageSlotImagePath(int pageIndex, int slotIndex) const;
+    [[nodiscard]] QString pageSlotOriginalBaseName(int pageIndex, int slotIndex) const;
     [[nodiscard]] int pageSlotRotation(int pageIndex, int slotIndex) const;
     [[nodiscard]] bool pageSlotMirrored(int pageIndex, int slotIndex) const;
     [[nodiscard]] bool pageSlotFillCrop(int pageIndex, int slotIndex) const;

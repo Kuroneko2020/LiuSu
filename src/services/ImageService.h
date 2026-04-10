@@ -1,5 +1,7 @@
 #pragma once
 
+#include "models/ImageResource.h"
+
 #include <QObject>
 #include <QStringList>
 
@@ -10,15 +12,15 @@ class ImageService : public QObject {
 public:
     explicit ImageService(QObject *parent = nullptr);
 
-    Q_INVOKABLE QString importSingleImage();
-    Q_INVOKABLE QStringList importMultipleImages();
+    ImageResource importSingleImage();
+    QList<ImageResource> importMultipleImages();
 
     [[nodiscard]] QStringList supportedInputFormats() const;
     [[nodiscard]] QString fileDialogFilter() const;
     [[nodiscard]] QString heifSupportNote() const;
 
 private:
-    [[nodiscard]] QString normalizeAndCache(const QString &path) const;
+    [[nodiscard]] ImageResource normalizeAndCache(const QString &path) const;
 };
 
 } // namespace pte

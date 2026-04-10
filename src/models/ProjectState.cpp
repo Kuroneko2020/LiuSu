@@ -108,6 +108,11 @@ QString ProjectState::slotImagePath(int slotIndex) const
     return pageSlotImagePath(m_currentPageIndex, slotIndex);
 }
 
+QString ProjectState::slotOriginalBaseName(int slotIndex) const
+{
+    return pageSlotOriginalBaseName(m_currentPageIndex, slotIndex);
+}
+
 int ProjectState::slotRotation(int slotIndex) const
 {
     return pageSlotRotation(m_currentPageIndex, slotIndex);
@@ -151,7 +156,7 @@ void ProjectState::selectSlot(int slotIndex)
     emit slotsChanged();
 }
 
-void ProjectState::assignImageToSlot(int slotIndex, const QString &path)
+void ProjectState::assignImageToSlot(int slotIndex, const pte::ImageResource &resource)
 {
     auto *page = currentPage();
     if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
@@ -161,7 +166,7 @@ void ProjectState::assignImageToSlot(int slotIndex, const QString &path)
     auto &slot = page->slots[slotIndex];
     slot = SlotState{};
     slot.hasImage = true;
-    slot.imagePath = path;
+    slot.image = resource;
     if (!slot.selected) {
         selectSlot(slotIndex);
     }
@@ -323,7 +328,19 @@ QString ProjectState::pageSlotImagePath(int pageIndex, int slotIndex) const
     if (slotIndex < 0 || slotIndex >= slots.size()) {
         return {};
     }
-    return slots.at(slotIndex).imagePath;
+    return slots.at(slotIndex).image.cachePath;
+}
+
+QString ProjectState::pageSlotOriginalBaseName(int pageIndex, int slotIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return {};
+    }
+    const auto &slots = m_pages.at(pageIndex).slots;
+    if (slotIndex < 0 || slotIndex >= slots.size()) {
+        return {};
+    }
+    return slots.at(slotIndex).image.originalBaseName;
 }
 
 int ProjectState::pageSlotRotation(int pageIndex, int slotIndex) const
