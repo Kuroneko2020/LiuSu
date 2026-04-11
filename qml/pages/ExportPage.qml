@@ -4,9 +4,10 @@ import QtQuick.Layouts
 
 ScrollView {
     ColumnLayout {
-        width: parent.width
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: 20
         spacing: 12
-        padding: 20
 
         Label { text: "导出页"; font.pixelSize: 24; font.bold: true }
         Label { text: "当前导出范围：" + appController.exportScope; color: "#555" }

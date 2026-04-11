@@ -4,9 +4,10 @@ import QtQuick.Layouts
 
 ScrollView {
     ColumnLayout {
-        width: parent.width
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: 20
         spacing: 12
-        padding: 20
 
         Label { text: "设置页"; font.pixelSize: 24; font.bold: true }
 
