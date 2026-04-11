@@ -249,6 +249,32 @@ QString ExportService::renderPageThumbnail(const ProjectState &project, int page
     return path;
 }
 
+QString ExportService::renderSlotPreview(const ProjectState &project, int pageIndex, int slotIndex, int width, int height) const
+{
+    if (pageIndex < 0 || pageIndex >= project.pageCount() || !project.pageSlotHasImage(pageIndex, slotIndex)) {
+        return {};
+    }
+
+    const int w = qMax(16, width);
+    const int h = qMax(16, height);
+    QImage canvas(QSize(w, h), QImage::Format_ARGB32_Premultiplied);
+    canvas.fill(Qt::black);
+
+    QPainter painter(&canvas);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    const QString path = project.pageSlotImagePath(pageIndex, slotIndex);
+    const QImage image = transformImage(path, project.pageSlotRotation(pageIndex, slotIndex), project.pageSlotMirrored(pageIndex, slotIndex));
+    drawImageInRect(painter, image, QRectF(0, 0, w, h), project.pageSlotFillCrop(pageIndex, slotIndex), project.pageSlotOffset(pageIndex, slotIndex));
+    painter.end();
+
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/slot-previews");
+    QDir().mkpath(dir);
+    const QString previewPath = dir + QStringLiteral("/p%1_s%2_%3x%4.png").arg(pageIndex).arg(slotIndex).arg(w).arg(h);
+    canvas.save(previewPath, "PNG");
+    return previewPath;
+}
+
 int ExportService::resolvePpi(const Request &request) const
 {
     if (request.resolutionPreset.contains(QStringLiteral("600"))) {

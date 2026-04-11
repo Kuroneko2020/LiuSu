@@ -252,6 +252,15 @@ QString AppController::pageThumbnailSource(int pageIndex)
     return m_exportService.renderPageThumbnail(m_project, pageIndex, 220, 140) + QStringLiteral("?v=%1").arg(m_thumbnailVersion);
 }
 
+QString AppController::slotPreviewSource(int slotIndex, int width, int height)
+{
+    const QString path = m_exportService.renderSlotPreview(m_project, m_project.currentPageIndex(), slotIndex, width, height);
+    if (path.isEmpty()) {
+        return {};
+    }
+    return QUrl::fromLocalFile(path).toString() + QStringLiteral("?v=%1").arg(m_thumbnailVersion);
+}
+
 QString AppController::exportPath() const { return m_exportSettings.path; }
 void AppController::setExportPath(const QString &value) { if (m_exportSettings.path == value) return; m_exportSettings.path = value; emit exportSettingsChanged(); }
 QString AppController::exportFormat() const { return m_exportSettings.format; }

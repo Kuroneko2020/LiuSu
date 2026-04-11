@@ -35,31 +35,13 @@ Rectangle {
 
     Image {
         id: photo
-        x: fillCropMode ? (-overflowX * (0.5 + (Math.max(-1, Math.min(1, cropOffsetX)) * 0.5))) + 2 : 2
-        y: fillCropMode ? (-overflowY * (0.5 + (Math.max(-1, Math.min(1, cropOffsetY)) * 0.5))) + 2 : 2
-        width: slotRoot.width - 4
-        height: slotRoot.height - 4
+        anchors.fill: parent
+        anchors.margins: 2
         source: imageSource
         visible: hasImage && source !== ""
-        fillMode: fillCropMode ? Image.PreserveAspectCrop : Image.PreserveAspectFit
+        fillMode: Image.PreserveAspectFit
         smooth: true
         cache: true
-        readonly property real overflowX: Math.max(0, paintedWidth - width)
-        readonly property real overflowY: Math.max(0, paintedHeight - height)
-
-        transform: [
-            Rotation {
-                angle: slotRoot.rotationDegrees
-                origin.x: photo.width / 2
-                origin.y: photo.height / 2
-            },
-            Scale {
-                xScale: slotRoot.mirrored ? -1 : 1
-                yScale: 1
-                origin.x: photo.width / 2
-                origin.y: photo.height / 2
-            }
-        ]
 
         MouseArea {
             anchors.fill: parent

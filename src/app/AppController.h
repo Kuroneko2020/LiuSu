@@ -50,6 +50,7 @@ public:
     Q_INVOKABLE void setExportPathFromDialog(const QString &folderUrl);
     Q_INVOKABLE void runExport();
     Q_INVOKABLE QString pageThumbnailSource(int pageIndex);
+    Q_INVOKABLE QString slotPreviewSource(int slotIndex, int width, int height);
     Q_INVOKABLE void confirmStartNewSession(bool accepted);
 
     [[nodiscard]] QString exportPath() const;

@@ -47,6 +47,7 @@ Item {
             border.color: "#d9d9d9"
 
             TemplateCanvas {
+                id: templateCanvas
                 anchors.centerIn: parent
                 width: Math.min(parent.width * 0.88, 780)
                 height: width * (2 / 3)
@@ -68,11 +69,13 @@ Item {
         acceptedButtons: Qt.LeftButton
         propagateComposedEvents: true
         onPressed: (mouse) => {
+            const scenePos = editor.mapToItem(null, mouse.x, mouse.y)
             const inPreview = mouse.x >= previewContainer.x
                               && mouse.x <= previewContainer.x + previewContainer.width
                               && mouse.y >= previewContainer.y
                               && mouse.y <= previewContainer.y + previewContainer.height
-            if (!inPreview) {
+            const clickedSlot = inPreview ? templateCanvas.slotIndexAt(scenePos) : -1
+            if (!inPreview || clickedSlot < 0) {
                 appController.project.clearSelection()
             }
             mouse.accepted = false

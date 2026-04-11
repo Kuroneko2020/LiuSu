@@ -61,7 +61,7 @@ Rectangle {
                 }
                 imageSource: {
                     _rev
-                    return appController.project.slotImageSource(index)
+                    return appController.slotPreviewSource(index, Math.max(32, Math.floor(width)), Math.max(32, Math.floor(height)))
                 }
                 fillCropMode: {
                     _rev

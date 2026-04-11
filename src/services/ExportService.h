@@ -33,6 +33,7 @@ public:
 
     Result exportPages(const ProjectState &project, const Request &request) const;
     QString renderPageThumbnail(const ProjectState &project, int pageIndex, int width = 240, int height = 160) const;
+    QString renderSlotPreview(const ProjectState &project, int pageIndex, int slotIndex, int width, int height) const;
 
 private:
     [[nodiscard]] int resolvePpi(const Request &request) const;
