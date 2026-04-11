@@ -6,7 +6,7 @@ namespace pte {
 
 bool PageState::isValid() const
 {
-    for (const auto &slot : slots) {
+    for (const auto &slot : slotStates) {
         if (slot.hasImage) {
             return true;
         }
@@ -38,7 +38,7 @@ void ProjectState::createPage(TemplateType templateType)
 {
     PageState page;
     page.templateType = templateType;
-    page.slots.resize(slotCount(templateType));
+    page.slotStates.resize(slotCount(templateType));
     m_pages.append(page);
     m_currentPageIndex = m_pages.size() - 1;
     emit pagesChanged();
@@ -56,7 +56,7 @@ void ProjectState::deleteCurrentPage()
     if (m_pages.isEmpty()) {
         PageState page;
         page.templateType = removedType;
-        page.slots.resize(slotCount(removedType));
+        page.slotStates.resize(slotCount(removedType));
         m_pages.append(page);
         m_currentPageIndex = 0;
     } else if (m_currentPageIndex >= m_pages.size()) {
@@ -80,7 +80,7 @@ void ProjectState::switchToPage(int pageIndex)
 int ProjectState::currentTemplateSlotCount() const
 {
     const auto *page = currentPage();
-    return page ? page->slots.size() : 0;
+    return page ? page->slotStates.size() : 0;
 }
 
 int ProjectState::currentTemplateChoice() const
@@ -97,10 +97,10 @@ bool ProjectState::slotHasImage(int slotIndex) const
 bool ProjectState::slotSelected(int slotIndex) const
 {
     const auto *page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
+    if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size()) {
         return false;
     }
-    return page->slots.at(slotIndex).selected;
+    return page->slotStates.at(slotIndex).selected;
 }
 
 QString ProjectState::slotImagePath(int slotIndex) const
@@ -146,12 +146,12 @@ QRectF ProjectState::slotRectNormalized(int slotIndex) const
 void ProjectState::selectSlot(int slotIndex)
 {
     auto *page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
+    if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size()) {
         return;
     }
 
-    for (int i = 0; i < page->slots.size(); ++i) {
-        page->slots[i].selected = (i == slotIndex);
+    for (int i = 0; i < page->slotStates.size(); ++i) {
+        page->slotStates[i].selected = (i == slotIndex);
     }
     emit slotsChanged();
 }
@@ -159,11 +159,11 @@ void ProjectState::selectSlot(int slotIndex)
 void ProjectState::assignImageToSlot(int slotIndex, const pte::ImageResource &resource)
 {
     auto *page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slots.size()) {
+    if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size()) {
         return;
     }
 
-    auto &slot = page->slots[slotIndex];
+    auto &slot = page->slotStates[slotIndex];
     slot = SlotState{};
     slot.hasImage = true;
     slot.image = resource;
@@ -178,10 +178,10 @@ void ProjectState::assignImageToSlot(int slotIndex, const pte::ImageResource &re
 void ProjectState::configureSlot(int slotIndex, bool fillCrop, int rotation, bool mirrored)
 {
     auto *page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slots.size() || !page->slots[slotIndex].hasImage) {
+    if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size() || !page->slotStates[slotIndex].hasImage) {
         return;
     }
-    auto &slot = page->slots[slotIndex];
+    auto &slot = page->slotStates[slotIndex];
     slot.fillMode = fillCrop ? FillMode::FillCrop : FillMode::FitInside;
     slot.rotation = ((rotation % 360) + 360) % 360;
     slot.mirrored = mirrored;
@@ -196,7 +196,7 @@ void ProjectState::rotateSelectedSlot90()
     if (!page || index < 0) {
         return;
     }
-    page->slots[index].rotation = (page->slots[index].rotation + 90) % 360;
+    page->slotStates[index].rotation = (page->slotStates[index].rotation + 90) % 360;
     emit slotsChanged();
 }
 
@@ -207,7 +207,7 @@ void ProjectState::mirrorSelectedSlot()
     if (!page || index < 0) {
         return;
     }
-    page->slots[index].mirrored = !page->slots[index].mirrored;
+    page->slotStates[index].mirrored = !page->slotStates[index].mirrored;
     emit slotsChanged();
 }
 
@@ -218,7 +218,7 @@ void ProjectState::toggleSelectedSlotFillMode()
     if (!page || index < 0) {
         return;
     }
-    auto &slot = page->slots[index];
+    auto &slot = page->slotStates[index];
     slot.fillMode = slot.fillMode == FillMode::FitInside ? FillMode::FillCrop : FillMode::FitInside;
     emit slotsChanged();
 }
@@ -230,7 +230,7 @@ bool ProjectState::selectedSlotInFillCrop() const
     if (!page || index < 0) {
         return false;
     }
-    return page->slots.at(index).fillMode == FillMode::FillCrop;
+    return page->slotStates.at(index).fillMode == FillMode::FillCrop;
 }
 
 void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
@@ -240,7 +240,7 @@ void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
     if (!page || index < 0) {
         return;
     }
-    auto &slot = page->slots[index];
+    auto &slot = page->slotStates[index];
     if (slot.fillMode != FillMode::FillCrop || !slot.hasImage) {
         return;
     }
@@ -252,19 +252,19 @@ void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
 void ProjectState::swapOrMoveSlots(int fromIndex, int toIndex)
 {
     auto *page = currentPage();
-    if (!page || fromIndex < 0 || toIndex < 0 || fromIndex >= page->slots.size() || toIndex >= page->slots.size() || fromIndex == toIndex) {
+    if (!page || fromIndex < 0 || toIndex < 0 || fromIndex >= page->slotStates.size() || toIndex >= page->slotStates.size() || fromIndex == toIndex) {
         return;
     }
 
-    if (page->slots[toIndex].hasImage) {
-        qSwap(page->slots[fromIndex], page->slots[toIndex]);
+    if (page->slotStates[toIndex].hasImage) {
+        qSwap(page->slotStates[fromIndex], page->slotStates[toIndex]);
     } else {
-        page->slots[toIndex] = page->slots[fromIndex];
-        page->slots[fromIndex] = SlotState{};
+        page->slotStates[toIndex] = page->slotStates[fromIndex];
+        page->slotStates[fromIndex] = SlotState{};
     }
 
-    for (int i = 0; i < page->slots.size(); ++i) {
-        page->slots[i].selected = (i == toIndex);
+    for (int i = 0; i < page->slotStates.size(); ++i) {
+        page->slotStates[i].selected = (i == toIndex);
     }
 
     emit pagesChanged();
@@ -279,12 +279,12 @@ int ProjectState::findNextAvailableSlot() const
     }
 
     const int selectedIndex = selectedSlotIndex();
-    if (selectedIndex >= 0 && selectedIndex < page->slots.size() && !page->slots.at(selectedIndex).hasImage) {
+    if (selectedIndex >= 0 && selectedIndex < page->slotStates.size() && !page->slotStates.at(selectedIndex).hasImage) {
         return selectedIndex;
     }
 
-    for (int i = 0; i < page->slots.size(); ++i) {
-        if (!page->slots.at(i).hasImage) {
+    for (int i = 0; i < page->slotStates.size(); ++i) {
+        if (!page->slotStates.at(i).hasImage) {
             return i;
         }
     }
@@ -331,7 +331,7 @@ int ProjectState::pageSlotCount(int pageIndex) const
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {
         return 0;
     }
-    return m_pages.at(pageIndex).slots.size();
+    return m_pages.at(pageIndex).slotStates.size();
 }
 
 bool ProjectState::pageSlotHasImage(int pageIndex, int slotIndex) const
@@ -339,11 +339,11 @@ bool ProjectState::pageSlotHasImage(int pageIndex, int slotIndex) const
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {
         return false;
     }
-    const auto &slots = m_pages.at(pageIndex).slots;
-    if (slotIndex < 0 || slotIndex >= slots.size()) {
+    const auto &slotStates = m_pages.at(pageIndex).slotStates;
+    if (slotIndex < 0 || slotIndex >= slotStates.size()) {
         return false;
     }
-    return slots.at(slotIndex).hasImage;
+    return slotStates.at(slotIndex).hasImage;
 }
 
 QString ProjectState::pageSlotImagePath(int pageIndex, int slotIndex) const
@@ -351,11 +351,11 @@ QString ProjectState::pageSlotImagePath(int pageIndex, int slotIndex) const
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {
         return {};
     }
-    const auto &slots = m_pages.at(pageIndex).slots;
-    if (slotIndex < 0 || slotIndex >= slots.size()) {
+    const auto &slotStates = m_pages.at(pageIndex).slotStates;
+    if (slotIndex < 0 || slotIndex >= slotStates.size()) {
         return {};
     }
-    return slots.at(slotIndex).image.cachePath;
+    return slotStates.at(slotIndex).image.cachePath;
 }
 
 QString ProjectState::pageSlotOriginalBaseName(int pageIndex, int slotIndex) const
@@ -363,11 +363,11 @@ QString ProjectState::pageSlotOriginalBaseName(int pageIndex, int slotIndex) con
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {
         return {};
     }
-    const auto &slots = m_pages.at(pageIndex).slots;
-    if (slotIndex < 0 || slotIndex >= slots.size()) {
+    const auto &slotStates = m_pages.at(pageIndex).slotStates;
+    if (slotIndex < 0 || slotIndex >= slotStates.size()) {
         return {};
     }
-    return slots.at(slotIndex).image.originalBaseName;
+    return slotStates.at(slotIndex).image.originalBaseName;
 }
 
 int ProjectState::pageSlotRotation(int pageIndex, int slotIndex) const
@@ -375,11 +375,11 @@ int ProjectState::pageSlotRotation(int pageIndex, int slotIndex) const
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {
         return 0;
     }
-    const auto &slots = m_pages.at(pageIndex).slots;
-    if (slotIndex < 0 || slotIndex >= slots.size()) {
+    const auto &slotStates = m_pages.at(pageIndex).slotStates;
+    if (slotIndex < 0 || slotIndex >= slotStates.size()) {
         return 0;
     }
-    return slots.at(slotIndex).rotation;
+    return slotStates.at(slotIndex).rotation;
 }
 
 bool ProjectState::pageSlotMirrored(int pageIndex, int slotIndex) const
@@ -387,11 +387,11 @@ bool ProjectState::pageSlotMirrored(int pageIndex, int slotIndex) const
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {
         return false;
     }
-    const auto &slots = m_pages.at(pageIndex).slots;
-    if (slotIndex < 0 || slotIndex >= slots.size()) {
+    const auto &slotStates = m_pages.at(pageIndex).slotStates;
+    if (slotIndex < 0 || slotIndex >= slotStates.size()) {
         return false;
     }
-    return slots.at(slotIndex).mirrored;
+    return slotStates.at(slotIndex).mirrored;
 }
 
 bool ProjectState::pageSlotFillCrop(int pageIndex, int slotIndex) const
@@ -399,11 +399,11 @@ bool ProjectState::pageSlotFillCrop(int pageIndex, int slotIndex) const
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {
         return false;
     }
-    const auto &slots = m_pages.at(pageIndex).slots;
-    if (slotIndex < 0 || slotIndex >= slots.size()) {
+    const auto &slotStates = m_pages.at(pageIndex).slotStates;
+    if (slotIndex < 0 || slotIndex >= slotStates.size()) {
         return false;
     }
-    return slots.at(slotIndex).fillMode == FillMode::FillCrop;
+    return slotStates.at(slotIndex).fillMode == FillMode::FillCrop;
 }
 
 QPointF ProjectState::pageSlotOffset(int pageIndex, int slotIndex) const
@@ -411,11 +411,11 @@ QPointF ProjectState::pageSlotOffset(int pageIndex, int slotIndex) const
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {
         return {};
     }
-    const auto &slots = m_pages.at(pageIndex).slots;
-    if (slotIndex < 0 || slotIndex >= slots.size()) {
+    const auto &slotStates = m_pages.at(pageIndex).slotStates;
+    if (slotIndex < 0 || slotIndex >= slotStates.size()) {
         return {};
     }
-    return slots.at(slotIndex).cropOffset;
+    return slotStates.at(slotIndex).cropOffset;
 }
 
 QRectF ProjectState::pageSlotRectNormalized(int pageIndex, int slotIndex) const
@@ -477,8 +477,8 @@ int ProjectState::selectedSlotIndex() const
     if (!page) {
         return -1;
     }
-    for (int i = 0; i < page->slots.size(); ++i) {
-        if (page->slots.at(i).selected) {
+    for (int i = 0; i < page->slotStates.size(); ++i) {
+        if (page->slotStates.at(i).selected) {
             return i;
         }
     }

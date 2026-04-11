@@ -22,7 +22,7 @@ struct SlotState {
 
 struct PageState {
     TemplateType templateType = TemplateType::TwoUp;
-    QVector<SlotState> slots;
+    QVector<SlotState> slotStates;
 
     [[nodiscard]] bool isValid() const;
 };
