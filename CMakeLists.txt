@@ -10,6 +10,7 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Widgets)
 
 qt_standard_project_setup(REQUIRES 6.5)
+qt_policy(SET QTP0004 NEW)
 
 qt_add_executable(photo_template_editor
     src/main.cpp
