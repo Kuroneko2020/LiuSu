@@ -1,8 +1,15 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 
 ScrollView {
+    FolderDialog {
+        id: exportFolderDialog
+        title: "选择导出目录"
+        onAccepted: appController.setExportPathFromDialog(selectedFolder)
+    }
+
     ColumnLayout {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -22,7 +29,7 @@ ScrollView {
             }
             Button {
                 text: "选择..."
-                onClicked: appController.chooseExportPath()
+                onClicked: exportFolderDialog.open()
             }
         }
 

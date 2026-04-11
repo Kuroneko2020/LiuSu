@@ -1,12 +1,10 @@
 #include "app/AppController.h"
 #include <QDir>
 
-#include <QFileDialog>
 #include <QImageReader>
 #include <QSettings>
 #include <QStandardPaths>
-#include <QApplication>
-#include <QWidget>
+#include <QUrl>
 #include "services/AutoLayoutPolicy.h"
 
 namespace pte {
@@ -18,9 +16,26 @@ QString defaultPicturesDir()
     return path.isEmpty() ? QStringLiteral(".") : path;
 }
 
-QWidget *dialogParent()
+QString toLocalPath(const QString &pathOrUrl)
 {
-    return qobject_cast<QWidget *>(QApplication::activeWindow());
+    const QUrl url(pathOrUrl);
+    if (url.isLocalFile()) {
+        return url.toLocalFile();
+    }
+    return pathOrUrl;
+}
+
+QStringList toLocalPaths(const QVariantList &pathsOrUrls)
+{
+    QStringList out;
+    out.reserve(pathsOrUrls.size());
+    for (const QVariant &value : pathsOrUrls) {
+        const QString path = toLocalPath(value.toString());
+        if (!path.isEmpty()) {
+            out << path;
+        }
+    }
+    return out;
 }
 }
 
@@ -42,6 +57,7 @@ void AppController::startManualLayout(int choice)
 {
     m_pendingTemplateChoice = choice;
     m_pendingAutoMode = false;
+    m_pendingAutoFiles.clear();
     if (m_project.hasValidPages()) {
         emit requestConfirmNewSession();
         return;
@@ -52,8 +68,17 @@ void AppController::startManualLayout(int choice)
 
 void AppController::startAutoLayout(int choice)
 {
+    Q_UNUSED(choice)
+    m_lastExportSuccess = false;
+    m_lastExportMessage = QStringLiteral("请在首页使用文件选择对话框后再执行自动布局。");
+    emit exportResultChanged();
+}
+
+void AppController::startAutoLayoutWithFiles(int choice, const QVariantList &fileUrls)
+{
     m_pendingTemplateChoice = choice;
     m_pendingAutoMode = true;
+    m_pendingAutoFiles = fileUrls;
     if (m_project.hasValidPages()) {
         emit requestConfirmNewSession();
         return;
@@ -61,7 +86,7 @@ void AppController::startAutoLayout(int choice)
 
     m_project.startNewSession(toTemplateType(choice));
 
-    const auto images = m_imageService.importMultipleImages();
+    const auto images = m_imageService.normalizeAndCacheFiles(toLocalPaths(fileUrls));
     if (images.isEmpty()) {
         m_lastExportSuccess = false;
         m_lastExportMessage = QStringLiteral("自动模式已取消：未选择图片。");
@@ -91,13 +116,10 @@ void AppController::startAutoLayout(int choice)
     }
 
     if (m_exportSettings.path.isEmpty() || !QDir(m_exportSettings.path).exists()) {
-        chooseExportPath();
-        if (m_exportSettings.path.isEmpty() || !QDir(m_exportSettings.path).exists()) {
-            m_lastExportSuccess = false;
-            m_lastExportMessage = QStringLiteral("自动模式失败：导出目录无效。");
-            emit exportResultChanged();
-            return;
-        }
+        m_lastExportSuccess = false;
+        m_lastExportMessage = QStringLiteral("自动模式失败：请先选择有效导出目录。");
+        emit exportResultChanged();
+        return;
     }
 
     m_exportSettings.scope = ExportService::Scope::Queue;
@@ -109,17 +131,22 @@ void AppController::confirmStartNewSession(bool accepted)
 {
     if (!accepted) {
         m_pendingAutoMode = false;
+        m_pendingAutoFiles.clear();
         return;
     }
 
     if (m_pendingAutoMode) {
-        m_project.startNewSession(toTemplateType(m_pendingTemplateChoice));
-        startAutoLayout(m_pendingTemplateChoice);
+        const QVariantList pendingFiles = m_pendingAutoFiles;
+        m_pendingAutoMode = false;
+        m_pendingAutoFiles.clear();
+        startAutoLayoutWithFiles(m_pendingTemplateChoice, pendingFiles);
+        return;
     } else {
         m_project.startNewSession(toTemplateType(m_pendingTemplateChoice));
         emit requestNavigateToEditor();
     }
     m_pendingAutoMode = false;
+    m_pendingAutoFiles.clear();
 }
 
 void AppController::createBlankPage(int choice)
@@ -129,7 +156,12 @@ void AppController::createBlankPage(int choice)
 
 void AppController::importToSlot(int slotIndex)
 {
-    const auto resource = m_imageService.importSingleImage();
+    Q_UNUSED(slotIndex)
+}
+
+void AppController::importToSlotFromFile(int slotIndex, const QString &fileUrl)
+{
+    const auto resource = m_imageService.normalizeAndCacheFile(toLocalPath(fileUrl));
     if (resource.cachePath.isEmpty()) {
         return;
     }
@@ -138,7 +170,11 @@ void AppController::importToSlot(int slotIndex)
 
 void AppController::batchImport()
 {
-    const auto images = m_imageService.importMultipleImages();
+}
+
+void AppController::batchImportFromFiles(const QVariantList &fileUrls)
+{
+    const auto images = m_imageService.normalizeAndCacheFiles(toLocalPaths(fileUrls));
     if (images.isEmpty()) {
         return;
     }
@@ -176,7 +212,11 @@ void AppController::exportQueue()
 
 void AppController::chooseExportPath()
 {
-    const QString dir = QFileDialog::getExistingDirectory(dialogParent(), QStringLiteral("选择导出目录"), m_exportSettings.path);
+}
+
+void AppController::setExportPathFromDialog(const QString &folderUrl)
+{
+    const QString dir = toLocalPath(folderUrl);
     if (dir.isEmpty()) {
         return;
     }

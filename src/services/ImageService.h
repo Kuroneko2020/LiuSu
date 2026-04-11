@@ -12,8 +12,8 @@ class ImageService : public QObject {
 public:
     explicit ImageService(QObject *parent = nullptr);
 
-    ImageResource importSingleImage();
-    QList<ImageResource> importMultipleImages();
+    ImageResource normalizeAndCacheFile(const QString &path) const;
+    QList<ImageResource> normalizeAndCacheFiles(const QStringList &paths) const;
 
     [[nodiscard]] QStringList supportedInputFormats() const;
     [[nodiscard]] QString fileDialogFilter() const;

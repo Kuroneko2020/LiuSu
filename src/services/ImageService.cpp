@@ -5,22 +5,14 @@
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
-#include <QFileDialog>
 #include <QFile>
 #include <QFileInfo>
 #include <QImageReader>
 #include <QStandardPaths>
-#include <QApplication>
-#include <QWidget>
 
 namespace pte {
 
 namespace {
-QWidget *dialogParent()
-{
-    return qobject_cast<QWidget *>(QApplication::activeWindow());
-}
-
 void cleanupCacheDir(const QString &dirPath, int days)
 {
     QDir dir(dirPath);
@@ -45,30 +37,29 @@ ImageService::ImageService(QObject *parent)
     cleanupCacheDir(tempRoot + QStringLiteral("/thumbs"), 14);
 }
 
-ImageResource ImageService::importSingleImage()
+ImageResource ImageService::normalizeAndCacheFile(const QString &path) const
 {
-    const QString path = QFileDialog::getOpenFileName(dialogParent(), QStringLiteral("选择一张图片"), QString(), fileDialogFilter());
     if (path.isEmpty()) {
         return {};
     }
     return normalizeAndCache(path);
 }
 
-QList<ImageResource> ImageService::importMultipleImages()
+QList<ImageResource> ImageService::normalizeAndCacheFiles(const QStringList &paths) const
 {
-    QStringList paths = QFileDialog::getOpenFileNames(dialogParent(), QStringLiteral("批量导入图片"), QString(), fileDialogFilter());
     if (paths.isEmpty()) {
         return {};
     }
 
+    QStringList orderedPaths = paths;
     QCollator collator;
     collator.setNumericMode(true);
-    std::sort(paths.begin(), paths.end(), [&collator](const QString &a, const QString &b) {
+    std::sort(orderedPaths.begin(), orderedPaths.end(), [&collator](const QString &a, const QString &b) {
         return collator.compare(QFileInfo(a).fileName(), QFileInfo(b).fileName()) < 0;
     });
 
     QList<ImageResource> valid;
-    for (const auto &path : paths) {
+    for (const auto &path : orderedPaths) {
         const ImageResource resource = normalizeAndCache(path);
         if (!resource.cachePath.isEmpty()) {
             valid << resource;

@@ -50,6 +50,7 @@ public:
     Q_INVOKABLE bool slotHasImage(int slotIndex) const;
     Q_INVOKABLE bool slotSelected(int slotIndex) const;
     Q_INVOKABLE QString slotImagePath(int slotIndex) const;
+    Q_INVOKABLE QString slotImageSource(int slotIndex) const;
     Q_INVOKABLE QString slotOriginalBaseName(int slotIndex) const;
     Q_INVOKABLE int slotRotation(int slotIndex) const;
     Q_INVOKABLE bool slotMirrored(int slotIndex) const;

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import "../components"
 
 
@@ -11,6 +12,19 @@ Item {
 
     property int expandedTemplate: -1
     property bool suppressNextCollapse: false
+    property int autoLayoutChoice: -1
+
+    FileDialog {
+        id: autoLayoutDialog
+        title: "选择自动布局图片"
+        fileMode: FileDialog.OpenFiles
+        nameFilters: ["图片文件 (*.jpg *.jpeg *.png *.webp *.bmp *.tif *.tiff *.heic *.heif)"]
+        onAccepted: {
+            if (home.autoLayoutChoice > 0) {
+                appController.startAutoLayoutWithFiles(home.autoLayoutChoice, selectedFiles)
+            }
+        }
+    }
 
     Dialog {
         id: confirmNewTaskDialog
@@ -84,7 +98,8 @@ Item {
                     }
                     onAutoLayout: {
                         home.suppressNextCollapse = true
-                        appController.startAutoLayout(modelData.choice)
+                        home.autoLayoutChoice = modelData.choice
+                        autoLayoutDialog.open()
                     }
                 }
             }

@@ -5,6 +5,7 @@
 #include "services/ImageService.h"
 
 #include <QObject>
+#include <QVariant>
 
 namespace pte {
 
@@ -37,12 +38,16 @@ public:
 
     Q_INVOKABLE void startManualLayout(int choice);
     Q_INVOKABLE void startAutoLayout(int choice);
+    Q_INVOKABLE void startAutoLayoutWithFiles(int choice, const QVariantList &fileUrls);
     Q_INVOKABLE void createBlankPage(int choice);
     Q_INVOKABLE void importToSlot(int slotIndex);
+    Q_INVOKABLE void importToSlotFromFile(int slotIndex, const QString &fileUrl);
     Q_INVOKABLE void batchImport();
+    Q_INVOKABLE void batchImportFromFiles(const QVariantList &fileUrls);
     Q_INVOKABLE void exportCurrentPage();
     Q_INVOKABLE void exportQueue();
     Q_INVOKABLE void chooseExportPath();
+    Q_INVOKABLE void setExportPathFromDialog(const QString &folderUrl);
     Q_INVOKABLE void runExport();
     Q_INVOKABLE QString pageThumbnailSource(int pageIndex);
     Q_INVOKABLE void confirmStartNewSession(bool accepted);
@@ -109,6 +114,7 @@ private:
     int m_thumbnailVersion = 0;
     int m_pendingTemplateChoice = 2;
     bool m_pendingAutoMode = false;
+    QVariantList m_pendingAutoFiles;
 };
 
 } // namespace pte

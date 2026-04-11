@@ -12,13 +12,13 @@ Rectangle {
     property int slotIndex: -1
     property bool hasImage: false
     property bool selected: false
-    property string imagePath: ""
+    property string imageSource: ""
     property bool fillCropMode: false
     property int rotationDegrees: 0
     property bool mirrored: false
     property real cropOffsetX: 0
     property real cropOffsetY: 0
-    property bool dropHover: false
+    property bool swapTargetHighlighted: false
 
     signal addClicked()
     signal slotClicked()
@@ -27,25 +27,17 @@ Rectangle {
     signal toggleFillMode()
     signal swapRequested(int fromIndex, int toIndex)
     signal contentDragged(real dx, real dy)
+    signal swapDragStarted(int fromIndex, point scenePos)
+    signal swapDragMoved(point scenePos)
+    signal swapDragFinished(point scenePos)
 
-    DropArea {
-        anchors.fill: parent
-        onEntered: slotRoot.dropHover = true
-        onExited: slotRoot.dropHover = false
-        onDropped: (drop) => {
-            slotRoot.dropHover = false
-            if (drop.source && drop.source.sourceSlot >= 0 && drop.source.sourceSlot !== slotRoot.slotIndex) {
-                slotRoot.swapRequested(drop.source.sourceSlot, slotRoot.slotIndex)
-            }
-        }
-    }
-    border.color: dropHover ? "#ff8c00" : (selected ? "#4f7cff" : "#c5c5c5")
+    border.color: swapTargetHighlighted ? "#ff8c00" : (selected ? "#4f7cff" : "#c5c5c5")
 
     Image {
         id: photo
         anchors.fill: parent
         anchors.margins: 2
-        source: imagePath
+        source: imageSource
         visible: hasImage && source !== ""
         fillMode: fillCropMode ? Image.Stretch : Image.PreserveAspectFit
         smooth: true
@@ -110,6 +102,17 @@ Rectangle {
         color: "#4b4b4b"
     }
 
+    Rectangle {
+        anchors.fill: parent
+        visible: hasImage && photo.status === Image.Error
+        color: "#2a2a2a"
+        Label {
+            anchors.centerIn: parent
+            text: "图片加载失败"
+            color: "#ffb3b3"
+        }
+    }
+
     Button {
         visible: !hasImage
         anchors.centerIn: parent
@@ -129,29 +132,23 @@ Rectangle {
         anchors.margins: 6
         Text { anchors.centerIn: parent; text: "⇅"; color: "white"; font.pixelSize: 10 }
 
-        property int sourceSlot: -1
-
-        Drag.active: dragHandler.active
-        Drag.source: swapHandle
-        Drag.hotSpot.x: width / 2
-        Drag.hotSpot.y: height / 2
-
-        DragHandler {
-            id: dragHandler
-            target: null
-            xAxis.enabled: true
-            yAxis.enabled: true
-            onActiveChanged: {
-                if (active) {
-                    swapHandle.sourceSlot = slotRoot.slotIndex
-                }
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.OpenHandCursor
+            drag.target: null
+            onPressed: (mouse) => {
+                cursorShape = Qt.ClosedHandCursor
+                const p = swapHandle.mapToItem(null, mouse.x, mouse.y)
+                slotRoot.swapDragStarted(slotRoot.slotIndex, Qt.point(p.x, p.y))
             }
-        }
-
-        TapHandler {
-            acceptedButtons: Qt.LeftButton
-            onTapped: {
-                swapHandle.sourceSlot = slotRoot.slotIndex
+            onPositionChanged: (mouse) => {
+                const p = swapHandle.mapToItem(null, mouse.x, mouse.y)
+                slotRoot.swapDragMoved(Qt.point(p.x, p.y))
+            }
+            onReleased: (mouse) => {
+                cursorShape = Qt.OpenHandCursor
+                const p = swapHandle.mapToItem(null, mouse.x, mouse.y)
+                slotRoot.swapDragFinished(Qt.point(p.x, p.y))
             }
         }
     }

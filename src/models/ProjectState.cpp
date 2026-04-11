@@ -1,6 +1,7 @@
 #include "models/ProjectState.h"
 
 #include "services/TemplateLayout.h"
+#include <QUrl>
 
 namespace pte {
 
@@ -109,6 +110,15 @@ bool ProjectState::slotSelected(int slotIndex) const
 QString ProjectState::slotImagePath(int slotIndex) const
 {
     return pageSlotImagePath(m_currentPageIndex, slotIndex);
+}
+
+QString ProjectState::slotImageSource(int slotIndex) const
+{
+    const QString path = slotImagePath(slotIndex);
+    if (path.isEmpty()) {
+        return {};
+    }
+    return QUrl::fromLocalFile(path).toString();
 }
 
 QString ProjectState::slotOriginalBaseName(int slotIndex) const
