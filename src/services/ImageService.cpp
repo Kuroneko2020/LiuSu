@@ -2,7 +2,6 @@
 #include "services/ImageService.h"
 
 #include <QCollator>
-#include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -61,7 +60,7 @@ QList<ImageResource> ImageService::normalizeAndCacheFiles(const QStringList &pat
     QList<ImageResource> valid;
     for (const auto &path : orderedPaths) {
         const ImageResource resource = normalizeAndCache(path);
-        if (!resource.cachePath.isEmpty()) {
+        if (!resource.exportPath.isEmpty()) {
             valid << resource;
         }
     }
@@ -94,28 +93,13 @@ ImageResource ImageService::normalizeAndCache(const QString &path) const
         return {};
     }
 
-    const QImage image = reader.read();
-    if (image.isNull()) {
-        return {};
-    }
-
     QFileInfo info(path);
-    const QString cacheKey = QStringLiteral("%1|%2|%3")
-        .arg(info.absoluteFilePath())
-        .arg(info.size())
-        .arg(info.lastModified().toMSecsSinceEpoch());
-
-    const QString baseDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/cache");
-    QDir().mkpath(baseDir);
-
-    const QByteArray digest = QCryptographicHash::hash(cacheKey.toUtf8(), QCryptographicHash::Sha1).toHex();
-    const QString outPath = baseDir + QStringLiteral("/%1.png").arg(QString::fromUtf8(digest));
-    image.save(outPath, "PNG");
 
     ImageResource resource;
     resource.originalPath = info.absoluteFilePath();
     resource.originalBaseName = info.completeBaseName();
-    resource.cachePath = outPath;
+    resource.previewPath = info.absoluteFilePath();
+    resource.exportPath = info.absoluteFilePath();
     return resource;
 }
 

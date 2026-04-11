@@ -107,7 +107,7 @@ void AppController::startAutoLayoutWithFiles(int choice, const QVariantList &fil
         const auto &resource = images.at(imported);
         m_project.assignImageToSlot(targetSlot, resource);
 
-        QImageReader reader(resource.cachePath);
+        QImageReader reader(resource.exportPath);
         const QSize sz = reader.size();
         const qreal imageAspect = sz.height() > 0 ? static_cast<qreal>(sz.width()) / sz.height() : 1.0;
         const auto decision = AutoLayoutPolicy::decide(m_settings.autoPreset, imageAspect, m_project.slotRectNormalized(targetSlot));
@@ -162,7 +162,7 @@ void AppController::importToSlot(int slotIndex)
 void AppController::importToSlotFromFile(int slotIndex, const QString &fileUrl)
 {
     const auto resource = m_imageService.normalizeAndCacheFile(toLocalPath(fileUrl));
-    if (resource.cachePath.isEmpty()) {
+    if (resource.exportPath.isEmpty()) {
         return;
     }
     m_project.assignImageToSlot(slotIndex, resource);

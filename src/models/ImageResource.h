@@ -7,7 +7,8 @@ namespace pte {
 struct ImageResource {
     QString originalPath;
     QString originalBaseName;
-    QString cachePath;
+    QString previewPath;
+    QString exportPath;
 };
 
 } // namespace pte

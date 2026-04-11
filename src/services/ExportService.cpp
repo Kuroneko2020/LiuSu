@@ -44,7 +44,7 @@ QString uniquePath(const QDir &dir, const QString &baseName, const QString &ext)
 QImage transformImage(const QString &path, int rotation, bool mirrored)
 {
     QImageReader reader(path);
-    reader.setAutoTransform(false);
+    reader.setAutoTransform(true);
     QImage image = reader.read();
     if (image.isNull()) {
         return image;

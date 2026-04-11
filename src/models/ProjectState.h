@@ -60,6 +60,7 @@ public:
     Q_INVOKABLE QRectF slotRectNormalized(int slotIndex) const;
 
     Q_INVOKABLE void selectSlot(int slotIndex);
+    Q_INVOKABLE void clearSelection();
     void assignImageToSlot(int slotIndex, const pte::ImageResource &resource);
     void configureSlot(int slotIndex, bool fillCrop, int rotation, bool mirrored);
     Q_INVOKABLE void rotateSelectedSlot90();

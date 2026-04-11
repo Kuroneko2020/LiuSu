@@ -114,7 +114,12 @@ QString ProjectState::slotImagePath(int slotIndex) const
 
 QString ProjectState::slotImageSource(int slotIndex) const
 {
-    const QString path = slotImagePath(slotIndex);
+    const auto *page = currentPage();
+    if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size()) {
+        return {};
+    }
+    const auto &image = page->slotStates.at(slotIndex).image;
+    const QString path = image.previewPath.isEmpty() ? image.exportPath : image.previewPath;
     if (path.isEmpty()) {
         return {};
     }
@@ -165,6 +170,26 @@ void ProjectState::selectSlot(int slotIndex)
 
     for (int i = 0; i < page->slotStates.size(); ++i) {
         page->slotStates[i].selected = (i == slotIndex);
+    }
+    ++m_slotsRevision;
+    emit slotsChanged();
+}
+
+void ProjectState::clearSelection()
+{
+    auto *page = currentPage();
+    if (!page) {
+        return;
+    }
+    bool changed = false;
+    for (auto &slot : page->slotStates) {
+        if (slot.selected) {
+            slot.selected = false;
+            changed = true;
+        }
+    }
+    if (!changed) {
+        return;
     }
     ++m_slotsRevision;
     emit slotsChanged();
@@ -376,7 +401,7 @@ QString ProjectState::pageSlotImagePath(int pageIndex, int slotIndex) const
     if (slotIndex < 0 || slotIndex >= slotStates.size()) {
         return {};
     }
-    return slotStates.at(slotIndex).image.cachePath;
+    return slotStates.at(slotIndex).image.exportPath;
 }
 
 QString ProjectState::pageSlotOriginalBaseName(int pageIndex, int slotIndex) const

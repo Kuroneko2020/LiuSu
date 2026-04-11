@@ -39,7 +39,7 @@ Rectangle {
         anchors.margins: 2
         source: imageSource
         visible: hasImage && source !== ""
-        fillMode: fillCropMode ? Image.Stretch : Image.PreserveAspectFit
+        fillMode: Image.PreserveAspectFit
         smooth: true
         cache: true
         readonly property real srcW: Math.max(1, sourceSize.width)
@@ -122,7 +122,7 @@ Rectangle {
 
     Rectangle {
         id: swapHandle
-        visible: hasImage && !(selected && fillCropMode)
+        visible: hasImage
         width: 18
         height: 18
         radius: 9
