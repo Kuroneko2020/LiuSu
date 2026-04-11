@@ -39,6 +39,7 @@ Item {
         }
 
         Rectangle {
+            id: previewContainer
             Layout.fillWidth: true
             Layout.fillHeight: true
             radius: 10
@@ -59,6 +60,22 @@ Item {
         FilmStrip {
             Layout.fillWidth: true
             Layout.preferredHeight: 120
+        }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        propagateComposedEvents: true
+        onPressed: (mouse) => {
+            const inPreview = mouse.x >= previewContainer.x
+                              && mouse.x <= previewContainer.x + previewContainer.width
+                              && mouse.y >= previewContainer.y
+                              && mouse.y <= previewContainer.y + previewContainer.height
+            if (!inPreview) {
+                appController.project.clearSelection()
+            }
+            mouse.accepted = false
         }
     }
 }

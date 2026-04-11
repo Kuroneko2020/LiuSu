@@ -35,26 +35,17 @@ Rectangle {
 
     Image {
         id: photo
-        anchors.fill: parent
-        anchors.margins: 2
+        x: fillCropMode ? (-overflowX * (0.5 + (Math.max(-1, Math.min(1, cropOffsetX)) * 0.5))) + 2 : 2
+        y: fillCropMode ? (-overflowY * (0.5 + (Math.max(-1, Math.min(1, cropOffsetY)) * 0.5))) + 2 : 2
+        width: slotRoot.width - 4
+        height: slotRoot.height - 4
         source: imageSource
         visible: hasImage && source !== ""
-        fillMode: Image.PreserveAspectFit
+        fillMode: fillCropMode ? Image.PreserveAspectCrop : Image.PreserveAspectFit
         smooth: true
         cache: true
-        readonly property real srcW: Math.max(1, sourceSize.width)
-        readonly property real srcH: Math.max(1, sourceSize.height)
-        readonly property real targetRatio: Math.max(0.001, width / Math.max(1, height))
-        readonly property real srcRatio: srcW / srcH
-        readonly property real cropW: srcRatio > targetRatio ? srcH * targetRatio : srcW
-        readonly property real cropH: srcRatio > targetRatio ? srcH : (srcW / targetRatio)
-        readonly property real rangeX: Math.max(0, srcW - cropW)
-        readonly property real rangeY: Math.max(0, srcH - cropH)
-        sourceClipRect: fillCropMode
-                        ? Qt.rect((rangeX / 2) + (Math.max(-1, Math.min(1, cropOffsetX)) * rangeX * 0.5),
-                                  (rangeY / 2) + (Math.max(-1, Math.min(1, cropOffsetY)) * rangeY * 0.5),
-                                  cropW, cropH)
-                        : Qt.rect(0, 0, srcW, srcH)
+        readonly property real overflowX: Math.max(0, paintedWidth - width)
+        readonly property real overflowY: Math.max(0, paintedHeight - height)
 
         transform: [
             Rotation {

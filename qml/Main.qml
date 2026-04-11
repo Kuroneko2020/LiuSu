@@ -11,6 +11,11 @@ ApplicationWindow {
 
     property int currentPage: 0 // 0 home, 1 editor, 2 export, 3 settings
     readonly property bool hasTaskContext: appController.project.pageCount > 0
+    onActiveChanged: {
+        if (!root.active) {
+            appController.project.clearSelection()
+        }
+    }
 
     Connections {
         target: appController
