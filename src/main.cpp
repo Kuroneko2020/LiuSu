@@ -13,12 +13,11 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("appController"), &controller);
 
-    const QUrl url(QStringLiteral("qrc:/PhotoTemplateEditor/qml/Main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() {
         QCoreApplication::exit(-1);
     }, Qt::QueuedConnection);
 
-    engine.load(url);
+    engine.loadFromModule("PhotoTemplateEditor", "Main");
 
     return app.exec();
 }
