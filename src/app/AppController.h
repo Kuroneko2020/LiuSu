@@ -113,6 +113,7 @@ private:
     QString m_lastExportMessage;
     bool m_lastExportSuccess = false;
     int m_thumbnailVersion = 0;
+    int m_lastContentRevision = 0;
     int m_pendingTemplateChoice = 2;
     bool m_pendingAutoMode = false;
     QVariantList m_pendingAutoFiles;

@@ -44,6 +44,7 @@ void ProjectState::createPage(TemplateType templateType)
     m_currentPageIndex = m_pages.size() - 1;
     emit pagesChanged();
     emit currentPageChanged();
+    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -66,6 +67,7 @@ void ProjectState::deleteCurrentPage()
     }
     emit pagesChanged();
     emit currentPageChanged();
+    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -77,6 +79,7 @@ void ProjectState::switchToPage(int pageIndex)
     }
     m_currentPageIndex = pageIndex;
     emit currentPageChanged();
+    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -211,6 +214,7 @@ void ProjectState::assignImageToSlot(int slotIndex, const pte::ImageResource &re
     }
 
     emit pagesChanged();
+    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -226,6 +230,7 @@ void ProjectState::configureSlot(int slotIndex, bool fillCrop, int rotation, boo
     slot.rotation = ((rotation % 360) + 360) % 360;
     slot.mirrored = mirrored;
     slot.cropOffset = QPointF(0.0, 0.0);
+    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -238,6 +243,7 @@ void ProjectState::rotateSelectedSlot90()
         return;
     }
     page->slotStates[index].rotation = (page->slotStates[index].rotation + 90) % 360;
+    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -250,6 +256,7 @@ void ProjectState::mirrorSelectedSlot()
         return;
     }
     page->slotStates[index].mirrored = !page->slotStates[index].mirrored;
+    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -263,6 +270,7 @@ void ProjectState::toggleSelectedSlotFillMode()
     }
     auto &slot = page->slotStates[index];
     slot.fillMode = slot.fillMode == FillMode::FitInside ? FillMode::FillCrop : FillMode::FitInside;
+    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -290,6 +298,7 @@ void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
     }
     slot.cropOffset.setX(qBound(-1.0, slot.cropOffset.x() + dx, 1.0));
     slot.cropOffset.setY(qBound(-1.0, slot.cropOffset.y() + dy, 1.0));
+    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -313,6 +322,7 @@ void ProjectState::swapOrMoveSlots(int fromIndex, int toIndex)
     }
 
     emit pagesChanged();
+    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -504,6 +514,11 @@ bool ProjectState::hasValidPages() const
 int ProjectState::slotsRevision() const
 {
     return m_slotsRevision;
+}
+
+int ProjectState::contentRevision() const
+{
+    return m_contentRevision;
 }
 
 PageState *ProjectState::currentPage()

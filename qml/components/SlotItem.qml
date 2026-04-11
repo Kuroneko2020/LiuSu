@@ -62,9 +62,9 @@ Rectangle {
         }
     }
 
-    MouseArea {
-        anchors.fill: parent
-        onClicked: slotRoot.slotClicked()
+    TapHandler {
+        acceptedButtons: Qt.LeftButton
+        onTapped: slotRoot.slotClicked()
     }
 
     Label {

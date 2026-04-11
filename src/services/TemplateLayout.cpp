@@ -9,28 +9,35 @@ QSizeF physicalSizeMm(int)
 
 QVector<QRectF> slotRectsNormalized(int templateChoice)
 {
-    QVector<QRectF> rects;
-    const qreal margin = 0.04;
-    const qreal gap = 0.02;
-
-    auto grid = [&](int cols, int rows) {
-        const qreal w = (1.0 - margin * 2 - gap * (cols - 1)) / cols;
-        const qreal h = (1.0 - margin * 2 - gap * (rows - 1)) / rows;
-        for (int r = 0; r < rows; ++r) {
-            for (int c = 0; c < cols; ++c) {
-                rects << QRectF(margin + c * (w + gap), margin + r * (h + gap), w, h);
-            }
-        }
+    const QSizeF paperMm = physicalSizeMm(templateChoice);
+    const qreal pw = paperMm.width();
+    const qreal ph = paperMm.height();
+    auto mm = [&](qreal x, qreal y, qreal w, qreal h) {
+        return QRectF(x / pw, y / ph, w / pw, h / ph);
     };
 
     if (templateChoice == 2) {
-        grid(2, 1); // 左右并排
-    } else if (templateChoice == 4) {
-        grid(2, 2);
-    } else {
-        grid(3, 2);
+        return {
+            mm(11.667, 4.0, 61.333, 92.0),
+            mm(75.0, 4.0, 61.333, 92.0)
+        };
     }
-    return rects;
+    if (templateChoice == 4) {
+        return {
+            mm(5.5, 4.0, 67.5, 45.0),
+            mm(75.0, 4.0, 67.5, 45.0),
+            mm(5.5, 51.0, 67.5, 45.0),
+            mm(75.0, 51.0, 67.5, 45.0)
+        };
+    }
+    return {
+        mm(27.0, 4.0, 30.0, 45.0),
+        mm(59.0, 4.0, 30.0, 45.0),
+        mm(91.0, 4.0, 30.0, 45.0),
+        mm(27.0, 51.0, 30.0, 45.0),
+        mm(59.0, 51.0, 30.0, 45.0),
+        mm(91.0, 51.0, 30.0, 45.0)
+    };
 }
 
 QVector<QRectF> slotRectsPixels(int templateChoice, const QSize &canvasSize)

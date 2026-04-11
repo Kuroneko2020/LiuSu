@@ -4,6 +4,7 @@
 #include "services/TemplateLayout.h"
 
 #include <QDate>
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFileInfo>
 #include <QImage>
@@ -257,20 +258,39 @@ QString ExportService::renderSlotPreview(const ProjectState &project, int pageIn
 
     const int w = qMax(16, width);
     const int h = qMax(16, height);
-    QImage canvas(QSize(w, h), QImage::Format_ARGB32_Premultiplied);
-    canvas.fill(Qt::black);
-
-    QPainter painter(&canvas);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
     const QString path = project.pageSlotImagePath(pageIndex, slotIndex);
-    const QImage image = transformImage(path, project.pageSlotRotation(pageIndex, slotIndex), project.pageSlotMirrored(pageIndex, slotIndex));
-    drawImageInRect(painter, image, QRectF(0, 0, w, h), project.pageSlotFillCrop(pageIndex, slotIndex), project.pageSlotOffset(pageIndex, slotIndex));
-    painter.end();
+    const int rotation = project.pageSlotRotation(pageIndex, slotIndex);
+    const bool mirrored = project.pageSlotMirrored(pageIndex, slotIndex);
+    const bool fillCrop = project.pageSlotFillCrop(pageIndex, slotIndex);
+    const QPointF offset = project.pageSlotOffset(pageIndex, slotIndex);
+    const QByteArray key = QStringLiteral("%1|%2|%3|%4|%5|%6|%7|%8|%9")
+                               .arg(path)
+                               .arg(pageIndex)
+                               .arg(slotIndex)
+                               .arg(rotation)
+                               .arg(mirrored ? 1 : 0)
+                               .arg(fillCrop ? 1 : 0)
+                               .arg(offset.x(), 0, 'f', 4)
+                               .arg(offset.y(), 0, 'f', 4)
+                               .arg(QStringLiteral("%1x%2").arg(w).arg(h))
+                               .toUtf8();
+    const QString digest = QString::fromUtf8(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex());
 
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/slot-previews");
     QDir().mkpath(dir);
-    const QString previewPath = dir + QStringLiteral("/p%1_s%2_%3x%4.png").arg(pageIndex).arg(slotIndex).arg(w).arg(h);
+    const QString previewPath = dir + QStringLiteral("/%1.png").arg(digest);
+    if (QFileInfo::exists(previewPath)) {
+        return previewPath;
+    }
+
+    QImage canvas(QSize(w, h), QImage::Format_ARGB32_Premultiplied);
+    canvas.fill(Qt::black);
+    QPainter painter(&canvas);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    const QImage image = transformImage(path, rotation, mirrored);
+    drawImageInRect(painter, image, QRectF(0, 0, w, h), fillCrop, offset);
+    painter.end();
     canvas.save(previewPath, "PNG");
     return previewPath;
 }

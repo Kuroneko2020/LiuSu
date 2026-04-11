@@ -47,7 +47,14 @@ AppController::AppController(QObject *parent)
         m_exportSettings.path = m_settings.defaultPath;
     }
 
-    connect(&m_project, &ProjectState::slotsChanged, this, [this]() { ++m_thumbnailVersion; emit thumbnailsChanged(); });
+    connect(&m_project, &ProjectState::slotsChanged, this, [this]() {
+        if (m_lastContentRevision == m_project.contentRevision()) {
+            return;
+        }
+        m_lastContentRevision = m_project.contentRevision();
+        ++m_thumbnailVersion;
+        emit thumbnailsChanged();
+    });
     connect(&m_project, &ProjectState::pagesChanged, this, [this]() { ++m_thumbnailVersion; emit thumbnailsChanged(); });
 }
 
