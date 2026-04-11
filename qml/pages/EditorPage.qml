@@ -6,12 +6,6 @@ import "../components"
 Item {
     id: editor
 
-    Component.onCompleted: {
-        if (appController.project.pageCount === 0) {
-            appController.startManualLayout(2)
-        }
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16

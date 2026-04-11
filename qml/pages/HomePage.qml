@@ -67,6 +67,7 @@ Item {
 
                 delegate: TemplateCard {
                     required property var modelData
+                    required property int index
                     Layout.fillWidth: true
                     Layout.preferredWidth: 300
                     templateName: modelData.name
