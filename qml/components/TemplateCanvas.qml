@@ -9,7 +9,8 @@ Rectangle {
     border.color: "#cfcfcf"
     radius: 6
 
-    readonly property int slotCount: appController.project.currentTemplateSlotCount()
+    readonly property int slotCount: appController.project.currentTemplateSlotCount
+    readonly property int slotsRevision: appController.project.slotsRevision
 
     Item {
         anchors.fill: parent
@@ -20,21 +21,49 @@ Rectangle {
             delegate: SlotItem {
                 required property int index
 
-                property rect slotRect: appController.project.slotRectNormalized(index)
+                property int _rev: canvas.slotsRevision
+                property rect slotRect: {
+                    _rev
+                    return appController.project.slotRectNormalized(index)
+                }
                 x: slotRect.x * parent.width
                 y: slotRect.y * parent.height
                 width: slotRect.width * parent.width
                 height: slotRect.height * parent.height
 
                 slotIndex: index
-                hasImage: appController.project.slotHasImage(index)
-                selected: appController.project.slotSelected(index)
-                imagePath: appController.project.slotImagePath(index)
-                fillCropMode: appController.project.slotFillCrop(index)
-                rotationDegrees: appController.project.slotRotation(index)
-                mirrored: appController.project.slotMirrored(index)
-                cropOffsetX: appController.project.slotOffsetX(index)
-                cropOffsetY: appController.project.slotOffsetY(index)
+                hasImage: {
+                    _rev
+                    return appController.project.slotHasImage(index)
+                }
+                selected: {
+                    _rev
+                    return appController.project.slotSelected(index)
+                }
+                imagePath: {
+                    _rev
+                    return appController.project.slotImagePath(index)
+                }
+                fillCropMode: {
+                    _rev
+                    return appController.project.slotFillCrop(index)
+                }
+                rotationDegrees: {
+                    _rev
+                    return appController.project.slotRotation(index)
+                }
+                mirrored: {
+                    _rev
+                    return appController.project.slotMirrored(index)
+                }
+                cropOffsetX: {
+                    _rev
+                    return appController.project.slotOffsetX(index)
+                }
+                cropOffsetY: {
+                    _rev
+                    return appController.project.slotOffsetY(index)
+                }
 
                 onAddClicked: appController.importToSlot(slotIndex)
                 onSlotClicked: appController.project.selectSlot(slotIndex)

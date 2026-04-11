@@ -10,10 +10,17 @@
 #include <QFileInfo>
 #include <QImageReader>
 #include <QStandardPaths>
+#include <QApplication>
+#include <QWidget>
 
 namespace pte {
 
 namespace {
+QWidget *dialogParent()
+{
+    return qobject_cast<QWidget *>(QApplication::activeWindow());
+}
+
 void cleanupCacheDir(const QString &dirPath, int days)
 {
     QDir dir(dirPath);
@@ -40,7 +47,7 @@ ImageService::ImageService(QObject *parent)
 
 ImageResource ImageService::importSingleImage()
 {
-    const QString path = QFileDialog::getOpenFileName(nullptr, QStringLiteral("选择一张图片"), QString(), fileDialogFilter());
+    const QString path = QFileDialog::getOpenFileName(dialogParent(), QStringLiteral("选择一张图片"), QString(), fileDialogFilter());
     if (path.isEmpty()) {
         return {};
     }
@@ -49,7 +56,7 @@ ImageResource ImageService::importSingleImage()
 
 QList<ImageResource> ImageService::importMultipleImages()
 {
-    QStringList paths = QFileDialog::getOpenFileNames(nullptr, QStringLiteral("批量导入图片"), QString(), fileDialogFilter());
+    QStringList paths = QFileDialog::getOpenFileNames(dialogParent(), QStringLiteral("批量导入图片"), QString(), fileDialogFilter());
     if (paths.isEmpty()) {
         return {};
     }

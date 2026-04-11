@@ -10,14 +10,19 @@ ApplicationWindow {
     title: "6 英寸相纸照片拼版工具"
 
     property int currentPage: 0 // 0 home, 1 editor, 2 export, 3 settings
+    readonly property bool hasTaskContext: appController.project.pageCount > 0
 
     Connections {
         target: appController
         function onRequestNavigateToEditor() {
-            root.currentPage = 1
+            if (root.hasTaskContext) {
+                root.currentPage = 1
+            }
         }
         function onRequestNavigateToExport() {
-            root.currentPage = 2
+            if (root.hasTaskContext) {
+                root.currentPage = 2
+            }
         }
     }
 
@@ -31,8 +36,8 @@ ApplicationWindow {
             }
             Item { Layout.fillWidth: true }
             Button { text: "首页"; onClicked: root.currentPage = 0 }
-            Button { text: "编辑"; onClicked: root.currentPage = 1 }
-            Button { text: "导出"; onClicked: root.currentPage = 2 }
+            Button { text: "编辑"; enabled: root.hasTaskContext; onClicked: if (root.hasTaskContext) root.currentPage = 1 }
+            Button { text: "导出"; enabled: root.hasTaskContext; onClicked: if (root.hasTaskContext) root.currentPage = 2 }
             Button { text: "设置"; onClicked: root.currentPage = 3 }
         }
     }

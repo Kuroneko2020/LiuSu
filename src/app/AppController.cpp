@@ -5,6 +5,8 @@
 #include <QImageReader>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QApplication>
+#include <QWidget>
 #include "services/AutoLayoutPolicy.h"
 
 namespace pte {
@@ -14,6 +16,11 @@ QString defaultPicturesDir()
 {
     const QString path = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
     return path.isEmpty() ? QStringLiteral(".") : path;
+}
+
+QWidget *dialogParent()
+{
+    return qobject_cast<QWidget *>(QApplication::activeWindow());
 }
 }
 
@@ -169,7 +176,7 @@ void AppController::exportQueue()
 
 void AppController::chooseExportPath()
 {
-    const QString dir = QFileDialog::getExistingDirectory(nullptr, QStringLiteral("选择导出目录"), m_exportSettings.path);
+    const QString dir = QFileDialog::getExistingDirectory(dialogParent(), QStringLiteral("选择导出目录"), m_exportSettings.path);
     if (dir.isEmpty()) {
         return;
     }

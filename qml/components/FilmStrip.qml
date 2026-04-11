@@ -3,9 +3,12 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Rectangle {
+    id: filmStrip
     color: "#f1f1f1"
     radius: 8
     border.color: "#d2d2d2"
+    readonly property int pageCount: appController.project.visiblePageCount
+    readonly property int slotsRevision: appController.project.slotsRevision
 
     RowLayout {
         anchors.fill: parent
@@ -17,14 +20,18 @@ Rectangle {
             Layout.fillHeight: true
             orientation: ListView.Horizontal
             spacing: 8
-            model: appController.project.visiblePageCount()
+            model: filmStrip.pageCount
 
             delegate: Rectangle {
                 required property int index
+                property int _rev: filmStrip.slotsRevision
                 width: 90
                 height: 100
                 radius: 6
-                property int pageIndex: appController.project.visiblePageIndexAt(index)
+                property int pageIndex: {
+                    _rev
+                    return appController.project.visiblePageIndexAt(index)
+                }
                 border.width: appController.project.currentPageIndex === pageIndex ? 2 : 1
                 border.color: appController.project.currentPageIndex === pageIndex ? "#4f7cff" : "#bbbbbb"
                 color: "#ffffff"

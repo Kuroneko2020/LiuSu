@@ -32,6 +32,10 @@ class ProjectState : public QObject {
     Q_OBJECT
     Q_PROPERTY(int currentPageIndex READ currentPageIndex NOTIFY currentPageChanged)
     Q_PROPERTY(int pageCount READ pageCount NOTIFY pagesChanged)
+    Q_PROPERTY(int currentTemplateSlotCount READ currentTemplateSlotCount NOTIFY slotsChanged)
+    Q_PROPERTY(int currentTemplateChoice READ currentTemplateChoice NOTIFY currentPageChanged)
+    Q_PROPERTY(int visiblePageCount READ visiblePageCount NOTIFY pagesChanged)
+    Q_PROPERTY(int slotsRevision READ slotsRevision NOTIFY slotsChanged)
 public:
     explicit ProjectState(QObject *parent = nullptr);
 
@@ -72,6 +76,7 @@ public:
     Q_INVOKABLE bool hasValidPages() const;
     Q_INVOKABLE int visiblePageCount() const;
     Q_INVOKABLE int visiblePageIndexAt(int visibleIndex) const;
+    [[nodiscard]] int slotsRevision() const;
 
     [[nodiscard]] int pageTemplateChoice(int pageIndex) const;
     [[nodiscard]] int pageSlotCount(int pageIndex) const;
@@ -96,6 +101,7 @@ private:
 
     QVector<PageState> m_pages;
     int m_currentPageIndex = -1;
+    int m_slotsRevision = 0;
 };
 
 } // namespace pte
