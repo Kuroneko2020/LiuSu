@@ -5,6 +5,7 @@
 
 #include <QObject>
 #include <QPointF>
+#include <QRectF>
 #include <QVector>
 
 namespace pte {
