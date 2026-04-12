@@ -22,10 +22,13 @@ QVector<QRectF> slotRectsNormalized(int templateChoice)
         return QRectF(x / pw, y / ph, w / pw, h / ph);
     };
 
+    // Two-up: fixed reference layout
+    // page: 148x100 mm, margins: L/R=7 mm, T/B=5 mm, gutter=14 mm
+    // slots: left(7,5,60,90), right(81,5,60,90)
     if (templateChoice == 2) {
         return {
-            mm(11.667, 4.0, 61.333, 92.0),
-            mm(75.0, 4.0, 61.333, 92.0)
+            mm(7.0, 5.0, 60.0, 90.0),
+            mm(81.0, 5.0, 60.0, 90.0)
         };
     }
     if (templateChoice == 4) {
@@ -50,8 +53,8 @@ QVector<QRectF> slotRectsNormalized(int templateChoice)
         };
     }
     return {
-        mm(11.667, 4.0, 61.333, 92.0),
-        mm(75.0, 4.0, 61.333, 92.0)
+        mm(7.0, 5.0, 60.0, 90.0),
+        mm(81.0, 5.0, 60.0, 90.0)
     };
 }
 
