@@ -50,7 +50,7 @@ Item {
                 id: templateCanvas
                 anchors.centerIn: parent
                 width: Math.min(parent.width * 0.88, 780)
-                height: width * (2 / 3)
+                height: width / appController.pageAspectRatio
                 onImportSlotRequested: (slotIndex) => {
                     singleImportDialog.targetSlot = slotIndex
                     singleImportDialog.open()

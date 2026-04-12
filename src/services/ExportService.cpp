@@ -284,7 +284,7 @@ QString ExportService::renderSlotPreview(const ProjectState &project, int pageIn
     }
 
     QImage canvas(QSize(w, h), QImage::Format_ARGB32_Premultiplied);
-    canvas.fill(Qt::black);
+    canvas.fill(Qt::white);
     QPainter painter(&canvas);
     painter.setRenderHint(QPainter::Antialiasing, true);
     painter.setRenderHint(QPainter::SmoothPixmapTransform, true);

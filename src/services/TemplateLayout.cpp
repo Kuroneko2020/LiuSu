@@ -7,6 +7,12 @@ QSizeF physicalSizeMm(int)
     return QSizeF(148.0, 100.0);
 }
 
+qreal pageAspectRatio(int templateChoice)
+{
+    const QSizeF mm = physicalSizeMm(templateChoice);
+    return mm.height() > 0 ? mm.width() / mm.height() : 1.0;
+}
+
 QVector<QRectF> slotRectsNormalized(int templateChoice)
 {
     const QSizeF paperMm = physicalSizeMm(templateChoice);
@@ -18,8 +24,8 @@ QVector<QRectF> slotRectsNormalized(int templateChoice)
 
     if (templateChoice == 2) {
         return {
-            mm(5.0, 5.0, 61.0, 88.0),
-            mm(80.0, 5.0, 61.0, 88.0)
+            mm(11.667, 4.0, 61.333, 92.0),
+            mm(75.0, 4.0, 61.333, 92.0)
         };
     }
     if (templateChoice == 4) {
@@ -44,8 +50,8 @@ QVector<QRectF> slotRectsNormalized(int templateChoice)
         };
     }
     return {
-        mm(5.0, 5.0, 61.0, 88.0),
-        mm(80.0, 5.0, 61.0, 88.0)
+        mm(11.667, 4.0, 61.333, 92.0),
+        mm(75.0, 4.0, 61.333, 92.0)
     };
 }
 

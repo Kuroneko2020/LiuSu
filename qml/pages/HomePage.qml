@@ -85,6 +85,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 300
                     templateName: modelData.name
+                    templateChoice: modelData.choice
                     slotCount: modelData.slots
                     expanded: home.expandedTemplate === index
 

@@ -11,6 +11,7 @@ Rectangle {
 
     property string templateName: ""
     property int slotCount: 2
+    property int templateChoice: 2
     property bool expanded: false
 
     signal toggleExpand()
@@ -49,25 +50,20 @@ Rectangle {
             Rectangle {
                 anchors.centerIn: parent
                 width: parent.width * 0.9
-                height: width * (2 / 3)
+                height: width / appController.pageAspectRatio
                 color: "#f9f9f9"
                 border.color: "#bbb"
 
-                Grid {
-                    anchors.fill: parent
-                    anchors.margins: 8
-                    columns: card.slotCount <= 2 ? 2 : (card.slotCount === 4 ? 2 : 3)
-                    rows: card.slotCount <= 2 ? 1 : 2
-                    spacing: 4
-
-                    Repeater {
-                        model: card.slotCount
-                        Rectangle {
-                            width: (parent.width - (parent.columns - 1) * parent.spacing) / parent.columns
-                            height: (parent.height - (parent.rows - 1) * parent.spacing) / parent.rows
-                            color: "#ededed"
-                            border.color: "#d0d0d0"
-                        }
+                Repeater {
+                    model: appController.templateSlotRects(card.templateChoice)
+                    delegate: Rectangle {
+                        required property var modelData
+                        x: modelData.x * parent.width
+                        y: modelData.y * parent.height
+                        width: modelData.width * parent.width
+                        height: modelData.height * parent.height
+                        color: "#ededed"
+                        border.color: "#d0d0d0"
                     }
                 }
             }

@@ -6,6 +6,7 @@
 #include <QStandardPaths>
 #include <QUrl>
 #include "services/AutoLayoutPolicy.h"
+#include "services/TemplateLayout.h"
 
 namespace pte {
 
@@ -256,7 +257,9 @@ void AppController::runExport()
 
 QString AppController::pageThumbnailSource(int pageIndex)
 {
-    return m_exportService.renderPageThumbnail(m_project, pageIndex, 220, 140) + QStringLiteral("?v=%1").arg(m_thumbnailVersion);
+    constexpr int thumbWidth = 220;
+    const int thumbHeight = qMax(1, qRound(static_cast<qreal>(thumbWidth) / layout::pageAspectRatio(2)));
+    return m_exportService.renderPageThumbnail(m_project, pageIndex, thumbWidth, thumbHeight) + QStringLiteral("?v=%1").arg(m_thumbnailVersion);
 }
 
 QString AppController::slotPreviewSource(int slotIndex, int width, int height)
@@ -266,6 +269,22 @@ QString AppController::slotPreviewSource(int slotIndex, int width, int height)
         return {};
     }
     return QUrl::fromLocalFile(path).toString() + QStringLiteral("?v=%1").arg(m_thumbnailVersion);
+}
+
+QVariantList AppController::templateSlotRects(int choice) const
+{
+    QVariantList out;
+    const auto rects = layout::slotRectsNormalized(choice);
+    out.reserve(rects.size());
+    for (const QRectF &r : rects) {
+        QVariantMap m;
+        m.insert(QStringLiteral("x"), r.x());
+        m.insert(QStringLiteral("y"), r.y());
+        m.insert(QStringLiteral("width"), r.width());
+        m.insert(QStringLiteral("height"), r.height());
+        out << m;
+    }
+    return out;
 }
 
 QString AppController::exportPath() const { return m_exportSettings.path; }
@@ -286,6 +305,7 @@ QString AppController::lastExportMessage() const { return m_lastExportMessage; }
 bool AppController::lastExportSuccess() const { return m_lastExportSuccess; }
 
 QString AppController::autoLayoutPreset() const { return m_settings.autoPreset; }
+qreal AppController::pageAspectRatio() const { return layout::pageAspectRatio(2); }
 void AppController::setAutoLayoutPreset(const QString &value) { if (m_settings.autoPreset == value) return; m_settings.autoPreset = value; persistExportDefaults(); emit appSettingsChanged(); }
 QString AppController::defaultExportPath() const { return m_settings.defaultPath; }
 void AppController::setDefaultExportPath(const QString &value) { if (m_settings.defaultPath == value) return; m_settings.defaultPath = value; persistExportDefaults(); emit appSettingsChanged(); }

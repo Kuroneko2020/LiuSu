@@ -30,6 +30,7 @@ class AppController : public QObject {
     Q_PROPERTY(int defaultCustomPpi READ defaultCustomPpi WRITE setDefaultCustomPpi NOTIFY appSettingsChanged)
     Q_PROPERTY(bool defaultCropMarks READ defaultCropMarks WRITE setDefaultCropMarks NOTIFY appSettingsChanged)
     Q_PROPERTY(QString themePlaceholder READ themePlaceholder WRITE setThemePlaceholder NOTIFY appSettingsChanged)
+    Q_PROPERTY(qreal pageAspectRatio READ pageAspectRatio CONSTANT)
 
 public:
     explicit AppController(QObject *parent = nullptr);
@@ -51,6 +52,7 @@ public:
     Q_INVOKABLE void runExport();
     Q_INVOKABLE QString pageThumbnailSource(int pageIndex);
     Q_INVOKABLE QString slotPreviewSource(int slotIndex, int width, int height);
+    Q_INVOKABLE QVariantList templateSlotRects(int choice) const;
     Q_INVOKABLE void confirmStartNewSession(bool accepted);
 
     [[nodiscard]] QString exportPath() const;
@@ -71,6 +73,7 @@ public:
     [[nodiscard]] bool lastExportSuccess() const;
 
     [[nodiscard]] QString autoLayoutPreset() const;
+    [[nodiscard]] qreal pageAspectRatio() const;
     void setAutoLayoutPreset(const QString &value);
     [[nodiscard]] QString defaultExportPath() const;
     void setDefaultExportPath(const QString &value);

@@ -8,6 +8,7 @@
 namespace pte::layout {
 
 QSizeF physicalSizeMm(int templateChoice);
+qreal pageAspectRatio(int templateChoice);
 QVector<QRectF> slotRectsNormalized(int templateChoice);
 QVector<QRectF> slotRectsPixels(int templateChoice, const QSize &canvasSize);
 
