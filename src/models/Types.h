@@ -7,7 +7,7 @@ namespace pte {
 enum class TemplateType {
     TwoUp = 2,
     FourUp = 4,
-    SixUp = 6
+    NineUp = 9
 };
 
 enum class FillMode {
@@ -22,8 +22,8 @@ inline QString templateDisplayName(TemplateType type)
         return QStringLiteral("两张拼图");
     case TemplateType::FourUp:
         return QStringLiteral("四张拼图");
-    case TemplateType::SixUp:
-        return QStringLiteral("六张拼图");
+    case TemplateType::NineUp:
+        return QStringLiteral("九张拼图");
     }
     return QStringLiteral("未知模板");
 }

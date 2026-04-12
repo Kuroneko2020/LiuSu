@@ -76,7 +76,7 @@ Item {
                 model: [
                     { name: "两张拼图", choice: 2, slots: 2 },
                     { name: "四张拼图", choice: 4, slots: 4 },
-                    { name: "六张拼图", choice: 6, slots: 6 }
+                    { name: "九张拼图", choice: 9, slots: 9 }
                 ]
 
                 delegate: TemplateCard {

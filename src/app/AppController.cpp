@@ -305,7 +305,7 @@ void AppController::setThemePlaceholder(const QString &value) { if (m_settings.t
 TemplateType AppController::toTemplateType(int choice)
 {
     if (choice == 4) return TemplateType::FourUp;
-    if (choice == 6) return TemplateType::SixUp;
+    if (choice == 9) return TemplateType::NineUp;
     return TemplateType::TwoUp;
 }
 
