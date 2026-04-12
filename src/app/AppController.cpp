@@ -259,7 +259,11 @@ QString AppController::pageThumbnailSource(int pageIndex)
 {
     constexpr int thumbWidth = 220;
     const int thumbHeight = qMax(1, qRound(static_cast<qreal>(thumbWidth) / layout::pageAspectRatio(2)));
-    return m_exportService.renderPageThumbnail(m_project, pageIndex, thumbWidth, thumbHeight) + QStringLiteral("?v=%1").arg(m_thumbnailVersion);
+    const QString path = m_exportService.renderPageThumbnail(m_project, pageIndex, thumbWidth, thumbHeight);
+    if (path.isEmpty()) {
+        return {};
+    }
+    return QUrl::fromLocalFile(path).toString() + QStringLiteral("?v=%1").arg(m_thumbnailVersion);
 }
 
 QString AppController::slotPreviewSource(int slotIndex, int width, int height)
