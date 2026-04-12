@@ -33,7 +33,6 @@ Rectangle {
 
     Item {
         anchors.fill: parent
-        anchors.margins: 12
 
         Repeater {
             id: slotRepeater

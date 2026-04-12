@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Rectangle {
     id: slotRoot
     radius: 8
-    color: hasImage ? "#111" : "#f0f0f0"
+    color: hasImage ? "#ffffff" : "#f0f0f0"
     border.width: selected ? 2 : 1
     clip: true
 
@@ -36,10 +36,9 @@ Rectangle {
     Image {
         id: photo
         anchors.fill: parent
-        anchors.margins: 2
         source: imageSource
         visible: hasImage && source !== ""
-        fillMode: Image.PreserveAspectFit
+        fillMode: Image.Stretch
         smooth: true
         cache: true
 
