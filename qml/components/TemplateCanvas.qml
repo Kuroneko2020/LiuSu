@@ -92,6 +92,9 @@ Rectangle {
                 onToggleFillMode: appController.project.toggleSelectedSlotFillMode()
                 onSwapRequested: (fromIndex, toIndex) => appController.project.swapOrMoveSlots(fromIndex, toIndex)
                 onContentDragFinished: (dx, dy) => appController.project.adjustSelectedSlotOffset(dx, dy)
+                onCompositionOffsetSet: (x, y) => appController.project.setSelectedSlotOffset(x, y)
+                onCompositionResetRequested: appController.project.resetSelectedSlotOffset()
+                onRemovePhotoRequested: appController.project.clearSlot(slotIndex)
                 onSwapDragStarted: (fromIndex, scenePos) => {
                     canvas.swapSourceSlot = fromIndex
                     canvas.swapTargetSlot = canvas.slotIndexAt(scenePos)

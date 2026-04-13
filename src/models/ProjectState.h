@@ -68,6 +68,9 @@ public:
     Q_INVOKABLE void toggleSelectedSlotFillMode();
     Q_INVOKABLE bool selectedSlotInFillCrop() const;
     Q_INVOKABLE void adjustSelectedSlotOffset(qreal dx, qreal dy);
+    Q_INVOKABLE void setSelectedSlotOffset(qreal x, qreal y);
+    Q_INVOKABLE void resetSelectedSlotOffset();
+    Q_INVOKABLE void clearSlot(int slotIndex);
     Q_INVOKABLE void swapOrMoveSlots(int fromIndex, int toIndex);
 
     Q_INVOKABLE int findNextAvailableSlot() const;

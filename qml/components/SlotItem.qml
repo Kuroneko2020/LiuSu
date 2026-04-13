@@ -21,6 +21,10 @@ Rectangle {
     property real dragDeltaX: 0
     property real dragDeltaY: 0
     property bool swapTargetHighlighted: false
+    property bool compositionMode: false
+    readonly property bool canMoveHorizontal: fillCropMode && contentLayer.overflowX > 0
+    readonly property bool canMoveVertical: fillCropMode && contentLayer.overflowY > 0
+    readonly property bool canAdjustComposition: hasImage && fillCropMode && (canMoveHorizontal || canMoveVertical)
 
     signal addClicked()
     signal slotClicked()
@@ -29,9 +33,17 @@ Rectangle {
     signal toggleFillMode()
     signal swapRequested(int fromIndex, int toIndex)
     signal contentDragFinished(real dx, real dy)
+    signal compositionOffsetSet(real x, real y)
+    signal compositionResetRequested()
+    signal removePhotoRequested()
     signal swapDragStarted(int fromIndex, point scenePos)
     signal swapDragMoved(point scenePos)
     signal swapDragFinished(point scenePos)
+
+    onSelectedChanged: if (!selected) compositionMode = false
+    onFillCropModeChanged: if (!fillCropMode) compositionMode = false
+    onHasImageChanged: if (!hasImage) compositionMode = false
+    onCanAdjustCompositionChanged: if (!canAdjustComposition) compositionMode = false
 
     border.color: swapTargetHighlighted ? "#ff8c00" : (selected ? "#7f7f7f" : "#c5c5c5")
 
@@ -76,7 +88,7 @@ Rectangle {
 
             MouseArea {
                 anchors.fill: contentViewport
-                enabled: hasImage && selected && fillCropMode
+                enabled: hasImage && selected && fillCropMode && compositionMode
                 property real lastX
                 property real lastY
                 property real totalDx
@@ -157,22 +169,28 @@ Rectangle {
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.margins: 6
-        Text { anchors.centerIn: parent; text: "⇅"; color: "white"; font.pixelSize: 10 }
+        Text { anchors.centerIn: parent; text: compositionMode ? "×" : "⇅"; color: "white"; font.pixelSize: 10 }
 
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.OpenHandCursor
             drag.target: null
             onPressed: (mouse) => {
+                if (compositionMode) {
+                    compositionMode = false
+                    return
+                }
                 cursorShape = Qt.ClosedHandCursor
                 const p = swapHandle.mapToItem(null, mouse.x, mouse.y)
                 slotRoot.swapDragStarted(slotRoot.slotIndex, Qt.point(p.x, p.y))
             }
             onPositionChanged: (mouse) => {
+                if (compositionMode) return
                 const p = swapHandle.mapToItem(null, mouse.x, mouse.y)
                 slotRoot.swapDragMoved(Qt.point(p.x, p.y))
             }
             onReleased: (mouse) => {
+                if (compositionMode) return
                 cursorShape = Qt.OpenHandCursor
                 const p = swapHandle.mapToItem(null, mouse.x, mouse.y)
                 slotRoot.swapDragFinished(Qt.point(p.x, p.y))
@@ -181,7 +199,7 @@ Rectangle {
     }
 
     RowLayout {
-        visible: selected && hasImage
+        visible: selected && hasImage && !compositionMode
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -194,6 +212,79 @@ Rectangle {
             Layout.fillWidth: true
             text: fillCropMode ? "切换为完整放入" : "切换为铺满裁切"
             onClicked: slotRoot.toggleFillMode()
+        }
+        Button {
+            Layout.fillWidth: true
+            visible: canAdjustComposition
+            text: "调整构图"
+            onClicked: compositionMode = true
+        }
+        Button {
+            Layout.fillWidth: true
+            text: "删除照片"
+            onClicked: slotRoot.removePhotoRequested()
+        }
+    }
+
+    Rectangle {
+        visible: selected && hasImage && compositionMode
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: 4
+        color: "#f7f7f7"
+        border.color: "#c9c9c9"
+        border.width: 1
+        height: compositionControls.implicitHeight + 8
+
+        ColumnLayout {
+            id: compositionControls
+            anchors.fill: parent
+            anchors.margins: 4
+            spacing: 2
+
+            RowLayout {
+                visible: canMoveHorizontal
+                Layout.fillWidth: true
+                Label { text: "左右"; Layout.preferredWidth: 30; font.pixelSize: 11 }
+                Slider {
+                    Layout.fillWidth: true
+                    from: -1.0
+                    to: 1.0
+                    value: cropOffsetX
+                    onMoved: slotRoot.compositionOffsetSet(value, cropOffsetY)
+                }
+            }
+
+            RowLayout {
+                visible: canMoveVertical
+                Layout.fillWidth: true
+                Label { text: "上下"; Layout.preferredWidth: 30; font.pixelSize: 11 }
+                Slider {
+                    Layout.fillWidth: true
+                    from: -1.0
+                    to: 1.0
+                    value: cropOffsetY
+                    onMoved: slotRoot.compositionOffsetSet(cropOffsetX, value)
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: "重置构图"
+                    onClicked: slotRoot.compositionResetRequested()
+                }
+            }
+        }
+    }
+
+    focus: compositionMode
+    Keys.onEscapePressed: {
+        if (compositionMode) {
+            compositionMode = false
+            event.accepted = true
         }
     }
 

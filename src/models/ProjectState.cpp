@@ -53,6 +53,20 @@ QString transformedPreviewPath(const QString &path, int rotation, bool mirrored)
     image.save(outPath, "PNG");
     return outPath;
 }
+
+void slotOffsetCapabilities(const SlotState &slot, const QRectF &slotRect, bool &allowX, bool &allowY)
+{
+    QImageReader reader(slot.image.exportPath);
+    reader.setAutoTransform(true);
+    QSize imageSize = reader.size();
+    if (slot.rotation % 180 != 0) {
+        imageSize.transpose();
+    }
+    const qreal slotAspect = (slotRect.height() > 0.0) ? (slotRect.width() / slotRect.height()) : 1.0;
+    const qreal imageAspect = (imageSize.height() > 0) ? (static_cast<qreal>(imageSize.width()) / imageSize.height()) : slotAspect;
+    allowX = imageAspect > slotAspect + 1e-6;
+    allowY = imageAspect < slotAspect - 1e-6;
+}
 }
 
 bool PageState::isValid() const
@@ -347,17 +361,10 @@ void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
         return;
     }
 
-    QImageReader reader(slot.image.exportPath);
-    reader.setAutoTransform(true);
-    QSize imageSize = reader.size();
-    if (slot.rotation % 180 != 0) {
-        imageSize.transpose();
-    }
     const QRectF slotRect = slotRectNormalized(index);
-    const qreal slotAspect = (slotRect.height() > 0.0) ? (slotRect.width() / slotRect.height()) : 1.0;
-    const qreal imageAspect = (imageSize.height() > 0) ? (static_cast<qreal>(imageSize.width()) / imageSize.height()) : slotAspect;
-    const bool allowX = imageAspect > slotAspect + 1e-6;
-    const bool allowY = imageAspect < slotAspect - 1e-6;
+    bool allowX = false;
+    bool allowY = false;
+    slotOffsetCapabilities(slot, slotRect, allowX, allowY);
 
     const qreal nextX = allowX ? qBound(-1.0, slot.cropOffset.x() + dx, 1.0) : 0.0;
     const qreal nextY = allowY ? qBound(-1.0, slot.cropOffset.y() + dy, 1.0) : 0.0;
@@ -367,6 +374,53 @@ void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
     }
     slot.cropOffset.setX(nextX);
     slot.cropOffset.setY(nextY);
+    ++m_contentRevision;
+    ++m_slotsRevision;
+    emit slotsChanged();
+}
+
+void ProjectState::setSelectedSlotOffset(qreal x, qreal y)
+{
+    auto *page = currentPage();
+    const int index = selectedSlotIndex();
+    if (!page || index < 0) {
+        return;
+    }
+    auto &slot = page->slotStates[index];
+    if (slot.fillMode != FillMode::FillCrop || !slot.hasImage) {
+        return;
+    }
+
+    bool allowX = false;
+    bool allowY = false;
+    slotOffsetCapabilities(slot, slotRectNormalized(index), allowX, allowY);
+    const qreal nextX = allowX ? qBound(-1.0, x, 1.0) : 0.0;
+    const qreal nextY = allowY ? qBound(-1.0, y, 1.0) : 0.0;
+    if (qFuzzyCompare(slot.cropOffset.x() + 1.0, nextX + 1.0)
+        && qFuzzyCompare(slot.cropOffset.y() + 1.0, nextY + 1.0)) {
+        return;
+    }
+    slot.cropOffset = QPointF(nextX, nextY);
+    ++m_contentRevision;
+    ++m_slotsRevision;
+    emit slotsChanged();
+}
+
+void ProjectState::resetSelectedSlotOffset()
+{
+    setSelectedSlotOffset(0.0, 0.0);
+}
+
+void ProjectState::clearSlot(int slotIndex)
+{
+    auto *page = currentPage();
+    if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size()) {
+        return;
+    }
+    if (!page->slotStates[slotIndex].hasImage) {
+        return;
+    }
+    page->slotStates[slotIndex] = SlotState{};
     ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
