@@ -5,6 +5,8 @@
 #include "services/ImageService.h"
 
 #include <QObject>
+#include <QHash>
+#include <QSet>
 #include <QVariant>
 
 namespace pte {
@@ -31,7 +33,7 @@ class AppController : public QObject {
     Q_PROPERTY(bool defaultCropMarks READ defaultCropMarks WRITE setDefaultCropMarks NOTIFY appSettingsChanged)
     Q_PROPERTY(QString themePlaceholder READ themePlaceholder WRITE setThemePlaceholder NOTIFY appSettingsChanged)
     Q_PROPERTY(qreal pageAspectRatio READ pageAspectRatio CONSTANT)
-    Q_PROPERTY(int pageThumbnailRevision READ pageThumbnailRevision NOTIFY thumbnailsChanged)
+    Q_PROPERTY(int thumbnailListRevision READ thumbnailListRevision NOTIFY thumbnailsChanged)
 
 public:
     explicit AppController(QObject *parent = nullptr);
@@ -52,6 +54,7 @@ public:
     Q_INVOKABLE void setExportPathFromDialog(const QString &folderUrl);
     Q_INVOKABLE void runExport();
     Q_INVOKABLE QString pageThumbnailSource(int pageIndex);
+    Q_INVOKABLE int pageThumbnailRevisionAt(int pageIndex) const;
     Q_INVOKABLE QString slotPreviewSource(int slotIndex, int width, int height);
     Q_INVOKABLE QVariantList templateSlotRects(int choice) const;
     Q_INVOKABLE void confirmStartNewSession(bool accepted);
@@ -75,7 +78,7 @@ public:
 
     [[nodiscard]] QString autoLayoutPreset() const;
     [[nodiscard]] qreal pageAspectRatio() const;
-    [[nodiscard]] int pageThumbnailRevision() const;
+    [[nodiscard]] int thumbnailListRevision() const;
     void setAutoLayoutPreset(const QString &value);
     [[nodiscard]] QString defaultExportPath() const;
     void setDefaultExportPath(const QString &value);
@@ -106,6 +109,8 @@ private:
     struct SettingsModel { QString autoPreset{"均衡填充"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; };
 
     [[nodiscard]] static TemplateType toTemplateType(int choice);
+    void markPageThumbnailDirty(int pageIndex);
+    void handlePagesChanged();
     void loadSettings();
     void persistExportDefaults() const;
 
@@ -117,8 +122,11 @@ private:
 
     QString m_lastExportMessage;
     bool m_lastExportSuccess = false;
-    int m_pageThumbnailRevision = 0;
-    int m_lastThumbnailContentRevision = 0;
+    int m_thumbnailListRevision = 0;
+    QHash<int, int> m_pageThumbnailRevisions;
+    QHash<int, QString> m_pageThumbnailCache;
+    QSet<int> m_dirtyThumbnailPages;
+    bool m_deferThumbnailSignals = false;
     int m_pendingTemplateChoice = 2;
     bool m_pendingAutoMode = false;
     QVariantList m_pendingAutoFiles;

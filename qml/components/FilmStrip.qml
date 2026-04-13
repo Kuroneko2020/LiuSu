@@ -45,7 +45,8 @@ Rectangle {
                         width: Math.min(parent.width, height * appController.pageAspectRatio)
                         anchors.centerIn: parent
                         source: {
-                            appController.pageThumbnailRevision
+                            appController.thumbnailListRevision
+                            appController.pageThumbnailRevisionAt(pageIndex)
                             return appController.pageThumbnailSource(pageIndex)
                         }
                         fillMode: Image.PreserveAspectFit

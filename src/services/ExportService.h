@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
 #include <QStringList>
 
 namespace pte {
@@ -37,6 +38,7 @@ public:
 
 private:
     [[nodiscard]] int resolvePpi(const Request &request) const;
+    mutable QHash<QString, QString> m_pageThumbnailCacheByKey;
 };
 
 } // namespace pte

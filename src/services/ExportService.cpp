@@ -42,6 +42,27 @@ QString uniquePath(const QDir &dir, const QString &baseName, const QString &ext)
     return candidate;
 }
 
+QString pageThumbnailCacheKey(const ProjectState &project, int pageIndex, int width, int height)
+{
+    QString key = QStringLiteral("%1|%2x%3|%4")
+                      .arg(pageIndex)
+                      .arg(width)
+                      .arg(height)
+                      .arg(project.pageTemplateChoice(pageIndex));
+    const int slotCountOnPage = project.pageSlotCount(pageIndex);
+    for (int slot = 0; slot < slotCountOnPage; ++slot) {
+        key += QStringLiteral("|%1:%2:%3:%4:%5:%6:%7")
+                   .arg(slot)
+                   .arg(project.pageSlotHasImage(pageIndex, slot) ? 1 : 0)
+                   .arg(project.pageSlotImagePath(pageIndex, slot))
+                   .arg(project.pageSlotRotation(pageIndex, slot))
+                   .arg(project.pageSlotMirrored(pageIndex, slot) ? 1 : 0)
+                   .arg(project.pageSlotFillCrop(pageIndex, slot) ? 1 : 0)
+                   .arg(QStringLiteral("%1,%2").arg(project.pageSlotOffset(pageIndex, slot).x(), 0, 'f', 4).arg(project.pageSlotOffset(pageIndex, slot).y(), 0, 'f', 4));
+    }
+    return key;
+}
+
 QImage transformImage(const QString &path, int rotation, bool mirrored)
 {
     QImageReader reader(path);
@@ -241,12 +262,22 @@ QString ExportService::renderPageThumbnail(const ProjectState &project, int page
     if (pageIndex < 0 || pageIndex >= project.pageCount()) {
         return {};
     }
+    const QString key = pageThumbnailCacheKey(project, pageIndex, width, height);
+    if (m_pageThumbnailCacheByKey.contains(key)) {
+        const QString cachedPath = m_pageThumbnailCacheByKey.value(key);
+        if (QFileInfo::exists(cachedPath)) {
+            return cachedPath;
+        }
+    }
+
     const QImage image = renderPageImage(project, pageIndex, QSize(width, height), false);
 
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/thumbs");
     QDir().mkpath(dir);
-    const QString path = dir + QStringLiteral("/page_%1.png").arg(pageIndex);
+    const QString digest = QString::fromUtf8(QCryptographicHash::hash(key.toUtf8(), QCryptographicHash::Sha1).toHex());
+    const QString path = dir + QStringLiteral("/page_%1_%2.png").arg(pageIndex).arg(digest);
     image.save(path, "PNG");
+    m_pageThumbnailCacheByKey.insert(key, path);
     return path;
 }
 

@@ -1,6 +1,7 @@
 #include "models/ProjectState.h"
 
 #include "services/TemplateLayout.h"
+#include <QImageReader>
 #include <QUrl>
 
 namespace pte {
@@ -212,7 +213,6 @@ void ProjectState::assignImageToSlot(int slotIndex, const pte::ImageResource &re
         selectSlot(slotIndex);
     }
 
-    emit pagesChanged();
     ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
@@ -295,8 +295,21 @@ void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
     if (slot.fillMode != FillMode::FillCrop || !slot.hasImage) {
         return;
     }
-    const qreal nextX = qBound(-1.0, slot.cropOffset.x() + dx, 1.0);
-    const qreal nextY = qBound(-1.0, slot.cropOffset.y() + dy, 1.0);
+
+    QImageReader reader(slot.image.exportPath);
+    reader.setAutoTransform(true);
+    QSize imageSize = reader.size();
+    if (slot.rotation % 180 != 0) {
+        imageSize.transpose();
+    }
+    const QRectF slotRect = slotRectNormalized(index);
+    const qreal slotAspect = (slotRect.height() > 0.0) ? (slotRect.width() / slotRect.height()) : 1.0;
+    const qreal imageAspect = (imageSize.height() > 0) ? (static_cast<qreal>(imageSize.width()) / imageSize.height()) : slotAspect;
+    const bool allowX = imageAspect > slotAspect + 1e-6;
+    const bool allowY = imageAspect < slotAspect - 1e-6;
+
+    const qreal nextX = allowX ? qBound(-1.0, slot.cropOffset.x() + dx, 1.0) : 0.0;
+    const qreal nextY = allowY ? qBound(-1.0, slot.cropOffset.y() + dy, 1.0) : 0.0;
     if (qFuzzyCompare(slot.cropOffset.x() + 1.0, nextX + 1.0)
         && qFuzzyCompare(slot.cropOffset.y() + 1.0, nextY + 1.0)) {
         return;
@@ -326,7 +339,6 @@ void ProjectState::swapOrMoveSlots(int fromIndex, int toIndex)
         page->slotStates[i].selected = (i == toIndex);
     }
 
-    emit pagesChanged();
     ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();

@@ -5,9 +5,9 @@ import QtQuick.Layouts
 Rectangle {
     id: slotRoot
     radius: 8
-    color: hasImage ? "#ffffff" : "#f0f0f0"
+    color: "transparent"
     border.width: selected ? 2 : 1
-    clip: true
+    clip: false
 
     property int slotIndex: -1
     property bool hasImage: false
@@ -35,61 +35,75 @@ Rectangle {
 
     border.color: swapTargetHighlighted ? "#ff8c00" : (selected ? "#4f7cff" : "#c5c5c5")
 
-    Image {
-        id: photo
-        readonly property real liveOffsetX: fillCropMode ? Math.max(-1.0, Math.min(1.0, cropOffsetX + dragDeltaX)) : 0
-        readonly property real liveOffsetY: fillCropMode ? Math.max(-1.0, Math.min(1.0, cropOffsetY + dragDeltaY)) : 0
-        readonly property real overflowX: Math.max(0, paintedWidth - width)
-        readonly property real overflowY: Math.max(0, paintedHeight - height)
-        width: parent.width
-        height: parent.height
-        source: imageSource
-        visible: hasImage && source !== ""
-        fillMode: fillCropMode ? Image.PreserveAspectCrop : Image.PreserveAspectFit
-        horizontalAlignment: Image.AlignHCenter
-        verticalAlignment: Image.AlignVCenter
-        smooth: true
-        cache: true
-        rotation: rotationDegrees
-        mirror: mirrored
-        x: fillCropMode ? (liveOffsetX * overflowX * 0.5) : 0
-        y: fillCropMode ? (liveOffsetY * overflowY * 0.5) : 0
+    Rectangle {
+        id: contentViewport
+        anchors.fill: parent
+        radius: 6
+        color: hasImage ? "#151515" : "#eef1f4"
+        clip: true
 
-        MouseArea {
-            anchors.fill: parent
-            enabled: hasImage && selected && fillCropMode
-            property real lastX
-            property real lastY
-            property real totalDx
-            property real totalDy
-            onPressed: {
-                lastX = mouse.x
-                lastY = mouse.y
-                totalDx = 0
-                totalDy = 0
-                slotRoot.dragDeltaX = 0
-                slotRoot.dragDeltaY = 0
-            }
-            onPositionChanged: {
-                const dx = (mouse.x - lastX) / width
-                const dy = (mouse.y - lastY) / height
-                lastX = mouse.x
-                lastY = mouse.y
-                const stepX = dx * 2.0
-                const stepY = dy * 2.0
-                totalDx += stepX
-                totalDy += stepY
-                slotRoot.dragDeltaX = totalDx
-                slotRoot.dragDeltaY = totalDy
-            }
-            onReleased: {
-                slotRoot.contentDragFinished(slotRoot.dragDeltaX, slotRoot.dragDeltaY)
-                slotRoot.dragDeltaX = 0
-                slotRoot.dragDeltaY = 0
-            }
-            onCanceled: {
-                slotRoot.dragDeltaX = 0
-                slotRoot.dragDeltaY = 0
+        Image {
+            id: photo
+            readonly property real liveOffsetX: fillCropMode ? Math.max(-1.0, Math.min(1.0, cropOffsetX + dragDeltaX)) : 0
+            readonly property real liveOffsetY: fillCropMode ? Math.max(-1.0, Math.min(1.0, cropOffsetY + dragDeltaY)) : 0
+            readonly property real overflowX: Math.max(0, paintedWidth - width)
+            readonly property real overflowY: Math.max(0, paintedHeight - height)
+            width: parent.width
+            height: parent.height
+            source: imageSource
+            visible: hasImage && source !== ""
+            fillMode: fillCropMode ? Image.PreserveAspectCrop : Image.PreserveAspectFit
+            horizontalAlignment: Image.AlignHCenter
+            verticalAlignment: Image.AlignVCenter
+            smooth: true
+            cache: true
+            rotation: rotationDegrees
+            mirror: mirrored
+            x: fillCropMode && overflowX > 0 ? (liveOffsetX * overflowX * 0.5) : 0
+            y: fillCropMode && overflowY > 0 ? (liveOffsetY * overflowY * 0.5) : 0
+
+            MouseArea {
+                anchors.fill: parent
+                enabled: hasImage && selected && fillCropMode
+                property real lastX
+                property real lastY
+                property real totalDx
+                property real totalDy
+                onPressed: {
+                    lastX = mouse.x
+                    lastY = mouse.y
+                    totalDx = 0
+                    totalDy = 0
+                    slotRoot.dragDeltaX = 0
+                    slotRoot.dragDeltaY = 0
+                }
+                onPositionChanged: {
+                    const dx = (mouse.x - lastX) / width
+                    const dy = (mouse.y - lastY) / height
+                    lastX = mouse.x
+                    lastY = mouse.y
+                    if (photo.overflowX > 0) {
+                        totalDx = Math.max(-1.0 - cropOffsetX, Math.min(1.0 - cropOffsetX, totalDx + dx * 2.0))
+                    } else {
+                        totalDx = 0
+                    }
+                    if (photo.overflowY > 0) {
+                        totalDy = Math.max(-1.0 - cropOffsetY, Math.min(1.0 - cropOffsetY, totalDy + dy * 2.0))
+                    } else {
+                        totalDy = 0
+                    }
+                    slotRoot.dragDeltaX = totalDx
+                    slotRoot.dragDeltaY = totalDy
+                }
+                onReleased: {
+                    slotRoot.contentDragFinished(slotRoot.dragDeltaX, slotRoot.dragDeltaY)
+                    slotRoot.dragDeltaX = 0
+                    slotRoot.dragDeltaY = 0
+                }
+                onCanceled: {
+                    slotRoot.dragDeltaX = 0
+                    slotRoot.dragDeltaY = 0
+                }
             }
         }
     }
@@ -170,7 +184,7 @@ Rectangle {
         Button { Layout.fillWidth: true; text: "镜像"; onClicked: slotRoot.mirrorClicked() }
         Button {
             Layout.fillWidth: true
-            text: fillCropMode ? "铺满裁切" : "完整放入"
+            text: fillCropMode ? "切换为完整放入" : "切换为铺满裁切"
             onClicked: slotRoot.toggleFillMode()
         }
     }

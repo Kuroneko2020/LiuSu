@@ -2,11 +2,13 @@
 #include "services/ImageService.h"
 
 #include <QCollator>
+#include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QImageReader>
+#include <QImageWriter>
 #include <QStandardPaths>
 
 namespace pte {
@@ -98,8 +100,38 @@ ImageResource ImageService::normalizeAndCache(const QString &path) const
     ImageResource resource;
     resource.originalPath = info.absoluteFilePath();
     resource.originalBaseName = info.completeBaseName();
-    resource.previewPath = info.absoluteFilePath();
     resource.exportPath = info.absoluteFilePath();
+
+    QImage image = reader.read();
+    if (image.isNull()) {
+        resource.previewPath = info.absoluteFilePath();
+        return resource;
+    }
+
+    const int maxPreviewEdge = 2200;
+    if (image.width() > maxPreviewEdge || image.height() > maxPreviewEdge) {
+        image = image.scaled(maxPreviewEdge, maxPreviewEdge, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+
+    const QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/cache");
+    QDir().mkpath(cacheDir);
+    const QByteArray key = QStringLiteral("%1|%2|%3|%4")
+                               .arg(resource.originalPath)
+                               .arg(info.lastModified().toMSecsSinceEpoch())
+                               .arg(image.width())
+                               .arg(image.height())
+                               .toUtf8();
+    const QString digest = QString::fromUtf8(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex());
+    const QString previewPath = cacheDir + QStringLiteral("/preview_%1.jpg").arg(digest);
+    if (!QFileInfo::exists(previewPath)) {
+        QImageWriter writer(previewPath, "JPG");
+        writer.setQuality(92);
+        if (!writer.write(image)) {
+            resource.previewPath = info.absoluteFilePath();
+            return resource;
+        }
+    }
+    resource.previewPath = previewPath;
     return resource;
 }
 

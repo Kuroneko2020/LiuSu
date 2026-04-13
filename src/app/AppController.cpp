@@ -49,18 +49,9 @@ AppController::AppController(QObject *parent)
     }
 
     connect(&m_project, &ProjectState::slotsChanged, this, [this]() {
-        if (m_lastThumbnailContentRevision == m_project.contentRevision()) {
-            return;
-        }
-        m_lastThumbnailContentRevision = m_project.contentRevision();
-        ++m_pageThumbnailRevision;
-        emit thumbnailsChanged();
+        markPageThumbnailDirty(m_project.currentPageIndex());
     });
-    connect(&m_project, &ProjectState::pagesChanged, this, [this]() {
-        ++m_pageThumbnailRevision;
-        m_lastThumbnailContentRevision = m_project.contentRevision();
-        emit thumbnailsChanged();
-    });
+    connect(&m_project, &ProjectState::pagesChanged, this, [this]() { handlePagesChanged(); });
 }
 
 ProjectState *AppController::project() { return &m_project; }
@@ -106,6 +97,7 @@ void AppController::startAutoLayoutWithFiles(int choice, const QVariantList &fil
         return;
     }
 
+    m_deferThumbnailSignals = true;
     int imported = 0;
     while (imported < images.size()) {
         int targetSlot = m_project.findNextAvailableSlot();
@@ -126,6 +118,8 @@ void AppController::startAutoLayoutWithFiles(int choice, const QVariantList &fil
         m_project.configureSlot(targetSlot, decision.fillCrop, decision.rotation, decision.mirrored);
         ++imported;
     }
+    m_deferThumbnailSignals = false;
+    emit thumbnailsChanged();
 
     if (m_exportSettings.path.isEmpty() || !QDir(m_exportSettings.path).exists()) {
         m_lastExportSuccess = false;
@@ -191,6 +185,7 @@ void AppController::batchImportFromFiles(const QVariantList &fileUrls)
         return;
     }
 
+    m_deferThumbnailSignals = true;
     int imported = 0;
     while (imported < images.size()) {
         int targetSlot = m_project.findNextAvailableSlot();
@@ -206,6 +201,8 @@ void AppController::batchImportFromFiles(const QVariantList &fileUrls)
         m_project.assignImageToSlot(targetSlot, images.at(imported));
         ++imported;
     }
+    m_deferThumbnailSignals = false;
+    emit thumbnailsChanged();
 }
 
 void AppController::exportCurrentPage()
@@ -261,13 +258,29 @@ void AppController::runExport()
 
 QString AppController::pageThumbnailSource(int pageIndex)
 {
+    if (pageIndex < 0 || pageIndex >= m_project.pageCount()) {
+        return {};
+    }
+    if (!m_dirtyThumbnailPages.contains(pageIndex) && m_pageThumbnailCache.contains(pageIndex)) {
+        return m_pageThumbnailCache.value(pageIndex);
+    }
+
     constexpr int thumbWidth = 220;
     const int thumbHeight = qMax(1, qRound(static_cast<qreal>(thumbWidth) / layout::pageAspectRatio(2)));
     const QString path = m_exportService.renderPageThumbnail(m_project, pageIndex, thumbWidth, thumbHeight);
     if (path.isEmpty()) {
         return {};
     }
-    return QUrl::fromLocalFile(path).toString() + QStringLiteral("?v=%1").arg(m_pageThumbnailRevision);
+    const QString source = QUrl::fromLocalFile(path).toString()
+                           + QStringLiteral("?v=%1").arg(m_pageThumbnailRevisions.value(pageIndex, 0));
+    m_pageThumbnailCache.insert(pageIndex, source);
+    m_dirtyThumbnailPages.remove(pageIndex);
+    return source;
+}
+
+int AppController::pageThumbnailRevisionAt(int pageIndex) const
+{
+    return m_pageThumbnailRevisions.value(pageIndex, 0);
 }
 
 QString AppController::slotPreviewSource(int slotIndex, int width, int height)
@@ -314,7 +327,7 @@ bool AppController::lastExportSuccess() const { return m_lastExportSuccess; }
 
 QString AppController::autoLayoutPreset() const { return m_settings.autoPreset; }
 qreal AppController::pageAspectRatio() const { return layout::pageAspectRatio(2); }
-int AppController::pageThumbnailRevision() const { return m_pageThumbnailRevision; }
+int AppController::thumbnailListRevision() const { return m_thumbnailListRevision; }
 void AppController::setAutoLayoutPreset(const QString &value) { if (m_settings.autoPreset == value) return; m_settings.autoPreset = value; persistExportDefaults(); emit appSettingsChanged(); }
 QString AppController::defaultExportPath() const { return m_settings.defaultPath; }
 void AppController::setDefaultExportPath(const QString &value) { if (m_settings.defaultPath == value) return; m_settings.defaultPath = value; persistExportDefaults(); emit appSettingsChanged(); }
@@ -366,6 +379,47 @@ void AppController::persistExportDefaults() const
     settings.setValue(QStringLiteral("export/defaultResolution"), m_settings.defaultResolution);
     settings.setValue(QStringLiteral("export/defaultCropMarks"), m_settings.defaultCrop);
     settings.setValue(QStringLiteral("export/defaultCustomPpi"), m_settings.defaultCustomPpi);
+}
+
+void AppController::markPageThumbnailDirty(int pageIndex)
+{
+    if (pageIndex < 0 || pageIndex >= m_project.pageCount()) {
+        return;
+    }
+    m_dirtyThumbnailPages.insert(pageIndex);
+    m_pageThumbnailRevisions[pageIndex] = m_pageThumbnailRevisions.value(pageIndex, 0) + 1;
+    m_pageThumbnailCache.remove(pageIndex);
+    if (!m_deferThumbnailSignals) {
+        emit thumbnailsChanged();
+    }
+}
+
+void AppController::handlePagesChanged()
+{
+    QHash<int, int> normalizedRevisions;
+    QHash<int, QString> normalizedCache;
+    QSet<int> normalizedDirty;
+    for (int i = 0; i < m_project.pageCount(); ++i) {
+        normalizedRevisions.insert(i, m_pageThumbnailRevisions.value(i, 0));
+        if (m_pageThumbnailCache.contains(i)) {
+            normalizedCache.insert(i, m_pageThumbnailCache.value(i));
+        }
+        if (m_dirtyThumbnailPages.contains(i)) {
+            normalizedDirty.insert(i);
+        }
+    }
+
+    m_pageThumbnailRevisions = normalizedRevisions;
+    m_pageThumbnailCache = normalizedCache;
+    m_dirtyThumbnailPages = normalizedDirty;
+    for (int i = 0; i < m_project.pageCount(); ++i) {
+        m_dirtyThumbnailPages.insert(i);
+        m_pageThumbnailRevisions[i] = m_pageThumbnailRevisions.value(i, 0) + 1;
+        m_pageThumbnailCache.remove(i);
+    }
+
+    ++m_thumbnailListRevision;
+    emit thumbnailsChanged();
 }
 
 } // namespace pte
