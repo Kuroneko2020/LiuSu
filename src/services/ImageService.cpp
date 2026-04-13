@@ -33,12 +33,14 @@ void cleanupCacheDir(const QString &dirPath, int days)
 ImageService::ImageService(QObject *parent)
     : QObject(parent)
 {
-    const QString tempRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
-    cleanupCacheDir(tempRoot + QStringLiteral("/cache"), 14);
-    cleanupCacheDir(tempRoot + QStringLiteral("/thumbs"), 14);
+    m_cacheRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
+    cleanupCacheDir(m_cacheRoot + QStringLiteral("/cache"), 14);
+    cleanupCacheDir(m_cacheRoot + QStringLiteral("/thumbs"), 14);
+    cleanupCacheDir(m_cacheRoot + QStringLiteral("/slot-images"), 14);
+    cleanupCacheDir(m_cacheRoot + QStringLiteral("/slot-previews"), 14);
 }
 
-ImageResource ImageService::normalizeAndCacheFile(const QString &path) const
+ImageResource ImageService::normalizeAndCacheFile(const QString &path)
 {
     if (path.isEmpty()) {
         return {};
@@ -46,7 +48,7 @@ ImageResource ImageService::normalizeAndCacheFile(const QString &path) const
     return normalizeAndCache(path);
 }
 
-QList<ImageResource> ImageService::normalizeAndCacheFiles(const QStringList &paths) const
+QList<ImageResource> ImageService::normalizeAndCacheFiles(const QStringList &paths)
 {
     if (paths.isEmpty()) {
         return {};
@@ -108,18 +110,18 @@ ImageResource ImageService::normalizeAndCache(const QString &path) const
         return resource;
     }
 
-    const int maxPreviewEdge = 2200;
-    if (image.width() > maxPreviewEdge || image.height() > maxPreviewEdge) {
-        image = image.scaled(maxPreviewEdge, maxPreviewEdge, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    if (image.width() > m_previewMaxEdge || image.height() > m_previewMaxEdge) {
+        image = image.scaled(m_previewMaxEdge, m_previewMaxEdge, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
 
-    const QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/cache");
+    const QString cacheDir = m_cacheRoot + QStringLiteral("/cache");
     QDir().mkpath(cacheDir);
     const QByteArray key = QStringLiteral("%1|%2|%3|%4")
                                .arg(resource.originalPath)
                                .arg(info.lastModified().toMSecsSinceEpoch())
                                .arg(image.width())
                                .arg(image.height())
+                               .arg(m_previewMaxEdge)
                                .toUtf8();
     const QString digest = QString::fromUtf8(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex());
     const QString previewPath = cacheDir + QStringLiteral("/preview_%1.jpg").arg(digest);
@@ -133,6 +135,51 @@ ImageResource ImageService::normalizeAndCache(const QString &path) const
     }
     resource.previewPath = previewPath;
     return resource;
+}
+
+void ImageService::setCacheRoot(const QString &cacheRoot)
+{
+    if (cacheRoot.isEmpty() || m_cacheRoot == cacheRoot) {
+        return;
+    }
+    m_cacheRoot = cacheRoot;
+}
+
+QString ImageService::cacheRoot() const
+{
+    return m_cacheRoot;
+}
+
+void ImageService::setPreviewMaxEdge(int edge)
+{
+    m_previewMaxEdge = qBound(1024, edge, 4096);
+}
+
+int ImageService::previewMaxEdge() const
+{
+    return m_previewMaxEdge;
+}
+
+bool ImageService::clearCache() const
+{
+    bool ok = true;
+    const QStringList dirs{
+        m_cacheRoot + QStringLiteral("/cache"),
+        m_cacheRoot + QStringLiteral("/thumbs"),
+        m_cacheRoot + QStringLiteral("/slot-images"),
+        m_cacheRoot + QStringLiteral("/slot-previews")
+    };
+    for (const QString &dirPath : dirs) {
+        QDir dir(dirPath);
+        if (!dir.exists()) {
+            continue;
+        }
+        const auto files = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+        for (const QFileInfo &fi : files) {
+            ok = QFile::remove(fi.absoluteFilePath()) && ok;
+        }
+    }
+    return ok;
 }
 
 } // namespace pte

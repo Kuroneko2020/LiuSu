@@ -235,6 +235,31 @@ void AppController::setExportPathFromDialog(const QString &folderUrl)
     }
 }
 
+void AppController::setCacheDirectoryFromDialog(const QString &folderUrl)
+{
+    const QString dir = toLocalPath(folderUrl);
+    if (dir.isEmpty()) {
+        return;
+    }
+    setCacheDirectory(dir);
+}
+
+bool AppController::clearPreviewCache()
+{
+    const bool ok = m_imageService.clearCache();
+    if (ok) {
+        m_pageThumbnailCache.clear();
+        m_dirtyThumbnailPages.clear();
+        for (int i = 0; i < m_project.pageCount(); ++i) {
+            m_dirtyThumbnailPages.insert(i);
+            m_pageThumbnailRevisions[i] = m_pageThumbnailRevisions.value(i, 0) + 1;
+        }
+        ++m_thumbnailListRevision;
+        emit thumbnailsChanged();
+    }
+    return ok;
+}
+
 void AppController::runExport()
 {
     ExportService::Request req;
@@ -343,6 +368,23 @@ bool AppController::defaultCropMarks() const { return m_settings.defaultCrop; }
 void AppController::setDefaultCropMarks(bool value) { if (m_settings.defaultCrop == value) return; m_settings.defaultCrop = value; m_exportSettings.cropMarks = value; persistExportDefaults(); emit appSettingsChanged(); emit exportSettingsChanged(); }
 QString AppController::themePlaceholder() const { return m_settings.theme; }
 void AppController::setThemePlaceholder(const QString &value) { if (m_settings.theme == value) return; m_settings.theme = value; emit appSettingsChanged(); }
+QString AppController::cacheDirectory() const { return m_settings.cacheDir; }
+void AppController::setCacheDirectory(const QString &value) {
+    if (value.isEmpty() || m_settings.cacheDir == value) return;
+    m_settings.cacheDir = value;
+    m_imageService.setCacheRoot(value);
+    persistExportDefaults();
+    emit appSettingsChanged();
+}
+int AppController::previewMaxEdge() const { return m_settings.previewMaxEdge; }
+void AppController::setPreviewMaxEdge(int value) {
+    const int clamped = qBound(1600, value, 2560);
+    if (m_settings.previewMaxEdge == clamped) return;
+    m_settings.previewMaxEdge = clamped;
+    m_imageService.setPreviewMaxEdge(clamped);
+    persistExportDefaults();
+    emit appSettingsChanged();
+}
 
 TemplateType AppController::toTemplateType(int choice)
 {
@@ -361,12 +403,17 @@ void AppController::loadSettings()
     m_settings.defaultResolution = settings.value(QStringLiteral("export/defaultResolution"), QStringLiteral("300 PPI")).toString();
     m_settings.defaultCrop = settings.value(QStringLiteral("export/defaultCropMarks"), false).toBool();
     m_settings.defaultCustomPpi = settings.value(QStringLiteral("export/defaultCustomPpi"), 300).toInt();
+    const QString tempRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
+    m_settings.cacheDir = settings.value(QStringLiteral("cache/dir"), tempRoot).toString();
+    m_settings.previewMaxEdge = settings.value(QStringLiteral("cache/previewMaxEdge"), 2048).toInt();
 
     m_exportSettings.path = m_settings.defaultPath;
     m_exportSettings.format = m_settings.defaultFormat;
     m_exportSettings.resolution = m_settings.defaultResolution;
     m_exportSettings.cropMarks = m_settings.defaultCrop;
     m_exportSettings.customPpi = m_settings.defaultCustomPpi;
+    m_imageService.setCacheRoot(m_settings.cacheDir);
+    m_imageService.setPreviewMaxEdge(m_settings.previewMaxEdge);
 }
 
 void AppController::persistExportDefaults() const
@@ -379,6 +426,8 @@ void AppController::persistExportDefaults() const
     settings.setValue(QStringLiteral("export/defaultResolution"), m_settings.defaultResolution);
     settings.setValue(QStringLiteral("export/defaultCropMarks"), m_settings.defaultCrop);
     settings.setValue(QStringLiteral("export/defaultCustomPpi"), m_settings.defaultCustomPpi);
+    settings.setValue(QStringLiteral("cache/dir"), m_settings.cacheDir);
+    settings.setValue(QStringLiteral("cache/previewMaxEdge"), m_settings.previewMaxEdge);
 }
 
 void AppController::markPageThumbnailDirty(int pageIndex)

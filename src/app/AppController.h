@@ -32,6 +32,8 @@ class AppController : public QObject {
     Q_PROPERTY(int defaultCustomPpi READ defaultCustomPpi WRITE setDefaultCustomPpi NOTIFY appSettingsChanged)
     Q_PROPERTY(bool defaultCropMarks READ defaultCropMarks WRITE setDefaultCropMarks NOTIFY appSettingsChanged)
     Q_PROPERTY(QString themePlaceholder READ themePlaceholder WRITE setThemePlaceholder NOTIFY appSettingsChanged)
+    Q_PROPERTY(QString cacheDirectory READ cacheDirectory WRITE setCacheDirectory NOTIFY appSettingsChanged)
+    Q_PROPERTY(int previewMaxEdge READ previewMaxEdge WRITE setPreviewMaxEdge NOTIFY appSettingsChanged)
     Q_PROPERTY(qreal pageAspectRatio READ pageAspectRatio CONSTANT)
     Q_PROPERTY(int thumbnailListRevision READ thumbnailListRevision NOTIFY thumbnailsChanged)
 
@@ -52,6 +54,8 @@ public:
     Q_INVOKABLE void exportQueue();
     Q_INVOKABLE void chooseExportPath();
     Q_INVOKABLE void setExportPathFromDialog(const QString &folderUrl);
+    Q_INVOKABLE void setCacheDirectoryFromDialog(const QString &folderUrl);
+    Q_INVOKABLE bool clearPreviewCache();
     Q_INVOKABLE void runExport();
     Q_INVOKABLE QString pageThumbnailSource(int pageIndex);
     Q_INVOKABLE int pageThumbnailRevisionAt(int pageIndex) const;
@@ -94,6 +98,10 @@ public:
     void setDefaultCropMarks(bool value);
     [[nodiscard]] QString themePlaceholder() const;
     void setThemePlaceholder(const QString &value);
+    [[nodiscard]] QString cacheDirectory() const;
+    void setCacheDirectory(const QString &value);
+    [[nodiscard]] int previewMaxEdge() const;
+    void setPreviewMaxEdge(int value);
 
 signals:
     void requestNavigateToEditor();
@@ -106,7 +114,7 @@ signals:
 
 private:
     struct ExportSettings { QString path; QString format{"JPG"}; QString naming{"组合命名"}; QString resolution{"300 PPI"}; int customPpi{300}; bool cropMarks{false}; ExportService::Scope scope{ExportService::Scope::CurrentPage}; };
-    struct SettingsModel { QString autoPreset{"均衡填充"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; };
+    struct SettingsModel { QString autoPreset{"均衡填充"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; QString cacheDir; int previewMaxEdge{2048}; };
 
     [[nodiscard]] static TemplateType toTemplateType(int choice);
     void markPageThumbnailDirty(int pageIndex);

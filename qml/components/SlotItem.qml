@@ -45,6 +45,17 @@ Rectangle {
     onHasImageChanged: if (!hasImage) compositionMode = false
     onCanAdjustCompositionChanged: if (!canAdjustComposition) compositionMode = false
 
+    Timer {
+        id: offsetCommitTimer
+        interval: 80
+        repeat: false
+        onTriggered: {
+            slotRoot.compositionOffsetSet(cropOffsetX + dragDeltaX, cropOffsetY + dragDeltaY)
+            slotRoot.dragDeltaX = 0
+            slotRoot.dragDeltaY = 0
+        }
+    }
+
     border.color: swapTargetHighlighted ? "#ff8c00" : (selected ? "#7f7f7f" : "#c5c5c5")
 
     Rectangle {
@@ -232,16 +243,14 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: 4
-        color: "#f7f7f7"
-        border.color: "#c9c9c9"
-        border.width: 1
-        height: compositionControls.implicitHeight + 8
+        color: "transparent"
+        border.width: 0
+        height: compositionControls.implicitHeight + 2
 
         ColumnLayout {
             id: compositionControls
             anchors.fill: parent
-            anchors.margins: 4
-            spacing: 2
+            spacing: 1
 
             RowLayout {
                 visible: canMoveHorizontal
@@ -251,8 +260,28 @@ Rectangle {
                     Layout.fillWidth: true
                     from: -1.0
                     to: 1.0
-                    value: cropOffsetX
-                    onMoved: slotRoot.compositionOffsetSet(value, cropOffsetY)
+                    value: cropOffsetX + dragDeltaX
+                    onMoved: {
+                        slotRoot.dragDeltaX = value - cropOffsetX
+                        offsetCommitTimer.restart()
+                    }
+                    background: Rectangle {
+                        x: parent.leftPadding
+                        y: parent.topPadding + parent.availableHeight / 2 - height / 2
+                        width: parent.availableWidth
+                        height: 2
+                        radius: 1
+                        color: "#8a8a8a"
+                    }
+                    handle: Rectangle {
+                        x: parent.leftPadding + parent.visualPosition * (parent.availableWidth - width)
+                        y: parent.topPadding + parent.availableHeight / 2 - height / 2
+                        implicitWidth: 10
+                        implicitHeight: 10
+                        radius: 5
+                        color: "#f5f5f5"
+                        border.color: "#5a5a5a"
+                    }
                 }
             }
 
@@ -264,8 +293,28 @@ Rectangle {
                     Layout.fillWidth: true
                     from: -1.0
                     to: 1.0
-                    value: cropOffsetY
-                    onMoved: slotRoot.compositionOffsetSet(cropOffsetX, value)
+                    value: cropOffsetY + dragDeltaY
+                    onMoved: {
+                        slotRoot.dragDeltaY = value - cropOffsetY
+                        offsetCommitTimer.restart()
+                    }
+                    background: Rectangle {
+                        x: parent.leftPadding
+                        y: parent.topPadding + parent.availableHeight / 2 - height / 2
+                        width: parent.availableWidth
+                        height: 2
+                        radius: 1
+                        color: "#8a8a8a"
+                    }
+                    handle: Rectangle {
+                        x: parent.leftPadding + parent.visualPosition * (parent.availableWidth - width)
+                        y: parent.topPadding + parent.availableHeight / 2 - height / 2
+                        implicitWidth: 10
+                        implicitHeight: 10
+                        radius: 5
+                        color: "#f5f5f5"
+                        border.color: "#5a5a5a"
+                    }
                 }
             }
 
@@ -274,7 +323,12 @@ Rectangle {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: "重置构图"
-                    onClicked: slotRoot.compositionResetRequested()
+                    onClicked: {
+                        slotRoot.dragDeltaX = 0
+                        slotRoot.dragDeltaY = 0
+                        offsetCommitTimer.stop()
+                        slotRoot.compositionResetRequested()
+                    }
                 }
             }
         }

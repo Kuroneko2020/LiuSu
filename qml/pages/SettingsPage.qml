@@ -1,8 +1,15 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 
 ScrollView {
+    FolderDialog {
+        id: cacheDirDialog
+        title: "选择缓存目录"
+        onAccepted: appController.setCacheDirectoryFromDialog(selectedFolder)
+    }
+
     ColumnLayout {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -65,6 +72,36 @@ ScrollView {
             model: ["系统", "浅色", "深色"]
             currentIndex: model.indexOf(appController.themePlaceholder)
             onActivated: appController.themePlaceholder = currentText
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Label { text: "缓存目录" }
+            TextField {
+                Layout.fillWidth: true
+                text: appController.cacheDirectory
+                onEditingFinished: appController.cacheDirectory = text
+            }
+            Button {
+                text: "选择"
+                onClicked: cacheDirDialog.open()
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Label { text: "预览最长边" }
+            ComboBox {
+                Layout.fillWidth: true
+                model: [1600, 2048, 2560]
+                currentIndex: model.indexOf(appController.previewMaxEdge)
+                onActivated: appController.previewMaxEdge = Number(currentText)
+            }
+        }
+
+        Button {
+            text: "清理缓存"
+            onClicked: appController.clearPreviewCache()
         }
     }
 }
