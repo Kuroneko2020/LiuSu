@@ -187,6 +187,12 @@ ScrollView {
                         text: "清理缓存"
                         onClicked: appController.clearPreviewCache()
                     }
+                    Label {
+                        text: "纹理目录：" + appController.textureDirectory
+                        color: "#6f7b88"
+                        elide: Text.ElideMiddle
+                        Layout.fillWidth: true
+                    }
                 }
             }
 

@@ -33,12 +33,23 @@ Item {
 
     Dialog {
         id: confirmNewTaskDialog
+        parent: Overlay.overlay
         title: "开始新任务"
         modal: true
+        width: 360
+        height: 170
+        x: parent ? (parent.width - width) / 2 : 0
+        y: parent ? (parent.height - height) / 2 : 0
         standardButtons: Dialog.Ok | Dialog.Cancel
         onAccepted: appController.confirmStartNewSession(true)
         onRejected: appController.confirmStartNewSession(false)
-        Label { text: "开始新任务将清空当前排版，是否继续？"; wrapMode: Text.WordWrap }
+        Label {
+            anchors.fill: parent
+            anchors.margins: 16
+            text: "开始新任务将清空当前排版，是否继续？"
+            verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.WordWrap
+        }
     }
 
     Connections {

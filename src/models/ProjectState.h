@@ -4,6 +4,7 @@
 #include "models/ImageResource.h"
 
 #include <QObject>
+#include <QColor>
 #include <QPointF>
 #include <QRectF>
 #include <QVector>
@@ -37,6 +38,9 @@ class ProjectState : public QObject {
     Q_PROPERTY(int currentTemplateChoice READ currentTemplateChoice NOTIFY currentPageChanged)
     Q_PROPERTY(int slotsRevision READ slotsRevision NOTIFY slotsChanged)
     Q_PROPERTY(int contentRevision READ contentRevision NOTIFY slotsChanged)
+    Q_PROPERTY(QString backgroundMode READ backgroundMode WRITE setBackgroundMode NOTIFY backgroundChanged)
+    Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY backgroundChanged)
+    Q_PROPERTY(QString backgroundTexturePath READ backgroundTexturePath WRITE setBackgroundTexturePath NOTIFY backgroundChanged)
 public:
     explicit ProjectState(QObject *parent = nullptr);
 
@@ -84,6 +88,12 @@ public:
     Q_INVOKABLE bool hasValidPages() const;
     [[nodiscard]] int slotsRevision() const;
     [[nodiscard]] int contentRevision() const;
+    [[nodiscard]] QString backgroundMode() const;
+    void setBackgroundMode(const QString &mode);
+    [[nodiscard]] QColor backgroundColor() const;
+    void setBackgroundColor(const QColor &color);
+    [[nodiscard]] QString backgroundTexturePath() const;
+    void setBackgroundTexturePath(const QString &path);
 
     [[nodiscard]] int pageTemplateChoice(int pageIndex) const;
     [[nodiscard]] int pageSlotCount(int pageIndex) const;
@@ -101,6 +111,7 @@ signals:
     void pagesChanged();
     void currentPageChanged();
     void slotsChanged();
+    void backgroundChanged();
 
 private:
     [[nodiscard]] PageState *currentPage();
@@ -112,6 +123,9 @@ private:
     int m_currentPageIndex = -1;
     int m_slotsRevision = 0;
     int m_contentRevision = 0;
+    QString m_backgroundMode = QStringLiteral("color");
+    QColor m_backgroundColor = QColor(QStringLiteral("#F7F4EC"));
+    QString m_backgroundTexturePath;
 };
 
 } // namespace pte

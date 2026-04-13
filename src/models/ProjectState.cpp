@@ -594,6 +594,54 @@ int ProjectState::contentRevision() const
     return m_contentRevision;
 }
 
+QString ProjectState::backgroundMode() const
+{
+    return m_backgroundMode;
+}
+
+void ProjectState::setBackgroundMode(const QString &mode)
+{
+    const QString next = (mode == QStringLiteral("texture")) ? QStringLiteral("texture") : QStringLiteral("color");
+    if (m_backgroundMode == next) {
+        return;
+    }
+    m_backgroundMode = next;
+    emit backgroundChanged();
+}
+
+QColor ProjectState::backgroundColor() const
+{
+    return m_backgroundColor;
+}
+
+void ProjectState::setBackgroundColor(const QColor &color)
+{
+    if (!color.isValid() || m_backgroundColor == color) {
+        return;
+    }
+    m_backgroundColor = color;
+    emit backgroundChanged();
+}
+
+QString ProjectState::backgroundTexturePath() const
+{
+    return m_backgroundTexturePath;
+}
+
+void ProjectState::setBackgroundTexturePath(const QString &path)
+{
+    QString normalized = path;
+    const QUrl url(path);
+    if (url.isLocalFile()) {
+        normalized = url.toLocalFile();
+    }
+    if (m_backgroundTexturePath == normalized) {
+        return;
+    }
+    m_backgroundTexturePath = normalized;
+    emit backgroundChanged();
+}
+
 void ProjectState::refreshSlotPreviewResources()
 {
     if (!m_imageService) {

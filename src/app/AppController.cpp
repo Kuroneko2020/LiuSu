@@ -1,6 +1,7 @@
 #include "app/AppController.h"
 #include <QDir>
 
+#include <QDesktopServices>
 #include <QImageReader>
 #include <QSettings>
 #include <QStandardPaths>
@@ -15,6 +16,15 @@ QString defaultPicturesDir()
 {
     const QString path = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
     return path.isEmpty() ? QStringLiteral(".") : path;
+}
+
+QString ensureDir(const QString &path)
+{
+    if (path.isEmpty()) {
+        return path;
+    }
+    QDir().mkpath(path);
+    return path;
 }
 
 QString toLocalPath(const QString &pathOrUrl)
@@ -58,6 +68,14 @@ AppController::AppController(QObject *parent)
         markPageThumbnailDirty(m_project.currentPageIndex());
     });
     connect(&m_project, &ProjectState::pagesChanged, this, [this]() { handlePagesChanged(); });
+    connect(&m_project, &ProjectState::backgroundChanged, this, [this]() {
+        m_pageThumbnailCache.clear();
+        m_dirtyThumbnailPages.clear();
+        for (int i = 0; i < m_project.pageCount(); ++i) {
+            markPageThumbnailDirty(i);
+        }
+        emit thumbnailsChanged();
+    });
 }
 
 ProjectState *AppController::project() { return &m_project; }
@@ -268,6 +286,33 @@ void AppController::setCacheDirectoryFromDialog(const QString &folderUrl)
     setCacheDirectory(dir);
 }
 
+QVariantList AppController::availableTextures() const
+{
+    QVariantList out;
+    QDir dir(m_settings.textureDir);
+    if (!dir.exists()) {
+        return out;
+    }
+    const QStringList filters{QStringLiteral("*.png"), QStringLiteral("*.jpg"), QStringLiteral("*.jpeg"), QStringLiteral("*.webp"), QStringLiteral("*.bmp")};
+    const QFileInfoList files = dir.entryInfoList(filters, QDir::Files | QDir::Readable, QDir::Name);
+    out.reserve(files.size());
+    for (const QFileInfo &fi : files) {
+        out << QUrl::fromLocalFile(fi.absoluteFilePath()).toString();
+    }
+    return out;
+}
+
+void AppController::openTextureDirectory()
+{
+    QDesktopServices::openUrl(QUrl::fromLocalFile(m_settings.textureDir));
+}
+
+void AppController::refreshTextures()
+{
+    ++m_textureListRevision;
+    emit appSettingsChanged();
+}
+
 bool AppController::clearPreviewCache()
 {
     const bool ok = m_imageService.clearCache();
@@ -386,7 +431,7 @@ void AppController::setAutoFillStrategy(const QString &value) { if (m_settings.a
 QString AppController::autoOrientationPolicy() const { return m_settings.autoOrientation; }
 void AppController::setAutoOrientationPolicy(const QString &value) { if (m_settings.autoOrientation == value) return; m_settings.autoOrientation = value; persistExportDefaults(); emit appSettingsChanged(); }
 QString AppController::defaultExportPath() const { return m_settings.defaultPath; }
-void AppController::setDefaultExportPath(const QString &value) { if (m_settings.defaultPath == value) return; m_settings.defaultPath = value; persistExportDefaults(); emit appSettingsChanged(); }
+void AppController::setDefaultExportPath(const QString &value) { const QString normalized = ensureDir(value); if (m_settings.defaultPath == normalized) return; m_settings.defaultPath = normalized; persistExportDefaults(); emit appSettingsChanged(); }
 bool AppController::rememberLastPath() const { return m_settings.rememberPath; }
 void AppController::setRememberLastPath(bool value) { if (m_settings.rememberPath == value) return; m_settings.rememberPath = value; persistExportDefaults(); emit appSettingsChanged(); }
 QString AppController::defaultExportFormat() const { return m_settings.defaultFormat; }
@@ -402,7 +447,7 @@ void AppController::setThemePlaceholder(const QString &value) { if (m_settings.t
 QString AppController::cacheDirectory() const { return m_settings.cacheDir; }
 void AppController::setCacheDirectory(const QString &value) {
     if (value.isEmpty() || m_settings.cacheDir == value) return;
-    m_settings.cacheDir = value;
+    m_settings.cacheDir = ensureDir(value);
     m_imageService.setCacheRoot(value);
     m_project.refreshSlotPreviewResources();
     clearPreviewCache();
@@ -420,6 +465,8 @@ void AppController::setPreviewMaxEdge(int value) {
     persistExportDefaults();
     emit appSettingsChanged();
 }
+QString AppController::textureDirectory() const { return m_settings.textureDir; }
+int AppController::textureListRevision() const { return m_textureListRevision; }
 
 TemplateType AppController::toTemplateType(int choice)
 {
@@ -435,15 +482,22 @@ void AppController::loadSettings()
     m_settings.autoDefaultPpi = settings.value(QStringLiteral("auto/defaultPpi"), 300).toInt();
     m_settings.autoFill = settings.value(QStringLiteral("auto/defaultFill"), QStringLiteral("放大填充")).toString();
     m_settings.autoOrientation = settings.value(QStringLiteral("auto/orientationPolicy"), QStringLiteral("保持原方向")).toString();
-    m_settings.defaultPath = settings.value(QStringLiteral("export/defaultPath"), defaultPicturesDir()).toString();
+    const QString defaultExportRoot = ensureDir(defaultPicturesDir() + QStringLiteral("/Photo Template Editor/Exports"));
+    const QString defaultCacheRoot = ensureDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/preview"));
+    const QString defaultTextureRoot = ensureDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/textures"));
+
+    m_settings.defaultPath = settings.value(QStringLiteral("export/defaultPath"), defaultExportRoot).toString();
     m_settings.rememberPath = settings.value(QStringLiteral("export/rememberLastPath"), true).toBool();
     m_settings.defaultFormat = settings.value(QStringLiteral("export/defaultFormat"), QStringLiteral("JPG")).toString();
     m_settings.defaultResolution = settings.value(QStringLiteral("export/defaultResolution"), QStringLiteral("300 PPI")).toString();
     m_settings.defaultCrop = settings.value(QStringLiteral("export/defaultCropMarks"), false).toBool();
     m_settings.defaultCustomPpi = settings.value(QStringLiteral("export/defaultCustomPpi"), 300).toInt();
-    const QString tempRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
-    m_settings.cacheDir = settings.value(QStringLiteral("cache/dir"), tempRoot).toString();
+    m_settings.cacheDir = settings.value(QStringLiteral("cache/dir"), defaultCacheRoot).toString();
     m_settings.previewMaxEdge = settings.value(QStringLiteral("cache/previewMaxEdge"), 1600).toInt();
+    m_settings.textureDir = settings.value(QStringLiteral("texture/dir"), defaultTextureRoot).toString();
+    ensureDir(m_settings.defaultPath);
+    ensureDir(m_settings.cacheDir);
+    ensureDir(m_settings.textureDir);
 
     m_exportSettings.path = m_settings.defaultPath;
     m_exportSettings.format = m_settings.defaultFormat;
@@ -469,6 +523,7 @@ void AppController::persistExportDefaults() const
     settings.setValue(QStringLiteral("export/defaultCustomPpi"), m_settings.defaultCustomPpi);
     settings.setValue(QStringLiteral("cache/dir"), m_settings.cacheDir);
     settings.setValue(QStringLiteral("cache/previewMaxEdge"), m_settings.previewMaxEdge);
+    settings.setValue(QStringLiteral("texture/dir"), m_settings.textureDir);
 }
 
 void AppController::markPageThumbnailDirty(int pageIndex)

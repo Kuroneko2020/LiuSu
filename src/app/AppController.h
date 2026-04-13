@@ -38,6 +38,8 @@ class AppController : public QObject {
     Q_PROPERTY(QString themePlaceholder READ themePlaceholder WRITE setThemePlaceholder NOTIFY appSettingsChanged)
     Q_PROPERTY(QString cacheDirectory READ cacheDirectory WRITE setCacheDirectory NOTIFY appSettingsChanged)
     Q_PROPERTY(int previewMaxEdge READ previewMaxEdge WRITE setPreviewMaxEdge NOTIFY appSettingsChanged)
+    Q_PROPERTY(QString textureDirectory READ textureDirectory NOTIFY appSettingsChanged)
+    Q_PROPERTY(int textureListRevision READ textureListRevision NOTIFY appSettingsChanged)
     Q_PROPERTY(qreal pageAspectRatio READ pageAspectRatio CONSTANT)
     Q_PROPERTY(int thumbnailListRevision READ thumbnailListRevision NOTIFY thumbnailsChanged)
 
@@ -61,6 +63,9 @@ public:
     Q_INVOKABLE void setExportPathFromDialog(const QString &folderUrl);
     Q_INVOKABLE void setDefaultExportPathFromDialog(const QString &folderUrl);
     Q_INVOKABLE void setCacheDirectoryFromDialog(const QString &folderUrl);
+    Q_INVOKABLE QVariantList availableTextures() const;
+    Q_INVOKABLE void openTextureDirectory();
+    Q_INVOKABLE void refreshTextures();
     Q_INVOKABLE bool clearPreviewCache();
     Q_INVOKABLE void runExport();
     Q_INVOKABLE QString pageThumbnailSource(int pageIndex);
@@ -114,6 +119,8 @@ public:
     void setCacheDirectory(const QString &value);
     [[nodiscard]] int previewMaxEdge() const;
     void setPreviewMaxEdge(int value);
+    [[nodiscard]] QString textureDirectory() const;
+    [[nodiscard]] int textureListRevision() const;
 
 signals:
     void requestNavigateToEditor();
@@ -126,7 +133,7 @@ signals:
 
 private:
     struct ExportSettings { QString path; QString format{"JPG"}; QString naming{"组合命名"}; QString resolution{"300 PPI"}; int customPpi{300}; bool cropMarks{false}; ExportService::Scope scope{ExportService::Scope::CurrentPage}; };
-    struct SettingsModel { QString autoPreset{"均衡填充"}; int autoDefaultPpi{300}; QString autoFill{"放大填充"}; QString autoOrientation{"保持原方向"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; QString cacheDir; int previewMaxEdge{1600}; };
+    struct SettingsModel { QString autoPreset{"均衡填充"}; int autoDefaultPpi{300}; QString autoFill{"放大填充"}; QString autoOrientation{"保持原方向"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; QString cacheDir; int previewMaxEdge{1600}; QString textureDir; };
 
     [[nodiscard]] static TemplateType toTemplateType(int choice);
     void markPageThumbnailDirty(int pageIndex);
@@ -152,6 +159,7 @@ private:
     int m_pendingTemplateChoice = 2;
     bool m_pendingAutoMode = false;
     QVariantList m_pendingAutoFiles;
+    int m_textureListRevision = 0;
 };
 
 } // namespace pte

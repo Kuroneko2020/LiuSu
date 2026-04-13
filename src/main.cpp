@@ -7,6 +7,9 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    QCoreApplication::setOrganizationName(QStringLiteral("PhotoTemplateEditor"));
+    QCoreApplication::setApplicationName(QStringLiteral("PhotoTemplateEditor"));
+    QCoreApplication::setApplicationDisplayName(QStringLiteral("Photo Template Editor"));
 
     pte::AppController controller;
 

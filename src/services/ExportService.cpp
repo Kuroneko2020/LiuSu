@@ -13,6 +13,7 @@
 #include <QPointF>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QUrl>
 
 namespace pte {
 namespace {
@@ -149,7 +150,9 @@ void drawCropMarks(QPainter &painter, const QSize &size, const QVector<QRectF> &
 QImage renderPageImage(const ProjectState &project, int pageIndex, const QSize &size, bool cropMarks, bool usePreviewCache)
 {
     QImage canvas(size, QImage::Format_ARGB32_Premultiplied);
-    canvas.fill(Qt::white);
+    const QString bgMode = project.backgroundMode();
+    const QColor bgColor = project.backgroundColor().isValid() ? project.backgroundColor() : QColor(QStringLiteral("#F7F4EC"));
+    canvas.fill(bgMode == QStringLiteral("color") ? bgColor : Qt::white);
 
     QPainter painter(&canvas);
     painter.setRenderHint(QPainter::Antialiasing, true);
@@ -157,6 +160,20 @@ QImage renderPageImage(const ProjectState &project, int pageIndex, const QSize &
 
     const int templateChoice = project.pageTemplateChoice(pageIndex);
     const QVector<QRectF> rects = layout::slotRectsPixels(templateChoice, size);
+
+    if (bgMode == QStringLiteral("texture")) {
+        QString texturePath = project.backgroundTexturePath();
+        const QUrl textureUrl(texturePath);
+        if (textureUrl.isLocalFile()) {
+            texturePath = textureUrl.toLocalFile();
+        }
+        QImage texture(texturePath);
+        if (!texture.isNull()) {
+            painter.drawImage(QRectF(0, 0, size.width(), size.height()), texture);
+        } else {
+            painter.fillRect(QRectF(0, 0, size.width(), size.height()), bgColor);
+        }
+    }
 
     for (int slot = 0; slot < rects.size(); ++slot) {
         if (!project.pageSlotHasImage(pageIndex, slot)) {

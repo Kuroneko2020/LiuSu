@@ -33,6 +33,28 @@ Rectangle {
     Item {
         anchors.fill: parent
 
+        Rectangle {
+            anchors.fill: parent
+            color: appController.project.backgroundMode === "color"
+                ? appController.project.backgroundColor
+                : "white"
+        }
+
+        Image {
+            anchors.fill: parent
+            visible: appController.project.backgroundMode === "texture"
+                     && appController.project.backgroundTexturePath !== ""
+            source: appController.project.backgroundTexturePath
+            fillMode: Image.Stretch
+            smooth: true
+            cache: true
+            onStatusChanged: {
+                if (status === Image.Error) {
+                    appController.project.backgroundMode = "color"
+                }
+            }
+        }
+
         Repeater {
             id: slotRepeater
             model: canvas.slotCount

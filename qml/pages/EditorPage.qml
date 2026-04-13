@@ -24,6 +24,15 @@ Item {
         onAccepted: appController.batchImportFromFiles(selectedFiles)
     }
 
+    ColorDialog {
+        id: backgroundColorDialog
+        selectedColor: appController.project.backgroundColor
+        onAccepted: {
+            appController.project.backgroundMode = "color"
+            appController.project.backgroundColor = selectedColor
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -58,6 +67,99 @@ Item {
                 icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/page-delete.svg"
                 tooltipText: "删除当前页"
                 onClicked: appController.project.deleteCurrentPage()
+            }
+        }
+
+        Frame {
+            Layout.fillWidth: true
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 8
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label { text: "背景"; font.bold: true }
+                    Item { Layout.fillWidth: true }
+                    Button {
+                        text: "纯色"
+                        checkable: true
+                        checked: appController.project.backgroundMode === "color"
+                        onClicked: appController.project.backgroundMode = "color"
+                    }
+                    Button {
+                        text: "纹理"
+                        checkable: true
+                        checked: appController.project.backgroundMode === "texture"
+                        onClicked: appController.project.backgroundMode = "texture"
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: appController.project.backgroundMode === "color"
+                    Repeater {
+                        model: ["#FFFFFF", "#F7F4EC", "#EFE4D2", "#E7E5E4", "#DCE5DC", "#DDE6F0", "#EADADA", "#2F3338"]
+                        delegate: Rectangle {
+                            required property string modelData
+                            width: 20
+                            height: 20
+                            radius: 4
+                            color: modelData
+                            border.color: "#9aa6b3"
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    appController.project.backgroundMode = "color"
+                                    appController.project.backgroundColor = modelData
+                                }
+                            }
+                        }
+                    }
+                    Button {
+                        text: "自定义颜色"
+                        onClicked: backgroundColorDialog.open()
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    visible: appController.project.backgroundMode === "texture"
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label { text: "纹理目录：" + appController.textureDirectory; elide: Text.ElideMiddle; Layout.fillWidth: true }
+                        Button { text: "打开纹理文件夹"; onClicked: appController.openTextureDirectory() }
+                        Button { text: "刷新纹理列表"; onClicked: appController.refreshTextures() }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Repeater {
+                            model: {
+                                appController.textureListRevision
+                                return appController.availableTextures()
+                            }
+                            delegate: Rectangle {
+                                required property string modelData
+                                width: 54
+                                height: 36
+                                color: "#f0f2f4"
+                                border.color: "#c7d0da"
+                                Image {
+                                    anchors.fill: parent
+                                    anchors.margins: 1
+                                    source: modelData
+                                    fillMode: Image.Stretch
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        appController.project.backgroundMode = "texture"
+                                        appController.project.backgroundTexturePath = modelData
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
