@@ -1,10 +1,59 @@
 #include "models/ProjectState.h"
 
 #include "services/TemplateLayout.h"
+#include <QCryptographicHash>
+#include <QDir>
+#include <QFileInfo>
+#include <QImage>
 #include <QImageReader>
+#include <QStandardPaths>
+#include <QTransform>
 #include <QUrl>
 
 namespace pte {
+
+namespace {
+QString transformedPreviewPath(const QString &path, int rotation, bool mirrored)
+{
+    if (path.isEmpty()) {
+        return {};
+    }
+    const QFileInfo info(path);
+    const QByteArray key = QStringLiteral("%1|%2|%3|%4")
+                               .arg(info.absoluteFilePath())
+                               .arg(info.lastModified().toMSecsSinceEpoch())
+                               .arg(rotation)
+                               .arg(mirrored ? 1 : 0)
+                               .toUtf8();
+    const QString digest = QString::fromUtf8(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex());
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/slot-images");
+    QDir().mkpath(dir);
+    const QString outPath = dir + QStringLiteral("/%1.png").arg(digest);
+    if (QFileInfo::exists(outPath)) {
+        return outPath;
+    }
+
+    QImageReader reader(path);
+    reader.setAutoTransform(true);
+    QImage image = reader.read();
+    if (image.isNull()) {
+        return path;
+    }
+
+    QTransform transform;
+    if (mirrored) {
+        transform.scale(-1, 1);
+    }
+    if (rotation != 0) {
+        transform.rotate(rotation);
+    }
+    if (!transform.isIdentity()) {
+        image = image.transformed(transform, Qt::SmoothTransformation);
+    }
+    image.save(outPath, "PNG");
+    return outPath;
+}
+}
 
 bool PageState::isValid() const
 {
@@ -122,7 +171,9 @@ QString ProjectState::slotImageSource(int slotIndex) const
         return {};
     }
     const auto &image = page->slotStates.at(slotIndex).image;
-    const QString path = image.previewPath.isEmpty() ? image.exportPath : image.previewPath;
+    const QString basePath = image.previewPath.isEmpty() ? image.exportPath : image.previewPath;
+    const auto &slot = page->slotStates.at(slotIndex);
+    const QString path = transformedPreviewPath(basePath, slot.rotation, slot.mirrored);
     if (path.isEmpty()) {
         return {};
     }

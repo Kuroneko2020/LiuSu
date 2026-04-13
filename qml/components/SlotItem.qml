@@ -46,10 +46,7 @@ Rectangle {
             id: contentLayer
             readonly property real sourceW: photo.sourceSize.width > 0 ? photo.sourceSize.width : contentViewport.width
             readonly property real sourceH: photo.sourceSize.height > 0 ? photo.sourceSize.height : contentViewport.height
-            readonly property bool quarterTurn: Math.abs(rotationDegrees % 180) === 90
-            readonly property real imageW: quarterTurn ? sourceH : sourceW
-            readonly property real imageH: quarterTurn ? sourceW : sourceH
-            readonly property real imageAspect: imageH > 0 ? imageW / imageH : 1
+            readonly property real imageAspect: sourceH > 0 ? sourceW / sourceH : 1
             readonly property real viewportAspect: contentViewport.height > 0 ? contentViewport.width / contentViewport.height : 1
             readonly property real fittedWidth: imageAspect >= viewportAspect ? contentViewport.width : contentViewport.height * imageAspect
             readonly property real fittedHeight: imageAspect >= viewportAspect ? contentViewport.width / imageAspect : contentViewport.height
@@ -75,9 +72,6 @@ Rectangle {
                 fillMode: Image.Stretch
                 smooth: true
                 cache: true
-                rotation: rotationDegrees
-                mirror: mirrored
-                transformOrigin: Item.Center
             }
 
             MouseArea {
