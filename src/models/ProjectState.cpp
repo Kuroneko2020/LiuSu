@@ -348,32 +348,6 @@ int ProjectState::findNextAvailableSlot() const
 }
 
 
-int ProjectState::visiblePageCount() const
-{
-    int count = 0;
-    for (int i = 0; i < m_pages.size(); ++i) {
-        if (m_pages.at(i).isValid() || i == m_currentPageIndex) {
-            ++count;
-        }
-    }
-    return count;
-}
-
-int ProjectState::visiblePageIndexAt(int visibleIndex) const
-{
-    int cursor = 0;
-    for (int i = 0; i < m_pages.size(); ++i) {
-        if (!(m_pages.at(i).isValid() || i == m_currentPageIndex)) {
-            continue;
-        }
-        if (cursor == visibleIndex) {
-            return i;
-        }
-        ++cursor;
-    }
-    return -1;
-}
-
 int ProjectState::pageTemplateChoice(int pageIndex) const
 {
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {

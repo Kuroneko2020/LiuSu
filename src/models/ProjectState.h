@@ -34,7 +34,6 @@ class ProjectState : public QObject {
     Q_PROPERTY(int pageCount READ pageCount NOTIFY pagesChanged)
     Q_PROPERTY(int currentTemplateSlotCount READ currentTemplateSlotCount NOTIFY slotsChanged)
     Q_PROPERTY(int currentTemplateChoice READ currentTemplateChoice NOTIFY currentPageChanged)
-    Q_PROPERTY(int visiblePageCount READ visiblePageCount NOTIFY pagesChanged)
     Q_PROPERTY(int slotsRevision READ slotsRevision NOTIFY slotsChanged)
     Q_PROPERTY(int contentRevision READ contentRevision NOTIFY slotsChanged)
 public:
@@ -77,8 +76,6 @@ public:
     [[nodiscard]] int pageCount() const;
     [[nodiscard]] bool isPageValid(int pageIndex) const;
     Q_INVOKABLE bool hasValidPages() const;
-    Q_INVOKABLE int visiblePageCount() const;
-    Q_INVOKABLE int visiblePageIndexAt(int visibleIndex) const;
     [[nodiscard]] int slotsRevision() const;
     [[nodiscard]] int contentRevision() const;
 

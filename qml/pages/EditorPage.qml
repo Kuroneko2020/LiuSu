@@ -34,7 +34,9 @@ Item {
             Label { text: "编辑页"; font.pixelSize: 24; font.bold: true }
             Item { Layout.fillWidth: true }
             Button { text: "批量导入"; onClicked: batchImportDialog.open() }
+            Button { text: "新建空白页"; onClicked: appController.createBlankPage(appController.project.currentTemplateChoice()) }
             Button { text: "导出当前页"; onClicked: appController.exportCurrentPage() }
+            Button { text: "导出全队列"; onClicked: appController.exportQueue() }
             Button { text: "删除当前页"; onClicked: appController.project.deleteCurrentPage() }
         }
 
