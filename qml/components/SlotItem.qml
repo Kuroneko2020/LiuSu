@@ -4,7 +4,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: slotRoot
-    radius: 8
+    radius: 0
     color: "transparent"
     border.width: selected ? 2 : 1
     clip: false
@@ -33,37 +33,55 @@ Rectangle {
     signal swapDragMoved(point scenePos)
     signal swapDragFinished(point scenePos)
 
-    border.color: swapTargetHighlighted ? "#ff8c00" : (selected ? "#4f7cff" : "#c5c5c5")
+    border.color: swapTargetHighlighted ? "#ff8c00" : (selected ? "#7f7f7f" : "#c5c5c5")
 
     Rectangle {
         id: contentViewport
         anchors.fill: parent
-        radius: 6
-        color: hasImage ? "#151515" : "#eef1f4"
+        radius: 0
+        color: hasImage ? "#f4f4f4" : "#eef1f4"
         clip: true
 
-        Image {
-            id: photo
-            readonly property real liveOffsetX: fillCropMode ? Math.max(-1.0, Math.min(1.0, cropOffsetX + dragDeltaX)) : 0
-            readonly property real liveOffsetY: fillCropMode ? Math.max(-1.0, Math.min(1.0, cropOffsetY + dragDeltaY)) : 0
-            readonly property real overflowX: Math.max(0, paintedWidth - width)
-            readonly property real overflowY: Math.max(0, paintedHeight - height)
-            width: parent.width
-            height: parent.height
-            source: imageSource
-            visible: hasImage && source !== ""
-            fillMode: fillCropMode ? Image.PreserveAspectCrop : Image.PreserveAspectFit
-            horizontalAlignment: Image.AlignHCenter
-            verticalAlignment: Image.AlignVCenter
-            smooth: true
-            cache: true
-            rotation: rotationDegrees
-            mirror: mirrored
-            x: fillCropMode && overflowX > 0 ? (liveOffsetX * overflowX * 0.5) : 0
-            y: fillCropMode && overflowY > 0 ? (liveOffsetY * overflowY * 0.5) : 0
+        Item {
+            id: contentLayer
+            readonly property real sourceW: photo.sourceSize.width > 0 ? photo.sourceSize.width : contentViewport.width
+            readonly property real sourceH: photo.sourceSize.height > 0 ? photo.sourceSize.height : contentViewport.height
+            readonly property bool quarterTurn: Math.abs(rotationDegrees % 180) === 90
+            readonly property real imageW: quarterTurn ? sourceH : sourceW
+            readonly property real imageH: quarterTurn ? sourceW : sourceH
+            readonly property real imageAspect: imageH > 0 ? imageW / imageH : 1
+            readonly property real viewportAspect: contentViewport.height > 0 ? contentViewport.width / contentViewport.height : 1
+            readonly property real fittedWidth: imageAspect >= viewportAspect ? contentViewport.width : contentViewport.height * imageAspect
+            readonly property real fittedHeight: imageAspect >= viewportAspect ? contentViewport.width / imageAspect : contentViewport.height
+            readonly property real croppedWidth: imageAspect >= viewportAspect ? contentViewport.height * imageAspect : contentViewport.width
+            readonly property real croppedHeight: imageAspect >= viewportAspect ? contentViewport.height : contentViewport.width / imageAspect
+            readonly property real layerWidth: fillCropMode ? croppedWidth : fittedWidth
+            readonly property real layerHeight: fillCropMode ? croppedHeight : fittedHeight
+            readonly property real overflowX: Math.max(0, layerWidth - contentViewport.width)
+            readonly property real overflowY: Math.max(0, layerHeight - contentViewport.height)
+            readonly property real liveOffsetX: fillCropMode && overflowX > 0 ? Math.max(-1.0, Math.min(1.0, cropOffsetX + dragDeltaX)) : 0
+            readonly property real liveOffsetY: fillCropMode && overflowY > 0 ? Math.max(-1.0, Math.min(1.0, cropOffsetY + dragDeltaY)) : 0
+
+            width: Math.max(1, layerWidth)
+            height: Math.max(1, layerHeight)
+            x: (contentViewport.width - width) * 0.5 + (fillCropMode ? liveOffsetX * overflowX * 0.5 : 0)
+            y: (contentViewport.height - height) * 0.5 + (fillCropMode ? liveOffsetY * overflowY * 0.5 : 0)
+
+            Image {
+                id: photo
+                anchors.fill: parent
+                source: imageSource
+                visible: hasImage && source !== ""
+                fillMode: Image.Stretch
+                smooth: true
+                cache: true
+                rotation: rotationDegrees
+                mirror: mirrored
+                transformOrigin: Item.Center
+            }
 
             MouseArea {
-                anchors.fill: parent
+                anchors.fill: contentViewport
                 enabled: hasImage && selected && fillCropMode
                 property real lastX
                 property real lastY
@@ -78,20 +96,16 @@ Rectangle {
                     slotRoot.dragDeltaY = 0
                 }
                 onPositionChanged: {
-                    const dx = (mouse.x - lastX) / width
-                    const dy = (mouse.y - lastY) / height
+                    const dx = (mouse.x - lastX) / Math.max(1, contentViewport.width)
+                    const dy = (mouse.y - lastY) / Math.max(1, contentViewport.height)
                     lastX = mouse.x
                     lastY = mouse.y
-                    if (photo.overflowX > 0) {
-                        totalDx = Math.max(-1.0 - cropOffsetX, Math.min(1.0 - cropOffsetX, totalDx + dx * 2.0))
-                    } else {
-                        totalDx = 0
-                    }
-                    if (photo.overflowY > 0) {
-                        totalDy = Math.max(-1.0 - cropOffsetY, Math.min(1.0 - cropOffsetY, totalDy + dy * 2.0))
-                    } else {
-                        totalDy = 0
-                    }
+                    totalDx = contentLayer.overflowX > 0
+                        ? Math.max(-1.0 - cropOffsetX, Math.min(1.0 - cropOffsetX, totalDx + dx * 2.0))
+                        : 0
+                    totalDy = contentLayer.overflowY > 0
+                        ? Math.max(-1.0 - cropOffsetY, Math.min(1.0 - cropOffsetY, totalDy + dy * 2.0))
+                        : 0
                     slotRoot.dragDeltaX = totalDx
                     slotRoot.dragDeltaY = totalDy
                 }
@@ -144,7 +158,7 @@ Rectangle {
         visible: hasImage
         width: 18
         height: 18
-        radius: 9
+        radius: 0
         color: "#333"
         anchors.top: parent.top
         anchors.right: parent.right
@@ -189,11 +203,4 @@ Rectangle {
         }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: "transparent"
-        border.width: selected && fillCropMode ? 2 : 0
-        border.color: "#57b3ff"
-        radius: slotRoot.radius
-    }
 }
