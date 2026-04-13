@@ -215,25 +215,51 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: 4
-        spacing: 4
+        spacing: 3
 
-        Button { Layout.fillWidth: true; text: "右转90°"; onClicked: slotRoot.rotateClicked() }
-        Button { Layout.fillWidth: true; text: "镜像"; onClicked: slotRoot.mirrorClicked() }
-        Button {
-            Layout.fillWidth: true
-            text: fillCropMode ? "切换为完整放入" : "切换为铺满裁切"
+        ToolButton {
+            Layout.preferredWidth: 24
+            Layout.preferredHeight: 24
+            icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/rotate-right.svg"
+            onClicked: slotRoot.rotateClicked()
+            ToolTip.visible: hovered
+            ToolTip.text: "右转 90°"
+        }
+        ToolButton {
+            Layout.preferredWidth: 24
+            Layout.preferredHeight: 24
+            icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/mirror.svg"
+            onClicked: slotRoot.mirrorClicked()
+            ToolTip.visible: hovered
+            ToolTip.text: "水平镜像"
+        }
+        ToolButton {
+            Layout.preferredWidth: 24
+            Layout.preferredHeight: 24
+            icon.source: fillCropMode
+                ? "qrc:/qt/qml/PhotoTemplateEditor/res/icons/fit-inside.svg"
+                : "qrc:/qt/qml/PhotoTemplateEditor/res/icons/fill-crop.svg"
             onClicked: slotRoot.toggleFillMode()
+            ToolTip.visible: hovered
+            ToolTip.text: fillCropMode ? "当前：铺满裁切；点击切换到完整放入" : "当前：完整放入；点击切换到铺满裁切"
         }
-        Button {
-            Layout.fillWidth: true
+        ToolButton {
+            Layout.preferredWidth: 24
+            Layout.preferredHeight: 24
             visible: canAdjustComposition
-            text: "调整构图"
+            icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/adjust.svg"
             onClicked: compositionMode = true
+            ToolTip.visible: hovered
+            ToolTip.text: "调整构图"
         }
-        Button {
-            Layout.fillWidth: true
-            text: "删除照片"
+        Item { Layout.fillWidth: true }
+        ToolButton {
+            Layout.preferredWidth: 24
+            Layout.preferredHeight: 24
+            icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/delete.svg"
             onClicked: slotRoot.removePhotoRequested()
+            ToolTip.visible: hovered
+            ToolTip.text: "删除照片"
         }
     }
 

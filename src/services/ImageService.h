@@ -3,6 +3,7 @@
 #include "models/ImageResource.h"
 
 #include <QObject>
+#include <QSize>
 #include <QStringList>
 
 namespace pte {
@@ -14,6 +15,9 @@ public:
 
     ImageResource normalizeAndCacheFile(const QString &path);
     QList<ImageResource> normalizeAndCacheFiles(const QStringList &paths);
+    ImageResource refreshResource(const ImageResource &resource) const;
+    [[nodiscard]] QString transformedPreviewPath(const ImageResource &resource, int rotation, bool mirrored) const;
+    [[nodiscard]] QSize transformedPreviewSize(const ImageResource &resource, int rotation) const;
     void setCacheRoot(const QString &cacheRoot);
     [[nodiscard]] QString cacheRoot() const;
     void setPreviewMaxEdge(int edge);
@@ -26,6 +30,8 @@ public:
 
 private:
     [[nodiscard]] ImageResource normalizeAndCache(const QString &path) const;
+    [[nodiscard]] QString transformedCacheDir() const;
+    [[nodiscard]] QString previewCacheDir() const;
     QString m_cacheRoot;
     int m_previewMaxEdge = 2048;
 };

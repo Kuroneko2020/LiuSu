@@ -44,9 +44,15 @@ AppController::AppController(QObject *parent)
     : QObject(parent)
 {
     loadSettings();
+    m_project.setImageService(&m_imageService);
     if (m_exportSettings.path.isEmpty()) {
         m_exportSettings.path = m_settings.defaultPath;
     }
+    m_thumbnailEmitTimer.setSingleShot(true);
+    m_thumbnailEmitTimer.setInterval(120);
+    connect(&m_thumbnailEmitTimer, &QTimer::timeout, this, [this]() {
+        emit thumbnailsChanged();
+    });
 
     connect(&m_project, &ProjectState::slotsChanged, this, [this]() {
         markPageThumbnailDirty(m_project.currentPageIndex());
@@ -247,6 +253,7 @@ void AppController::setCacheDirectoryFromDialog(const QString &folderUrl)
 bool AppController::clearPreviewCache()
 {
     const bool ok = m_imageService.clearCache();
+    m_exportService.clearThumbnailCache();
     if (ok) {
         m_pageThumbnailCache.clear();
         m_dirtyThumbnailPages.clear();
@@ -373,6 +380,8 @@ void AppController::setCacheDirectory(const QString &value) {
     if (value.isEmpty() || m_settings.cacheDir == value) return;
     m_settings.cacheDir = value;
     m_imageService.setCacheRoot(value);
+    m_project.refreshSlotPreviewResources();
+    clearPreviewCache();
     persistExportDefaults();
     emit appSettingsChanged();
 }
@@ -382,6 +391,8 @@ void AppController::setPreviewMaxEdge(int value) {
     if (m_settings.previewMaxEdge == clamped) return;
     m_settings.previewMaxEdge = clamped;
     m_imageService.setPreviewMaxEdge(clamped);
+    m_project.refreshSlotPreviewResources();
+    clearPreviewCache();
     persistExportDefaults();
     emit appSettingsChanged();
 }
@@ -439,7 +450,16 @@ void AppController::markPageThumbnailDirty(int pageIndex)
     m_pageThumbnailRevisions[pageIndex] = m_pageThumbnailRevisions.value(pageIndex, 0) + 1;
     m_pageThumbnailCache.remove(pageIndex);
     if (!m_deferThumbnailSignals) {
-        emit thumbnailsChanged();
+        scheduleThumbnailSignal();
+    }
+}
+
+void AppController::scheduleThumbnailSignal()
+{
+    if (!m_thumbnailEmitTimer.isActive()) {
+        m_thumbnailEmitTimer.start();
+    } else {
+        m_thumbnailEmitTimer.start();
     }
 }
 

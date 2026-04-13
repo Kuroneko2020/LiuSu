@@ -54,7 +54,7 @@ QString pageThumbnailCacheKey(const ProjectState &project, int pageIndex, int wi
         key += QStringLiteral("|%1:%2:%3:%4:%5:%6:%7")
                    .arg(slot)
                    .arg(project.pageSlotHasImage(pageIndex, slot) ? 1 : 0)
-                   .arg(project.pageSlotImagePath(pageIndex, slot))
+                   .arg(project.pageSlotPreviewPath(pageIndex, slot))
                    .arg(project.pageSlotRotation(pageIndex, slot))
                    .arg(project.pageSlotMirrored(pageIndex, slot) ? 1 : 0)
                    .arg(project.pageSlotFillCrop(pageIndex, slot) ? 1 : 0)
@@ -146,7 +146,7 @@ void drawCropMarks(QPainter &painter, const QSize &size, const QVector<QRectF> &
     }
 }
 
-QImage renderPageImage(const ProjectState &project, int pageIndex, const QSize &size, bool cropMarks)
+QImage renderPageImage(const ProjectState &project, int pageIndex, const QSize &size, bool cropMarks, bool usePreviewCache)
 {
     QImage canvas(size, QImage::Format_ARGB32_Premultiplied);
     canvas.fill(Qt::white);
@@ -162,8 +162,12 @@ QImage renderPageImage(const ProjectState &project, int pageIndex, const QSize &
         if (!project.pageSlotHasImage(pageIndex, slot)) {
             continue;
         }
-        const QString path = project.pageSlotImagePath(pageIndex, slot);
-        const QImage image = transformImage(path, project.pageSlotRotation(pageIndex, slot), project.pageSlotMirrored(pageIndex, slot));
+        const QString path = usePreviewCache
+            ? project.pageSlotPreviewPath(pageIndex, slot)
+            : project.pageSlotImagePath(pageIndex, slot);
+        const QImage image = usePreviewCache
+            ? transformImage(path, 0, false)
+            : transformImage(path, project.pageSlotRotation(pageIndex, slot), project.pageSlotMirrored(pageIndex, slot));
         if (image.isNull()) {
             continue;
         }
@@ -220,7 +224,7 @@ ExportService::Result ExportService::exportPages(const ProjectState &project, co
 
     int sequence = 1;
     for (int pageIndex : pageIndexes) {
-        const QImage canvas = renderPageImage(project, pageIndex, exportSize, request.cropMarks);
+        const QImage canvas = renderPageImage(project, pageIndex, exportSize, request.cropMarks, false);
 
         QStringList usedNames;
         for (int slot = 0; slot < project.pageSlotCount(pageIndex); ++slot) {
@@ -270,7 +274,7 @@ QString ExportService::renderPageThumbnail(const ProjectState &project, int page
         }
     }
 
-    const QImage image = renderPageImage(project, pageIndex, QSize(width, height), false);
+    const QImage image = renderPageImage(project, pageIndex, QSize(width, height), false, true);
 
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/thumbs");
     QDir().mkpath(dir);
@@ -289,9 +293,9 @@ QString ExportService::renderSlotPreview(const ProjectState &project, int pageIn
 
     const int w = qMax(16, width);
     const int h = qMax(16, height);
-    const QString path = project.pageSlotImagePath(pageIndex, slotIndex);
-    const int rotation = project.pageSlotRotation(pageIndex, slotIndex);
-    const bool mirrored = project.pageSlotMirrored(pageIndex, slotIndex);
+    const QString path = project.pageSlotPreviewPath(pageIndex, slotIndex);
+    const int rotation = 0;
+    const bool mirrored = false;
     const bool fillCrop = project.pageSlotFillCrop(pageIndex, slotIndex);
     const QPointF offset = project.pageSlotOffset(pageIndex, slotIndex);
     const QByteArray key = QStringLiteral("%1|%2|%3|%4|%5|%6|%7|%8|%9")
@@ -324,6 +328,11 @@ QString ExportService::renderSlotPreview(const ProjectState &project, int pageIn
     painter.end();
     canvas.save(previewPath, "PNG");
     return previewPath;
+}
+
+void ExportService::clearThumbnailCache()
+{
+    m_pageThumbnailCacheByKey.clear();
 }
 
 int ExportService::resolvePpi(const Request &request) const

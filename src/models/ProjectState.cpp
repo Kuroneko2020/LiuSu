@@ -1,67 +1,14 @@
 #include "models/ProjectState.h"
 
+#include "services/ImageService.h"
 #include "services/TemplateLayout.h"
-#include <QCryptographicHash>
-#include <QDir>
-#include <QFileInfo>
-#include <QImage>
-#include <QImageReader>
-#include <QStandardPaths>
-#include <QTransform>
 #include <QUrl>
 
 namespace pte {
 
 namespace {
-QString transformedPreviewPath(const QString &path, int rotation, bool mirrored)
+void slotOffsetCapabilities(const QRectF &slotRect, const QSize &imageSize, bool &allowX, bool &allowY)
 {
-    if (path.isEmpty()) {
-        return {};
-    }
-    const QFileInfo info(path);
-    const QByteArray key = QStringLiteral("%1|%2|%3|%4")
-                               .arg(info.absoluteFilePath())
-                               .arg(info.lastModified().toMSecsSinceEpoch())
-                               .arg(rotation)
-                               .arg(mirrored ? 1 : 0)
-                               .toUtf8();
-    const QString digest = QString::fromUtf8(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex());
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/slot-images");
-    QDir().mkpath(dir);
-    const QString outPath = dir + QStringLiteral("/%1.png").arg(digest);
-    if (QFileInfo::exists(outPath)) {
-        return outPath;
-    }
-
-    QImageReader reader(path);
-    reader.setAutoTransform(true);
-    QImage image = reader.read();
-    if (image.isNull()) {
-        return path;
-    }
-
-    QTransform transform;
-    if (mirrored) {
-        transform.scale(-1, 1);
-    }
-    if (rotation != 0) {
-        transform.rotate(rotation);
-    }
-    if (!transform.isIdentity()) {
-        image = image.transformed(transform, Qt::SmoothTransformation);
-    }
-    image.save(outPath, "PNG");
-    return outPath;
-}
-
-void slotOffsetCapabilities(const SlotState &slot, const QRectF &slotRect, bool &allowX, bool &allowY)
-{
-    QImageReader reader(slot.image.exportPath);
-    reader.setAutoTransform(true);
-    QSize imageSize = reader.size();
-    if (slot.rotation % 180 != 0) {
-        imageSize.transpose();
-    }
     const qreal slotAspect = (slotRect.height() > 0.0) ? (slotRect.width() / slotRect.height()) : 1.0;
     const qreal imageAspect = (imageSize.height() > 0) ? (static_cast<qreal>(imageSize.width()) / imageSize.height()) : slotAspect;
     allowX = imageAspect > slotAspect + 1e-6;
@@ -184,14 +131,19 @@ QString ProjectState::slotImageSource(int slotIndex) const
     if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size()) {
         return {};
     }
-    const auto &image = page->slotStates.at(slotIndex).image;
-    const QString basePath = image.previewPath.isEmpty() ? image.exportPath : image.previewPath;
     const auto &slot = page->slotStates.at(slotIndex);
-    const QString path = transformedPreviewPath(basePath, slot.rotation, slot.mirrored);
+    const QString path = m_imageService
+        ? m_imageService->transformedPreviewPath(slot.image, slot.rotation, slot.mirrored)
+        : (slot.image.previewPath.isEmpty() ? slot.image.exportPath : slot.image.previewPath);
     if (path.isEmpty()) {
         return {};
     }
     return QUrl::fromLocalFile(path).toString();
+}
+
+void ProjectState::setImageService(ImageService *imageService)
+{
+    m_imageService = imageService;
 }
 
 QString ProjectState::slotOriginalBaseName(int slotIndex) const
@@ -364,7 +316,10 @@ void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
     const QRectF slotRect = slotRectNormalized(index);
     bool allowX = false;
     bool allowY = false;
-    slotOffsetCapabilities(slot, slotRect, allowX, allowY);
+    const QSize previewSize = m_imageService
+        ? m_imageService->transformedPreviewSize(slot.image, slot.rotation)
+        : QSize(slot.image.previewWidth, slot.image.previewHeight);
+    slotOffsetCapabilities(slotRect, previewSize, allowX, allowY);
 
     const qreal nextX = allowX ? qBound(-1.0, slot.cropOffset.x() + dx, 1.0) : 0.0;
     const qreal nextY = allowY ? qBound(-1.0, slot.cropOffset.y() + dy, 1.0) : 0.0;
@@ -393,7 +348,10 @@ void ProjectState::setSelectedSlotOffset(qreal x, qreal y)
 
     bool allowX = false;
     bool allowY = false;
-    slotOffsetCapabilities(slot, slotRectNormalized(index), allowX, allowY);
+    const QSize previewSize = m_imageService
+        ? m_imageService->transformedPreviewSize(slot.image, slot.rotation)
+        : QSize(slot.image.previewWidth, slot.image.previewHeight);
+    slotOffsetCapabilities(slotRectNormalized(index), previewSize, allowX, allowY);
     const qreal nextX = allowX ? qBound(-1.0, x, 1.0) : 0.0;
     const qreal nextY = allowY ? qBound(-1.0, y, 1.0) : 0.0;
     if (qFuzzyCompare(slot.cropOffset.x() + 1.0, nextX + 1.0)
@@ -510,6 +468,25 @@ QString ProjectState::pageSlotImagePath(int pageIndex, int slotIndex) const
     return slotStates.at(slotIndex).image.exportPath;
 }
 
+QString ProjectState::pageSlotPreviewPath(int pageIndex, int slotIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return {};
+    }
+    const auto &slotStates = m_pages.at(pageIndex).slotStates;
+    if (slotIndex < 0 || slotIndex >= slotStates.size()) {
+        return {};
+    }
+    const auto &slot = slotStates.at(slotIndex);
+    if (!slot.hasImage) {
+        return {};
+    }
+    if (!m_imageService) {
+        return slot.image.previewPath.isEmpty() ? slot.image.exportPath : slot.image.previewPath;
+    }
+    return m_imageService->transformedPreviewPath(slot.image, slot.rotation, slot.mirrored);
+}
+
 QString ProjectState::pageSlotOriginalBaseName(int pageIndex, int slotIndex) const
 {
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {
@@ -615,6 +592,31 @@ int ProjectState::slotsRevision() const
 int ProjectState::contentRevision() const
 {
     return m_contentRevision;
+}
+
+void ProjectState::refreshSlotPreviewResources()
+{
+    if (!m_imageService) {
+        return;
+    }
+    bool changed = false;
+    for (auto &page : m_pages) {
+        for (auto &slot : page.slotStates) {
+            if (!slot.hasImage) {
+                continue;
+            }
+            const ImageResource refreshed = m_imageService->refreshResource(slot.image);
+            if (!refreshed.exportPath.isEmpty()) {
+                slot.image = refreshed;
+                changed = true;
+            }
+        }
+    }
+    if (changed) {
+        ++m_contentRevision;
+        ++m_slotsRevision;
+        emit slotsChanged();
+    }
 }
 
 PageState *ProjectState::currentPage()

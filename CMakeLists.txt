@@ -46,6 +46,13 @@ qt_add_qml_module(photo_template_editor
         qml/components/TemplateCanvas.qml
         qml/components/SlotItem.qml
         qml/components/FilmStrip.qml
+    RESOURCES
+        res/icons/rotate-right.svg
+        res/icons/mirror.svg
+        res/icons/fit-inside.svg
+        res/icons/fill-crop.svg
+        res/icons/adjust.svg
+        res/icons/delete.svg
 )
 
 install(TARGETS photo_template_editor

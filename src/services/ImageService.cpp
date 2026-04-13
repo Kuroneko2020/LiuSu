@@ -7,9 +7,11 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImage>
 #include <QImageReader>
 #include <QImageWriter>
 #include <QStandardPaths>
+#include <QTransform>
 
 namespace pte {
 
@@ -36,7 +38,7 @@ ImageService::ImageService(QObject *parent)
     m_cacheRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
     cleanupCacheDir(m_cacheRoot + QStringLiteral("/cache"), 14);
     cleanupCacheDir(m_cacheRoot + QStringLiteral("/thumbs"), 14);
-    cleanupCacheDir(m_cacheRoot + QStringLiteral("/slot-images"), 14);
+    cleanupCacheDir(m_cacheRoot + QStringLiteral("/transformed"), 14);
     cleanupCacheDir(m_cacheRoot + QStringLiteral("/slot-previews"), 14);
 }
 
@@ -71,6 +73,14 @@ QList<ImageResource> ImageService::normalizeAndCacheFiles(const QStringList &pat
     return valid;
 }
 
+ImageResource ImageService::refreshResource(const ImageResource &resource) const
+{
+    if (!resource.originalPath.isEmpty()) {
+        return normalizeAndCache(resource.originalPath);
+    }
+    return {};
+}
+
 QStringList ImageService::supportedInputFormats() const
 {
     return {
@@ -103,10 +113,13 @@ ImageResource ImageService::normalizeAndCache(const QString &path) const
     resource.originalPath = info.absoluteFilePath();
     resource.originalBaseName = info.completeBaseName();
     resource.exportPath = info.absoluteFilePath();
+    resource.originalLastModifiedMs = info.lastModified().toMSecsSinceEpoch();
 
     QImage image = reader.read();
     if (image.isNull()) {
         resource.previewPath = info.absoluteFilePath();
+        resource.previewWidth = 0;
+        resource.previewHeight = 0;
         return resource;
     }
 
@@ -114,9 +127,8 @@ ImageResource ImageService::normalizeAndCache(const QString &path) const
         image = image.scaled(m_previewMaxEdge, m_previewMaxEdge, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
 
-    const QString cacheDir = m_cacheRoot + QStringLiteral("/cache");
-    QDir().mkpath(cacheDir);
-    const QByteArray key = QStringLiteral("%1|%2|%3|%4")
+    const QString cacheDir = previewCacheDir();
+    const QByteArray key = QStringLiteral("%1|%2|%3|%4|%5")
                                .arg(resource.originalPath)
                                .arg(info.lastModified().toMSecsSinceEpoch())
                                .arg(image.width())
@@ -134,7 +146,70 @@ ImageResource ImageService::normalizeAndCache(const QString &path) const
         }
     }
     resource.previewPath = previewPath;
+    resource.previewWidth = image.width();
+    resource.previewHeight = image.height();
     return resource;
+}
+
+QString ImageService::transformedPreviewPath(const ImageResource &resource, int rotation, bool mirrored) const
+{
+    const QString basePath = resource.previewPath.isEmpty() ? resource.exportPath : resource.previewPath;
+    if (basePath.isEmpty()) {
+        return {};
+    }
+    const int normalizedRotation = ((rotation % 360) + 360) % 360;
+    if (normalizedRotation == 0 && !mirrored) {
+        return basePath;
+    }
+
+    const QFileInfo info(basePath);
+    const qint64 stamp = resource.originalLastModifiedMs > 0
+        ? resource.originalLastModifiedMs
+        : info.lastModified().toMSecsSinceEpoch();
+    const QByteArray key = QStringLiteral("%1|%2|%3|%4|%5")
+                               .arg(resource.originalPath.isEmpty() ? info.absoluteFilePath() : resource.originalPath)
+                               .arg(stamp)
+                               .arg(m_previewMaxEdge)
+                               .arg(normalizedRotation)
+                               .arg(mirrored ? 1 : 0)
+                               .toUtf8();
+    const QString digest = QString::fromUtf8(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex());
+    const QString outPath = transformedCacheDir() + QStringLiteral("/tx_%1.png").arg(digest);
+    if (QFileInfo::exists(outPath)) {
+        return outPath;
+    }
+
+    QImageReader reader(basePath);
+    reader.setAutoTransform(true);
+    QImage image = reader.read();
+    if (image.isNull()) {
+        return basePath;
+    }
+    QTransform transform;
+    if (mirrored) {
+        transform.scale(-1, 1);
+    }
+    if (normalizedRotation != 0) {
+        transform.rotate(normalizedRotation);
+    }
+    if (!transform.isIdentity()) {
+        image = image.transformed(transform, Qt::SmoothTransformation);
+    }
+    image.save(outPath, "PNG");
+    return outPath;
+}
+
+QSize ImageService::transformedPreviewSize(const ImageResource &resource, int rotation) const
+{
+    QSize size(resource.previewWidth, resource.previewHeight);
+    if (size.isEmpty()) {
+        QImageReader reader(resource.previewPath.isEmpty() ? resource.exportPath : resource.previewPath);
+        size = reader.size();
+    }
+    if ((((rotation % 360) + 360) % 180) == 90) {
+        size.transpose();
+    }
+    return size;
 }
 
 void ImageService::setCacheRoot(const QString &cacheRoot)
@@ -143,6 +218,8 @@ void ImageService::setCacheRoot(const QString &cacheRoot)
         return;
     }
     m_cacheRoot = cacheRoot;
+    QDir().mkpath(previewCacheDir());
+    QDir().mkpath(transformedCacheDir());
 }
 
 QString ImageService::cacheRoot() const
@@ -166,7 +243,7 @@ bool ImageService::clearCache() const
     const QStringList dirs{
         m_cacheRoot + QStringLiteral("/cache"),
         m_cacheRoot + QStringLiteral("/thumbs"),
-        m_cacheRoot + QStringLiteral("/slot-images"),
+        m_cacheRoot + QStringLiteral("/transformed"),
         m_cacheRoot + QStringLiteral("/slot-previews")
     };
     for (const QString &dirPath : dirs) {
@@ -180,6 +257,20 @@ bool ImageService::clearCache() const
         }
     }
     return ok;
+}
+
+QString ImageService::transformedCacheDir() const
+{
+    const QString dir = m_cacheRoot + QStringLiteral("/transformed");
+    QDir().mkpath(dir);
+    return dir;
+}
+
+QString ImageService::previewCacheDir() const
+{
+    const QString dir = m_cacheRoot + QStringLiteral("/cache");
+    QDir().mkpath(dir);
+    return dir;
 }
 
 } // namespace pte

@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QHash>
 #include <QSet>
+#include <QTimer>
 #include <QVariant>
 
 namespace pte {
@@ -118,6 +119,7 @@ private:
 
     [[nodiscard]] static TemplateType toTemplateType(int choice);
     void markPageThumbnailDirty(int pageIndex);
+    void scheduleThumbnailSignal();
     void handlePagesChanged();
     void loadSettings();
     void persistExportDefaults() const;
@@ -135,6 +137,7 @@ private:
     QHash<int, QString> m_pageThumbnailCache;
     QSet<int> m_dirtyThumbnailPages;
     bool m_deferThumbnailSignals = false;
+    QTimer m_thumbnailEmitTimer;
     int m_pendingTemplateChoice = 2;
     bool m_pendingAutoMode = false;
     QVariantList m_pendingAutoFiles;

@@ -9,6 +9,7 @@
 #include <QVector>
 
 namespace pte {
+class ImageService;
 
 struct SlotState {
     bool hasImage = false;
@@ -61,7 +62,9 @@ public:
 
     Q_INVOKABLE void selectSlot(int slotIndex);
     Q_INVOKABLE void clearSelection();
+    void setImageService(ImageService *imageService);
     void assignImageToSlot(int slotIndex, const pte::ImageResource &resource);
+    void refreshSlotPreviewResources();
     void configureSlot(int slotIndex, bool fillCrop, int rotation, bool mirrored);
     Q_INVOKABLE void rotateSelectedSlot90();
     Q_INVOKABLE void mirrorSelectedSlot();
@@ -86,6 +89,7 @@ public:
     [[nodiscard]] int pageSlotCount(int pageIndex) const;
     [[nodiscard]] bool pageSlotHasImage(int pageIndex, int slotIndex) const;
     [[nodiscard]] QString pageSlotImagePath(int pageIndex, int slotIndex) const;
+    [[nodiscard]] QString pageSlotPreviewPath(int pageIndex, int slotIndex) const;
     [[nodiscard]] QString pageSlotOriginalBaseName(int pageIndex, int slotIndex) const;
     [[nodiscard]] int pageSlotRotation(int pageIndex, int slotIndex) const;
     [[nodiscard]] bool pageSlotMirrored(int pageIndex, int slotIndex) const;
@@ -104,6 +108,7 @@ private:
     [[nodiscard]] int selectedSlotIndex() const;
 
     QVector<PageState> m_pages;
+    ImageService *m_imageService = nullptr;
     int m_currentPageIndex = -1;
     int m_slotsRevision = 0;
     int m_contentRevision = 0;
