@@ -3,17 +3,17 @@ import QtQuick.Controls
 
 Rectangle {
     id: filmStrip
-    color: "#f4f6f8"
-    radius: 10
-    border.color: "#d5dbe3"
+    color: "#f5f7fa"
+    radius: 8
+    border.color: "#d7dde6"
     readonly property int pageCount: appController.project.pageCount
 
     ListView {
         id: pageList
         anchors.fill: parent
-        anchors.margins: 8
+        anchors.margins: 6
         orientation: ListView.Horizontal
-        spacing: 10
+        spacing: 8
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         model: filmStrip.pageCount
@@ -21,32 +21,25 @@ Rectangle {
         delegate: Rectangle {
             required property int index
             readonly property int pageIndex: index
-            width: 84
-            height: 96
-            radius: 8
-            border.width: appController.project.currentPageIndex === pageIndex ? 2 : 1
-            border.color: appController.project.currentPageIndex === pageIndex ? "#8a97a8" : "#c9d0d9"
-            color: "#ffffff"
-            clip: true
+            readonly property bool active: appController.project.currentPageIndex === pageIndex
+            width: Math.round(height * appController.pageAspectRatio)
+            height: 62
+            radius: 6
+            border.width: 1
+            border.color: active ? "#9ca9b8" : "#c9d1db"
+            color: active ? "#f7f9fc" : "#ffffff"
+            antialiasing: true
 
-            Rectangle {
+            Image {
                 anchors.fill: parent
-                anchors.margins: 4
-                radius: 6
-                color: "#eef2f6"
-                clip: true
-
-                Image {
-                    height: parent.height
-                    width: Math.min(parent.width, height * appController.pageAspectRatio)
-                    anchors.centerIn: parent
-                    source: {
-                        appController.thumbnailListRevision
-                        appController.pageThumbnailRevisionAt(pageIndex)
-                        return appController.pageThumbnailSource(pageIndex)
-                    }
-                    fillMode: Image.PreserveAspectFit
+                anchors.margins: 2
+                source: {
+                    appController.thumbnailListRevision
+                    appController.pageThumbnailRevisionAt(pageIndex)
+                    return appController.pageThumbnailSource(pageIndex)
                 }
+                fillMode: Image.PreserveAspectFit
+                cache: true
             }
 
             MouseArea {

@@ -166,6 +166,15 @@ void AppController::createBlankPage(int choice)
     m_project.createPage(toTemplateType(choice));
 }
 
+void AppController::createBlankPageForCurrentTemplate()
+{
+    int choice = m_project.currentTemplateChoice();
+    if (choice != 2 && choice != 4 && choice != 9) {
+        choice = 2;
+    }
+    m_project.createPage(toTemplateType(choice));
+}
+
 void AppController::importToSlot(int slotIndex)
 {
     Q_UNUSED(slotIndex)

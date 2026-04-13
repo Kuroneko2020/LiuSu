@@ -42,76 +42,33 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 24
-        spacing: 18
-
-        Label {
-            text: "选择模板"
-            font.pixelSize: 28
-            font.bold: true
-        }
-        Label {
-            text: "默认 3:2 模板比例"
-            color: "#65707d"
-            font.pixelSize: 13
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 14
-
-            Repeater {
-                model: [
-                    { name: "两张拼图", choice: 2, slots: 2 },
-                    { name: "四张拼图", choice: 4, slots: 4 },
-                    { name: "九张拼图", choice: 9, slots: 9 }
-                ]
-
-                delegate: TemplateCard {
-                    required property var modelData
-                    required property int index
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 280
-                    templateName: modelData.name
-                    templateChoice: modelData.choice
-                    slotCount: modelData.slots
-                    selected: home.selectedTemplate === index
-                    onClicked: home.selectedTemplate = index
-                }
-            }
-        }
 
         Item { Layout.fillHeight: true }
 
-        Rectangle {
-            Layout.fillWidth: true
-            radius: 10
-            color: "#f3f5f8"
-            border.color: "#d2d8e0"
-            border.width: 1
-            implicitHeight: 64
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: 18
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 12
-                spacing: 10
+            Repeater {
+                model: [2, 4, 9]
 
-                Label {
-                    text: "已选模板：" + ["两张拼图", "四张拼图", "九张拼图"][home.selectedTemplate]
-                    color: "#4b5563"
-                }
-                Item { Layout.fillWidth: true }
-                Button {
-                    text: "手动布局"
-                    onClicked: appController.startManualLayout([2, 4, 9][home.selectedTemplate])
-                }
-                Button {
-                    text: "自动布局"
-                    onClicked: {
-                        home.autoLayoutChoice = [2, 4, 9][home.selectedTemplate]
+                delegate: TemplateCard {
+                    required property int index
+                    required property int modelData
+                    Layout.preferredWidth: 290
+                    Layout.preferredHeight: 190
+                    templateChoice: modelData
+                    selected: home.selectedTemplate === index
+                    onClicked: home.selectedTemplate = index
+                    onManualLayout: appController.startManualLayout(modelData)
+                    onAutoLayout: {
+                        home.autoLayoutChoice = modelData
                         autoLayoutDialog.open()
                     }
                 }
             }
         }
+
+        Item { Layout.fillHeight: true }
     }
 }

@@ -42,7 +42,7 @@ Item {
             IconToolButton {
                 icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/page-add.svg"
                 tooltipText: "新建空白页"
-                onClicked: appController.createBlankPage(appController.project.currentTemplateChoice())
+                onClicked: appController.createBlankPageForCurrentTemplate()
             }
             IconToolButton {
                 icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/export-one.svg"
@@ -83,7 +83,7 @@ Item {
 
         FilmStrip {
             Layout.fillWidth: true
-            Layout.preferredHeight: 112
+            Layout.preferredHeight: 76
         }
     }
 

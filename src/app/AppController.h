@@ -47,6 +47,7 @@ public:
     Q_INVOKABLE void startAutoLayout(int choice);
     Q_INVOKABLE void startAutoLayoutWithFiles(int choice, const QVariantList &fileUrls);
     Q_INVOKABLE void createBlankPage(int choice);
+    Q_INVOKABLE void createBlankPageForCurrentTemplate();
     Q_INVOKABLE void importToSlot(int slotIndex);
     Q_INVOKABLE void importToSlotFromFile(int slotIndex, const QString &fileUrl);
     Q_INVOKABLE void batchImport();
