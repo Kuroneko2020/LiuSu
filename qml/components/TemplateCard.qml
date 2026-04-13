@@ -2,88 +2,83 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Rectangle {
+Item {
     id: card
-    radius: 12
-    color: "#f4f4f7"
-    border.color: expanded ? "#4f7cff" : "#cccccc"
-    border.width: expanded ? 2 : 1
 
     property string templateName: ""
     property int slotCount: 2
     property int templateChoice: 2
-    property bool expanded: false
+    property bool selected: false
 
-    signal toggleExpand()
-    signal manualLayout()
-    signal autoLayout()
+    signal clicked()
 
-    implicitHeight: expanded ? 280 : 220
+    implicitHeight: 250
 
-    Behavior on implicitHeight {
-        NumberAnimation { duration: 150; easing.type: Easing.InOutQuad }
+    Rectangle {
+        id: shadowLayer
+        anchors.fill: body
+        anchors.margins: selected ? -2 : 0
+        radius: body.radius + 1
+        color: "#000000"
+        opacity: selected ? 0.08 : 0.0
+        z: -1
     }
 
-    MouseArea {
+    Rectangle {
+        id: body
         anchors.fill: parent
-        onClicked: card.toggleExpand()
-    }
+        radius: 10
+        color: "#f4f6f8"
+        border.color: selected ? "#99a5b3" : "#cdd4dc"
+        border.width: 1
 
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 14
-        spacing: 12
-
-        Label {
-            text: card.templateName
-            font.bold: true
-            font.pixelSize: 18
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: "white"
-            border.color: "#dadada"
-            radius: 8
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 8
 
             Rectangle {
-                anchors.centerIn: parent
-                width: parent.width * 0.9
-                height: width / appController.pageAspectRatio
-                color: "#f9f9f9"
-                border.color: "#bbb"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                radius: 8
+                color: "#ffffff"
+                border.color: "#d8dee5"
 
-                Repeater {
-                    model: appController.templateSlotRects(card.templateChoice)
-                    delegate: Rectangle {
-                        required property var modelData
-                        x: modelData.x * parent.width
-                        y: modelData.y * parent.height
-                        width: modelData.width * parent.width
-                        height: modelData.height * parent.height
-                        color: "#ededed"
-                        border.color: "#d0d0d0"
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width * 0.88
+                    height: width / appController.pageAspectRatio
+                    color: "#f7f8fa"
+                    border.color: "#cfd5dd"
+
+                    Repeater {
+                        model: appController.templateSlotRects(card.templateChoice)
+                        delegate: Rectangle {
+                            required property var modelData
+                            x: modelData.x * parent.width
+                            y: modelData.y * parent.height
+                            width: modelData.width * parent.width
+                            height: modelData.height * parent.height
+                            color: "#ebeff3"
+                            border.color: "#cfd6df"
+                        }
                     }
                 }
             }
+
+            Label {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                text: card.templateName
+                font.pixelSize: 14
+                font.bold: false
+                color: "#3e4854"
+            }
         }
 
-        RowLayout {
-            visible: card.expanded
-            Layout.fillWidth: true
-            spacing: 8
-
-            Button {
-                Layout.fillWidth: true
-                text: "手动布局"
-                onClicked: card.manualLayout()
-            }
-            Button {
-                Layout.fillWidth: true
-                text: "自动布局"
-                onClicked: card.autoLayout()
-            }
+        MouseArea {
+            anchors.fill: parent
+            onClicked: card.clicked()
         }
     }
 }

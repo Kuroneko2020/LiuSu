@@ -33,11 +33,32 @@ Item {
             Layout.fillWidth: true
             Label { text: "编辑页"; font.pixelSize: 24; font.bold: true }
             Item { Layout.fillWidth: true }
-            Button { text: "批量导入"; onClicked: batchImportDialog.open() }
-            Button { text: "新建空白页"; onClicked: appController.createBlankPage(appController.project.currentTemplateChoice()) }
-            Button { text: "导出当前页"; onClicked: appController.exportCurrentPage() }
-            Button { text: "导出全队列"; onClicked: appController.exportQueue() }
-            Button { text: "删除当前页"; onClicked: appController.project.deleteCurrentPage() }
+
+            IconToolButton {
+                icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/import.svg"
+                tooltipText: "批量导入"
+                onClicked: batchImportDialog.open()
+            }
+            IconToolButton {
+                icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/page-add.svg"
+                tooltipText: "新建空白页"
+                onClicked: appController.createBlankPage(appController.project.currentTemplateChoice())
+            }
+            IconToolButton {
+                icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/export-one.svg"
+                tooltipText: "导出当前页"
+                onClicked: appController.exportCurrentPage()
+            }
+            IconToolButton {
+                icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/export-all.svg"
+                tooltipText: "导出全队列"
+                onClicked: appController.exportQueue()
+            }
+            IconToolButton {
+                icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/page-delete.svg"
+                tooltipText: "删除当前页"
+                onClicked: appController.project.deleteCurrentPage()
+            }
         }
 
         Rectangle {
@@ -45,8 +66,8 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             radius: 10
-            color: "#f7f7f7"
-            border.color: "#d9d9d9"
+            color: "#f5f7fa"
+            border.color: "#d4dbe3"
 
             TemplateCanvas {
                 id: templateCanvas
@@ -62,7 +83,7 @@ Item {
 
         FilmStrip {
             Layout.fillWidth: true
-            Layout.preferredHeight: 120
+            Layout.preferredHeight: 112
         }
     }
 

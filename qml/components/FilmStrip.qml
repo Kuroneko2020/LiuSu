@@ -3,9 +3,9 @@ import QtQuick.Controls
 
 Rectangle {
     id: filmStrip
-    color: "#f1f1f1"
-    radius: 8
-    border.color: "#d2d2d2"
+    color: "#f4f6f8"
+    radius: 10
+    border.color: "#d5dbe3"
     readonly property int pageCount: appController.project.pageCount
 
     ListView {
@@ -13,7 +13,7 @@ Rectangle {
         anchors.fill: parent
         anchors.margins: 8
         orientation: ListView.Horizontal
-        spacing: 8
+        spacing: 10
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         model: filmStrip.pageCount
@@ -21,48 +21,43 @@ Rectangle {
         delegate: Rectangle {
             required property int index
             readonly property int pageIndex: index
-            width: 90
-            height: 100
-            radius: 6
+            width: 84
+            height: 96
+            radius: 8
             border.width: appController.project.currentPageIndex === pageIndex ? 2 : 1
-            border.color: appController.project.currentPageIndex === pageIndex ? "#4f7cff" : "#bbbbbb"
+            border.color: appController.project.currentPageIndex === pageIndex ? "#8a97a8" : "#c9d0d9"
             color: "#ffffff"
             clip: true
 
-            Column {
+            Rectangle {
                 anchors.fill: parent
                 anchors.margins: 4
-                spacing: 2
+                radius: 6
+                color: "#eef2f6"
+                clip: true
 
-                Rectangle {
-                    width: parent.width
-                    height: 66
-                    color: "#ececec"
-                    clip: true
-
-                    Image {
-                        height: parent.height
-                        width: Math.min(parent.width, height * appController.pageAspectRatio)
-                        anchors.centerIn: parent
-                        source: {
-                            appController.thumbnailListRevision
-                            appController.pageThumbnailRevisionAt(pageIndex)
-                            return appController.pageThumbnailSource(pageIndex)
-                        }
-                        fillMode: Image.PreserveAspectFit
+                Image {
+                    height: parent.height
+                    width: Math.min(parent.width, height * appController.pageAspectRatio)
+                    anchors.centerIn: parent
+                    source: {
+                        appController.thumbnailListRevision
+                        appController.pageThumbnailRevisionAt(pageIndex)
+                        return appController.pageThumbnailSource(pageIndex)
                     }
-                }
-
-                Label {
-                    text: "第" + (pageIndex + 1) + "页"
-                    font.pixelSize: 11
+                    fillMode: Image.PreserveAspectFit
                 }
             }
 
             MouseArea {
+                id: hoverArea
                 anchors.fill: parent
+                hoverEnabled: true
                 onClicked: appController.project.switchToPage(pageIndex)
             }
+
+            ToolTip.visible: hoverArea.containsMouse
+            ToolTip.text: "第" + (pageIndex + 1) + "页"
         }
     }
 }

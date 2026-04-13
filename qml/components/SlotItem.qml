@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "."
 
 Rectangle {
     id: slotRoot
@@ -22,6 +23,7 @@ Rectangle {
     property real dragDeltaY: 0
     property bool swapTargetHighlighted: false
     property bool compositionMode: false
+    property bool hovered: slotHover.hovered
     readonly property bool canMoveHorizontal: fillCropMode && contentLayer.overflowX > 0
     readonly property bool canMoveVertical: fillCropMode && contentLayer.overflowY > 0
     readonly property bool canAdjustComposition: hasImage && fillCropMode && (canMoveHorizontal || canMoveVertical)
@@ -58,11 +60,13 @@ Rectangle {
 
     border.color: swapTargetHighlighted ? "#ff8c00" : (selected ? "#7f7f7f" : "#c5c5c5")
 
+    HoverHandler { id: slotHover }
+
     Rectangle {
         id: contentViewport
         anchors.fill: parent
         radius: 0
-        color: hasImage ? "#f4f4f4" : "#eef1f4"
+        color: hasImage ? "#f4f4f4" : (hovered ? "#e8edf3" : "#eef1f4")
         clip: true
 
         Item {
@@ -141,15 +145,24 @@ Rectangle {
 
     TapHandler {
         acceptedButtons: Qt.LeftButton
-        onTapped: slotRoot.slotClicked()
+        onTapped: {
+            if (hasImage) {
+                slotRoot.slotClicked()
+            } else {
+                slotRoot.addClicked()
+            }
+        }
     }
 
-    Label {
+    Image {
         anchors.centerIn: parent
         visible: !hasImage
-        text: "+"
-        font.pixelSize: 36
-        color: "#4b4b4b"
+        source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/slot-plus.svg"
+        sourceSize.width: 34
+        sourceSize.height: 34
+        width: 34
+        height: 34
+        opacity: 0.92
     }
 
     Rectangle {
@@ -163,24 +176,18 @@ Rectangle {
         }
     }
 
-    Button {
-        visible: !hasImage
-        anchors.centerIn: parent
-        text: "导入"
-        onClicked: slotRoot.addClicked()
-    }
-
     Rectangle {
         id: swapHandle
         visible: hasImage
-        width: 18
-        height: 18
-        radius: 0
-        color: "#333"
+        width: 22
+        height: 22
+        radius: 7
+        color: "#eef1f4"
+        border.color: "#c3cad2"
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.margins: 6
-        Text { anchors.centerIn: parent; text: compositionMode ? "×" : "⇅"; color: "white"; font.pixelSize: 10 }
+        Text { anchors.centerIn: parent; text: compositionMode ? "×" : "⇅"; color: "#374151"; font.pixelSize: 10 }
 
         MouseArea {
             anchors.fill: parent
@@ -217,49 +224,44 @@ Rectangle {
         anchors.margins: 4
         spacing: 3
 
-        ToolButton {
+        IconToolButton {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
             icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/rotate-right.svg"
             onClicked: slotRoot.rotateClicked()
-            ToolTip.visible: hovered
-            ToolTip.text: "右转 90°"
+            tooltipText: "右转 90°"
         }
-        ToolButton {
+        IconToolButton {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
             icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/mirror.svg"
             onClicked: slotRoot.mirrorClicked()
-            ToolTip.visible: hovered
-            ToolTip.text: "水平镜像"
+            tooltipText: "水平镜像"
         }
-        ToolButton {
+        IconToolButton {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
             icon.source: fillCropMode
                 ? "qrc:/qt/qml/PhotoTemplateEditor/res/icons/fit-inside.svg"
                 : "qrc:/qt/qml/PhotoTemplateEditor/res/icons/fill-crop.svg"
             onClicked: slotRoot.toggleFillMode()
-            ToolTip.visible: hovered
-            ToolTip.text: fillCropMode ? "当前：铺满裁切；点击切换到完整放入" : "当前：完整放入；点击切换到铺满裁切"
+            tooltipText: fillCropMode ? "当前：铺满裁切；点击切换到完整放入" : "当前：完整放入；点击切换到铺满裁切"
         }
-        ToolButton {
+        IconToolButton {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
             visible: canAdjustComposition
             icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/adjust.svg"
             onClicked: compositionMode = true
-            ToolTip.visible: hovered
-            ToolTip.text: "调整构图"
+            tooltipText: "调整构图"
         }
         Item { Layout.fillWidth: true }
-        ToolButton {
+        IconToolButton {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
             icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/delete.svg"
             onClicked: slotRoot.removePhotoRequested()
-            ToolTip.visible: hovered
-            ToolTip.text: "删除照片"
+            tooltipText: "删除照片"
         }
     }
 

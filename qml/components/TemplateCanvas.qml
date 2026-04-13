@@ -6,8 +6,8 @@ import "."
 Rectangle {
     id: canvas
     color: "white"
-    border.color: "#cfcfcf"
-    radius: 6
+    border.color: "#d3d9e0"
+    radius: 8
 
     readonly property int slotCount: appController.project.currentTemplateSlotCount
     readonly property int slotsRevision: appController.project.slotsRevision

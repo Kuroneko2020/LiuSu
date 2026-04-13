@@ -4,14 +4,10 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import "../components"
 
-
 Item {
     id: home
-    focus: true
-    Keys.onEscapePressed: expandedTemplate = -1
 
-    property int expandedTemplate: -1
-    property bool suppressNextCollapse: false
+    property int selectedTemplate: 1
     property int autoLayoutChoice: -1
 
     FileDialog {
@@ -43,21 +39,10 @@ Item {
         }
     }
 
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            if (!home.suppressNextCollapse) {
-                home.expandedTemplate = -1
-            }
-            home.suppressNextCollapse = false
-        }
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 24
-        spacing: 20
+        spacing: 18
 
         Label {
             text: "选择模板"
@@ -65,12 +50,14 @@ Item {
             font.bold: true
         }
         Label {
-            text: "默认 3:2 模板比例，预览已居中并预留裁切白边。"
-            color: "#666"
+            text: "默认 3:2 模板比例"
+            color: "#65707d"
+            font.pixelSize: 13
         }
 
         RowLayout {
-            spacing: 18
+            Layout.fillWidth: true
+            spacing: 14
 
             Repeater {
                 model: [
@@ -83,29 +70,48 @@ Item {
                     required property var modelData
                     required property int index
                     Layout.fillWidth: true
-                    Layout.preferredWidth: 300
+                    Layout.preferredWidth: 280
                     templateName: modelData.name
                     templateChoice: modelData.choice
                     slotCount: modelData.slots
-                    expanded: home.expandedTemplate === index
-
-                    onToggleExpand: {
-                        home.suppressNextCollapse = true
-                        home.expandedTemplate = expanded ? -1 : index
-                    }
-                    onManualLayout: {
-                        home.suppressNextCollapse = true
-                        appController.startManualLayout(modelData.choice)
-                    }
-                    onAutoLayout: {
-                        home.suppressNextCollapse = true
-                        home.autoLayoutChoice = modelData.choice
-                        autoLayoutDialog.open()
-                    }
+                    selected: home.selectedTemplate === index
+                    onClicked: home.selectedTemplate = index
                 }
             }
         }
 
         Item { Layout.fillHeight: true }
+
+        Rectangle {
+            Layout.fillWidth: true
+            radius: 10
+            color: "#f3f5f8"
+            border.color: "#d2d8e0"
+            border.width: 1
+            implicitHeight: 64
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 10
+
+                Label {
+                    text: "已选模板：" + ["两张拼图", "四张拼图", "九张拼图"][home.selectedTemplate]
+                    color: "#4b5563"
+                }
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: "手动布局"
+                    onClicked: appController.startManualLayout([2, 4, 9][home.selectedTemplate])
+                }
+                Button {
+                    text: "自动布局"
+                    onClicked: {
+                        home.autoLayoutChoice = [2, 4, 9][home.selectedTemplate]
+                        autoLayoutDialog.open()
+                    }
+                }
+            }
+        }
     }
 }

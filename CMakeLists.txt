@@ -43,6 +43,7 @@ qt_add_qml_module(photo_template_editor
         qml/pages/ExportPage.qml
         qml/pages/SettingsPage.qml
         qml/components/TemplateCard.qml
+        qml/components/IconToolButton.qml
         qml/components/TemplateCanvas.qml
         qml/components/SlotItem.qml
         qml/components/FilmStrip.qml
@@ -53,6 +54,12 @@ qt_add_qml_module(photo_template_editor
         res/icons/fill-crop.svg
         res/icons/adjust.svg
         res/icons/delete.svg
+        res/icons/slot-plus.svg
+        res/icons/import.svg
+        res/icons/page-add.svg
+        res/icons/export-one.svg
+        res/icons/export-all.svg
+        res/icons/page-delete.svg
 )
 
 install(TARGETS photo_template_editor
