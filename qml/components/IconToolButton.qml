@@ -14,8 +14,14 @@ ToolButton {
 
     background: Rectangle {
         radius: 8
-        color: root.down ? "#d8dee680" : (root.hovered ? "#e7edf380" : "#eef2f680")
-        border.color: root.hovered ? "#b1bcc880" : "#c7d0da80"
+        color: root.down
+            ? Qt.rgba(0.847, 0.871, 0.902, 0.50)
+            : (root.hovered
+                ? Qt.rgba(0.906, 0.929, 0.953, 0.50)
+                : Qt.rgba(0.933, 0.949, 0.965, 0.50))
+        border.color: root.hovered
+            ? Qt.rgba(0.694, 0.737, 0.784, 0.50)
+            : Qt.rgba(0.780, 0.816, 0.855, 0.50)
         border.width: 1
     }
 

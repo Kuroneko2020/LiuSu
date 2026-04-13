@@ -66,7 +66,7 @@ Item {
             width: pagePreview.width * 0.64
             height: 46
             radius: 8
-            color: "#edf2f7cc"
+            color: Qt.rgba(0.929, 0.949, 0.969, 0.80)
             border.color: "#bdc7d3"
 
             Row {
@@ -79,7 +79,11 @@ Item {
                     onClicked: card.manualLayout()
                     background: Rectangle {
                         radius: 6
-                        color: parent.down ? "#d5dde6aa" : (parent.hovered ? "#e3eaf2aa" : "#00000000")
+                        color: parent.down
+                            ? Qt.rgba(0.835, 0.867, 0.902, 0.67)
+                            : (parent.hovered
+                                ? Qt.rgba(0.890, 0.918, 0.949, 0.67)
+                                : "transparent")
                         border.color: "#b8c3d0"
                     }
                     contentItem: Text {
@@ -95,7 +99,11 @@ Item {
                     onClicked: card.autoLayout()
                     background: Rectangle {
                         radius: 6
-                        color: parent.down ? "#d5dde6aa" : (parent.hovered ? "#e3eaf2aa" : "#00000000")
+                        color: parent.down
+                            ? Qt.rgba(0.835, 0.867, 0.902, 0.67)
+                            : (parent.hovered
+                                ? Qt.rgba(0.890, 0.918, 0.949, 0.67)
+                                : "transparent")
                         border.color: "#b8c3d0"
                     }
                     contentItem: Text {
