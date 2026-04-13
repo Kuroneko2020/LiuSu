@@ -11,8 +11,8 @@ Item {
     signal manualLayout()
     signal autoLayout()
 
-    implicitWidth: 290
-    implicitHeight: 190
+    implicitWidth: 340
+    implicitHeight: 220
     scale: selected ? 1.03 : 1.0
 
     Behavior on scale {
@@ -33,7 +33,7 @@ Item {
         id: previewFrame
         anchors.fill: parent
         radius: 10
-        color: "#f6f8fb"
+        color: "#f2f5f8"
         border.color: selected ? "#b3bcc8" : "#d2d8e0"
         border.width: 1
 
@@ -66,8 +66,8 @@ Item {
             width: pagePreview.width * 0.62
             height: 44
             radius: 8
-            color: "#eff3f7cc"
-            border.color: "#c4ccd6"
+            color: "#edf2f7c8"
+            border.color: "#bdc7d3"
 
             Row {
                 anchors.centerIn: parent
@@ -79,8 +79,8 @@ Item {
                     onClicked: card.manualLayout()
                     background: Rectangle {
                         radius: 6
-                        color: parent.down ? "#dce3ea" : (parent.hovered ? "#e7edf3" : "#00000000")
-                        border.color: "#bfc8d3"
+                        color: parent.down ? "#d5dde6aa" : (parent.hovered ? "#e3eaf2aa" : "#00000000")
+                        border.color: "#b8c3d0"
                     }
                 }
                 Button {
@@ -89,8 +89,8 @@ Item {
                     onClicked: card.autoLayout()
                     background: Rectangle {
                         radius: 6
-                        color: parent.down ? "#dce3ea" : (parent.hovered ? "#e7edf3" : "#00000000")
-                        border.color: "#bfc8d3"
+                        color: parent.down ? "#d5dde6aa" : (parent.hovered ? "#e3eaf2aa" : "#00000000")
+                        border.color: "#b8c3d0"
                     }
                 }
             }

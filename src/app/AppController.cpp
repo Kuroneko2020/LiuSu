@@ -250,6 +250,15 @@ void AppController::setExportPathFromDialog(const QString &folderUrl)
     }
 }
 
+void AppController::setDefaultExportPathFromDialog(const QString &folderUrl)
+{
+    const QString dir = toLocalPath(folderUrl);
+    if (dir.isEmpty()) {
+        return;
+    }
+    setDefaultExportPath(dir);
+}
+
 void AppController::setCacheDirectoryFromDialog(const QString &folderUrl)
 {
     const QString dir = toLocalPath(folderUrl);
@@ -370,6 +379,12 @@ QString AppController::autoLayoutPreset() const { return m_settings.autoPreset; 
 qreal AppController::pageAspectRatio() const { return layout::pageAspectRatio(2); }
 int AppController::thumbnailListRevision() const { return m_thumbnailListRevision; }
 void AppController::setAutoLayoutPreset(const QString &value) { if (m_settings.autoPreset == value) return; m_settings.autoPreset = value; persistExportDefaults(); emit appSettingsChanged(); }
+int AppController::autoDefaultPpi() const { return m_settings.autoDefaultPpi; }
+void AppController::setAutoDefaultPpi(int value) { const int clamped = qBound(72, value, 1200); if (m_settings.autoDefaultPpi == clamped) return; m_settings.autoDefaultPpi = clamped; persistExportDefaults(); emit appSettingsChanged(); }
+QString AppController::autoFillStrategy() const { return m_settings.autoFill; }
+void AppController::setAutoFillStrategy(const QString &value) { if (m_settings.autoFill == value) return; m_settings.autoFill = value; persistExportDefaults(); emit appSettingsChanged(); }
+QString AppController::autoOrientationPolicy() const { return m_settings.autoOrientation; }
+void AppController::setAutoOrientationPolicy(const QString &value) { if (m_settings.autoOrientation == value) return; m_settings.autoOrientation = value; persistExportDefaults(); emit appSettingsChanged(); }
 QString AppController::defaultExportPath() const { return m_settings.defaultPath; }
 void AppController::setDefaultExportPath(const QString &value) { if (m_settings.defaultPath == value) return; m_settings.defaultPath = value; persistExportDefaults(); emit appSettingsChanged(); }
 bool AppController::rememberLastPath() const { return m_settings.rememberPath; }
@@ -417,6 +432,9 @@ void AppController::loadSettings()
 {
     QSettings settings(QStringLiteral("PhotoTemplateEditor"), QStringLiteral("PhotoTemplateEditor"));
     m_settings.autoPreset = settings.value(QStringLiteral("auto/preset"), QStringLiteral("均衡填充")).toString();
+    m_settings.autoDefaultPpi = settings.value(QStringLiteral("auto/defaultPpi"), 300).toInt();
+    m_settings.autoFill = settings.value(QStringLiteral("auto/defaultFill"), QStringLiteral("放大填充")).toString();
+    m_settings.autoOrientation = settings.value(QStringLiteral("auto/orientationPolicy"), QStringLiteral("保持原方向")).toString();
     m_settings.defaultPath = settings.value(QStringLiteral("export/defaultPath"), defaultPicturesDir()).toString();
     m_settings.rememberPath = settings.value(QStringLiteral("export/rememberLastPath"), true).toBool();
     m_settings.defaultFormat = settings.value(QStringLiteral("export/defaultFormat"), QStringLiteral("JPG")).toString();
@@ -425,7 +443,7 @@ void AppController::loadSettings()
     m_settings.defaultCustomPpi = settings.value(QStringLiteral("export/defaultCustomPpi"), 300).toInt();
     const QString tempRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
     m_settings.cacheDir = settings.value(QStringLiteral("cache/dir"), tempRoot).toString();
-    m_settings.previewMaxEdge = settings.value(QStringLiteral("cache/previewMaxEdge"), 2048).toInt();
+    m_settings.previewMaxEdge = settings.value(QStringLiteral("cache/previewMaxEdge"), 1600).toInt();
 
     m_exportSettings.path = m_settings.defaultPath;
     m_exportSettings.format = m_settings.defaultFormat;
@@ -440,6 +458,9 @@ void AppController::persistExportDefaults() const
 {
     QSettings settings(QStringLiteral("PhotoTemplateEditor"), QStringLiteral("PhotoTemplateEditor"));
     settings.setValue(QStringLiteral("auto/preset"), m_settings.autoPreset);
+    settings.setValue(QStringLiteral("auto/defaultPpi"), m_settings.autoDefaultPpi);
+    settings.setValue(QStringLiteral("auto/defaultFill"), m_settings.autoFill);
+    settings.setValue(QStringLiteral("auto/orientationPolicy"), m_settings.autoOrientation);
     settings.setValue(QStringLiteral("export/defaultPath"), m_settings.defaultPath);
     settings.setValue(QStringLiteral("export/rememberLastPath"), m_settings.rememberPath);
     settings.setValue(QStringLiteral("export/defaultFormat"), m_settings.defaultFormat);

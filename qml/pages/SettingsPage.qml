@@ -12,6 +12,12 @@ ScrollView {
         onAccepted: appController.setCacheDirectoryFromDialog(selectedFolder)
     }
 
+    FolderDialog {
+        id: exportDirDialog
+        title: "选择默认导出目录"
+        onAccepted: appController.setDefaultExportPathFromDialog(selectedFolder)
+    }
+
     Item {
         width: root.availableWidth
         implicitHeight: content.implicitHeight + 32
@@ -19,7 +25,7 @@ ScrollView {
         ColumnLayout {
             id: content
             anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(parent.width - 32, 820)
+            width: Math.min(parent.width - 32, 860)
             anchors.top: parent.top
             anchors.topMargin: 16
             spacing: 12
@@ -31,25 +37,72 @@ ScrollView {
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 10
-                    Label { text: "导出"; font.bold: true }
+                    Label { text: "自动拼版默认值"; font.bold: true }
 
-                    RowLayout { Layout.fillWidth: true; Label { text: "自动布局策略"; Layout.preferredWidth: 120 }
-                        ComboBox { Layout.fillWidth: true; model: ["均衡填充", "人像优先", "证件照优先"]; currentIndex: model.indexOf(appController.autoLayoutPreset); onActivated: appController.autoLayoutPreset = currentText }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label { text: "默认 PPI"; Layout.preferredWidth: 140 }
+                        SpinBox {
+                            Layout.preferredWidth: 180
+                            from: 72
+                            to: 1200
+                            value: appController.autoDefaultPpi
+                            onValueModified: appController.autoDefaultPpi = value
+                        }
                     }
-                    RowLayout { Layout.fillWidth: true; Label { text: "默认导出路径"; Layout.preferredWidth: 120 }
-                        TextField { Layout.fillWidth: true; text: appController.defaultExportPath; onEditingFinished: appController.defaultExportPath = text }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label { text: "默认填充策略"; Layout.preferredWidth: 140 }
+                        ComboBox {
+                            Layout.fillWidth: true
+                            model: ["放大填充", "原图完整放入"]
+                            currentIndex: model.indexOf(appController.autoFillStrategy)
+                            onActivated: appController.autoFillStrategy = currentText
+                        }
                     }
-                    RowLayout { Layout.fillWidth: true; Label { text: "默认格式"; Layout.preferredWidth: 120 }
-                        ComboBox { Layout.fillWidth: true; model: ["JPG", "PNG"]; currentIndex: model.indexOf(appController.defaultExportFormat); onActivated: appController.defaultExportFormat = currentText }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label { text: "方向不符时"; Layout.preferredWidth: 140 }
+                        ComboBox {
+                            Layout.fillWidth: true
+                            model: ["保持原方向", "自动右转 90°"]
+                            currentIndex: model.indexOf(appController.autoOrientationPolicy)
+                            onActivated: appController.autoOrientationPolicy = currentText
+                        }
                     }
-                    RowLayout { Layout.fillWidth: true; Label { text: "默认分辨率"; Layout.preferredWidth: 120 }
-                        ComboBox { Layout.fillWidth: true; model: ["300 PPI", "600 PPI", "自定义 PPI"]; currentIndex: model.indexOf(appController.defaultExportResolution); onActivated: appController.defaultExportResolution = currentText }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label { text: "默认导出路径"; Layout.preferredWidth: 140 }
+                        TextField {
+                            Layout.fillWidth: true
+                            text: appController.defaultExportPath
+                            onEditingFinished: appController.defaultExportPath = text
+                        }
+                        Button {
+                            text: "选择"
+                            onClicked: exportDirDialog.open()
+                        }
                     }
-                    RowLayout { Layout.fillWidth: true; Label { text: "自定义 PPI"; Layout.preferredWidth: 120 }
-                        SpinBox { Layout.fillWidth: true; from: 72; to: 1200; value: appController.defaultCustomPpi; enabled: appController.defaultExportResolution === "自定义 PPI"; onValueModified: appController.defaultCustomPpi = value }
+
+                    CheckBox {
+                        text: "默认使用上次导出路径"
+                        checked: appController.rememberLastPath
+                        onToggled: appController.rememberLastPath = checked
                     }
-                    CheckBox { text: "记忆上次导出路径"; checked: appController.rememberLastPath; onToggled: appController.rememberLastPath = checked }
-                    CheckBox { text: "默认裁切标记"; checked: appController.defaultCropMarks; onToggled: appController.defaultCropMarks = checked }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label { text: "导出格式"; Layout.preferredWidth: 140 }
+                        ComboBox {
+                            Layout.fillWidth: true
+                            model: ["JPG", "PNG"]
+                            currentIndex: model.indexOf(appController.defaultExportFormat)
+                            onActivated: appController.defaultExportFormat = currentText
+                        }
+                    }
                 }
             }
 
@@ -62,17 +115,44 @@ ScrollView {
 
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { text: "缓存目录"; Layout.preferredWidth: 120 }
-                        TextField { Layout.fillWidth: true; text: appController.cacheDirectory; onEditingFinished: appController.cacheDirectory = text }
-                        Button { text: "选择"; onClicked: cacheDirDialog.open() }
+                        Label { text: "缓存目录"; Layout.preferredWidth: 140 }
+                        TextField {
+                            Layout.fillWidth: true
+                            text: appController.cacheDirectory
+                            onEditingFinished: appController.cacheDirectory = text
+                        }
+                        Button {
+                            text: "选择"
+                            onClicked: cacheDirDialog.open()
+                        }
                     }
+
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { text: "预览最长边"; Layout.preferredWidth: 120 }
-                        ComboBox { Layout.fillWidth: true; model: [1600, 2048, 2560]; currentIndex: model.indexOf(appController.previewMaxEdge); onActivated: appController.previewMaxEdge = Number(currentText) }
+                        Label { text: "预览质量"; Layout.preferredWidth: 140 }
+                        ComboBox {
+                            id: qualityCombo
+                            Layout.fillWidth: true
+                            model: [
+                                { label: "轻量（1600）", value: 1600 },
+                                { label: "标准（2048）", value: 2048 },
+                                { label: "精细（2560）", value: 2560 }
+                            ]
+                            textRole: "label"
+                            currentIndex: {
+                                for (let i = 0; i < model.length; ++i) {
+                                    if (model[i].value === appController.previewMaxEdge) return i
+                                }
+                                return 0
+                            }
+                            onActivated: appController.previewMaxEdge = model[index].value
+                        }
                     }
-                    Label { text: "编辑预览与缩略图缓存会使用该配置。"; color: "#6b7280"; font.pixelSize: 12 }
-                    Button { text: "清理缓存"; onClicked: appController.clearPreviewCache() }
+
+                    Button {
+                        text: "清理缓存"
+                        onClicked: appController.clearPreviewCache()
+                    }
                 }
             }
 
@@ -81,9 +161,16 @@ ScrollView {
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 10
-                    Label { text: "界面"; font.bold: true }
-                    RowLayout { Layout.fillWidth: true; Label { text: "主题"; Layout.preferredWidth: 120 }
-                        ComboBox { Layout.fillWidth: true; model: ["系统", "浅色", "深色"]; currentIndex: model.indexOf(appController.themePlaceholder); onActivated: appController.themePlaceholder = currentText }
+                    Label { text: "其他"; font.bold: true }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label { text: "主题"; Layout.preferredWidth: 140 }
+                        ComboBox {
+                            Layout.fillWidth: true
+                            model: ["系统", "浅色", "深色"]
+                            currentIndex: model.indexOf(appController.themePlaceholder)
+                            onActivated: appController.themePlaceholder = currentText
+                        }
                     }
                 }
             }

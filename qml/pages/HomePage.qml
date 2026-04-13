@@ -7,7 +7,7 @@ import "../components"
 Item {
     id: home
 
-    property int selectedTemplate: 1
+    property int selectedTemplate: -1
     property int autoLayoutChoice: -1
 
     FileDialog {
@@ -47,7 +47,7 @@ Item {
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 18
+            spacing: 22
 
             Repeater {
                 model: [2, 4, 9]
@@ -55,8 +55,8 @@ Item {
                 delegate: TemplateCard {
                     required property int index
                     required property int modelData
-                    Layout.preferredWidth: 290
-                    Layout.preferredHeight: 190
+                    Layout.preferredWidth: 340
+                    Layout.preferredHeight: 220
                     templateChoice: modelData
                     selected: home.selectedTemplate === index
                     onClicked: home.selectedTemplate = index

@@ -14,8 +14,8 @@ ToolButton {
 
     background: Rectangle {
         radius: 8
-        color: root.down ? "#d7dde480" : (root.hovered ? "#e5ebf180" : "#edf1f580")
-        border.color: root.hovered ? "#acb6c280" : "#c3ccd780"
+        color: root.down ? "#d8dee680" : (root.hovered ? "#e7edf380" : "#eef2f680")
+        border.color: root.hovered ? "#b1bcc880" : "#c7d0da80"
         border.width: 1
     }
 
