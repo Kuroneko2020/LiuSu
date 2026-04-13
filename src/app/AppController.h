@@ -31,6 +31,7 @@ class AppController : public QObject {
     Q_PROPERTY(bool defaultCropMarks READ defaultCropMarks WRITE setDefaultCropMarks NOTIFY appSettingsChanged)
     Q_PROPERTY(QString themePlaceholder READ themePlaceholder WRITE setThemePlaceholder NOTIFY appSettingsChanged)
     Q_PROPERTY(qreal pageAspectRatio READ pageAspectRatio CONSTANT)
+    Q_PROPERTY(int pageThumbnailRevision READ pageThumbnailRevision NOTIFY thumbnailsChanged)
 
 public:
     explicit AppController(QObject *parent = nullptr);
@@ -74,6 +75,7 @@ public:
 
     [[nodiscard]] QString autoLayoutPreset() const;
     [[nodiscard]] qreal pageAspectRatio() const;
+    [[nodiscard]] int pageThumbnailRevision() const;
     void setAutoLayoutPreset(const QString &value);
     [[nodiscard]] QString defaultExportPath() const;
     void setDefaultExportPath(const QString &value);
@@ -115,8 +117,8 @@ private:
 
     QString m_lastExportMessage;
     bool m_lastExportSuccess = false;
-    int m_thumbnailVersion = 0;
-    int m_lastContentRevision = 0;
+    int m_pageThumbnailRevision = 0;
+    int m_lastThumbnailContentRevision = 0;
     int m_pendingTemplateChoice = 2;
     bool m_pendingAutoMode = false;
     QVariantList m_pendingAutoFiles;

@@ -18,6 +18,8 @@ Rectangle {
     property bool mirrored: false
     property real cropOffsetX: 0
     property real cropOffsetY: 0
+    property real dragDeltaX: 0
+    property real dragDeltaY: 0
     property bool swapTargetHighlighted: false
 
     signal addClicked()
@@ -26,7 +28,7 @@ Rectangle {
     signal mirrorClicked()
     signal toggleFillMode()
     signal swapRequested(int fromIndex, int toIndex)
-    signal contentDragged(real dx, real dy)
+    signal contentDragFinished(real dx, real dy)
     signal swapDragStarted(int fromIndex, point scenePos)
     signal swapDragMoved(point scenePos)
     signal swapDragFinished(point scenePos)
@@ -35,28 +37,59 @@ Rectangle {
 
     Image {
         id: photo
-        anchors.fill: parent
+        readonly property real liveOffsetX: fillCropMode ? Math.max(-1.0, Math.min(1.0, cropOffsetX + dragDeltaX)) : 0
+        readonly property real liveOffsetY: fillCropMode ? Math.max(-1.0, Math.min(1.0, cropOffsetY + dragDeltaY)) : 0
+        readonly property real overflowX: Math.max(0, paintedWidth - width)
+        readonly property real overflowY: Math.max(0, paintedHeight - height)
+        width: parent.width
+        height: parent.height
         source: imageSource
         visible: hasImage && source !== ""
-        fillMode: Image.Stretch
+        fillMode: fillCropMode ? Image.PreserveAspectCrop : Image.PreserveAspectFit
+        horizontalAlignment: Image.AlignHCenter
+        verticalAlignment: Image.AlignVCenter
         smooth: true
         cache: true
+        rotation: rotationDegrees
+        mirror: mirrored
+        x: fillCropMode ? (liveOffsetX * overflowX * 0.5) : 0
+        y: fillCropMode ? (liveOffsetY * overflowY * 0.5) : 0
 
         MouseArea {
             anchors.fill: parent
             enabled: hasImage && selected && fillCropMode
             property real lastX
             property real lastY
+            property real totalDx
+            property real totalDy
             onPressed: {
                 lastX = mouse.x
                 lastY = mouse.y
+                totalDx = 0
+                totalDy = 0
+                slotRoot.dragDeltaX = 0
+                slotRoot.dragDeltaY = 0
             }
             onPositionChanged: {
                 const dx = (mouse.x - lastX) / width
                 const dy = (mouse.y - lastY) / height
                 lastX = mouse.x
                 lastY = mouse.y
-                slotRoot.contentDragged(dx * 2.0, dy * 2.0)
+                const stepX = dx * 2.0
+                const stepY = dy * 2.0
+                totalDx += stepX
+                totalDy += stepY
+                slotRoot.dragDeltaX = totalDx
+                slotRoot.dragDeltaY = totalDy
+            }
+            onReleased: {
+                slotRoot.contentDragFinished(slotRoot.dragDeltaX, slotRoot.dragDeltaY)
+                slotRoot.dragDeltaX = 0
+                slotRoot.dragDeltaY = 0
+            }
+            onCanceled: {
+                slotRoot.dragDeltaX = 0
+                slotRoot.dragDeltaY = 0
             }
         }
     }

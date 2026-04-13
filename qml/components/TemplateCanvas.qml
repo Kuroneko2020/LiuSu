@@ -11,7 +11,6 @@ Rectangle {
 
     readonly property int slotCount: appController.project.currentTemplateSlotCount
     readonly property int slotsRevision: appController.project.slotsRevision
-    readonly property int contentRevision: appController.project.contentRevision
     property int swapSourceSlot: -1
     property int swapTargetSlot: -1
 
@@ -60,8 +59,8 @@ Rectangle {
                     return appController.project.slotSelected(index)
                 }
                 imageSource: {
-                    canvas.contentRevision
-                    return appController.slotPreviewSource(index, Math.max(32, Math.floor(width)), Math.max(32, Math.floor(height)))
+                    _rev
+                    return appController.project.slotImageSource(index)
                 }
                 fillCropMode: {
                     _rev
@@ -92,7 +91,7 @@ Rectangle {
                 onMirrorClicked: appController.project.mirrorSelectedSlot()
                 onToggleFillMode: appController.project.toggleSelectedSlotFillMode()
                 onSwapRequested: (fromIndex, toIndex) => appController.project.swapOrMoveSlots(fromIndex, toIndex)
-                onContentDragged: (dx, dy) => appController.project.adjustSelectedSlotOffset(dx, dy)
+                onContentDragFinished: (dx, dy) => appController.project.adjustSelectedSlotOffset(dx, dy)
                 onSwapDragStarted: (fromIndex, scenePos) => {
                     canvas.swapSourceSlot = fromIndex
                     canvas.swapTargetSlot = canvas.slotIndexAt(scenePos)

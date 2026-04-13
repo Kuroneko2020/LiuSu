@@ -49,14 +49,18 @@ AppController::AppController(QObject *parent)
     }
 
     connect(&m_project, &ProjectState::slotsChanged, this, [this]() {
-        if (m_lastContentRevision == m_project.contentRevision()) {
+        if (m_lastThumbnailContentRevision == m_project.contentRevision()) {
             return;
         }
-        m_lastContentRevision = m_project.contentRevision();
-        ++m_thumbnailVersion;
+        m_lastThumbnailContentRevision = m_project.contentRevision();
+        ++m_pageThumbnailRevision;
         emit thumbnailsChanged();
     });
-    connect(&m_project, &ProjectState::pagesChanged, this, [this]() { ++m_thumbnailVersion; emit thumbnailsChanged(); });
+    connect(&m_project, &ProjectState::pagesChanged, this, [this]() {
+        ++m_pageThumbnailRevision;
+        m_lastThumbnailContentRevision = m_project.contentRevision();
+        emit thumbnailsChanged();
+    });
 }
 
 ProjectState *AppController::project() { return &m_project; }
@@ -263,7 +267,7 @@ QString AppController::pageThumbnailSource(int pageIndex)
     if (path.isEmpty()) {
         return {};
     }
-    return QUrl::fromLocalFile(path).toString() + QStringLiteral("?v=%1").arg(m_thumbnailVersion);
+    return QUrl::fromLocalFile(path).toString() + QStringLiteral("?v=%1").arg(m_pageThumbnailRevision);
 }
 
 QString AppController::slotPreviewSource(int slotIndex, int width, int height)
@@ -272,7 +276,7 @@ QString AppController::slotPreviewSource(int slotIndex, int width, int height)
     if (path.isEmpty()) {
         return {};
     }
-    return QUrl::fromLocalFile(path).toString() + QStringLiteral("?v=%1").arg(m_thumbnailVersion);
+    return QUrl::fromLocalFile(path).toString();
 }
 
 QVariantList AppController::templateSlotRects(int choice) const
@@ -310,6 +314,7 @@ bool AppController::lastExportSuccess() const { return m_lastExportSuccess; }
 
 QString AppController::autoLayoutPreset() const { return m_settings.autoPreset; }
 qreal AppController::pageAspectRatio() const { return layout::pageAspectRatio(2); }
+int AppController::pageThumbnailRevision() const { return m_pageThumbnailRevision; }
 void AppController::setAutoLayoutPreset(const QString &value) { if (m_settings.autoPreset == value) return; m_settings.autoPreset = value; persistExportDefaults(); emit appSettingsChanged(); }
 QString AppController::defaultExportPath() const { return m_settings.defaultPath; }
 void AppController::setDefaultExportPath(const QString &value) { if (m_settings.defaultPath == value) return; m_settings.defaultPath = value; persistExportDefaults(); emit appSettingsChanged(); }

@@ -79,7 +79,6 @@ void ProjectState::switchToPage(int pageIndex)
     }
     m_currentPageIndex = pageIndex;
     emit currentPageChanged();
-    ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();
 }
@@ -296,8 +295,14 @@ void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
     if (slot.fillMode != FillMode::FillCrop || !slot.hasImage) {
         return;
     }
-    slot.cropOffset.setX(qBound(-1.0, slot.cropOffset.x() + dx, 1.0));
-    slot.cropOffset.setY(qBound(-1.0, slot.cropOffset.y() + dy, 1.0));
+    const qreal nextX = qBound(-1.0, slot.cropOffset.x() + dx, 1.0);
+    const qreal nextY = qBound(-1.0, slot.cropOffset.y() + dy, 1.0);
+    if (qFuzzyCompare(slot.cropOffset.x() + 1.0, nextX + 1.0)
+        && qFuzzyCompare(slot.cropOffset.y() + 1.0, nextY + 1.0)) {
+        return;
+    }
+    slot.cropOffset.setX(nextX);
+    slot.cropOffset.setY(nextY);
     ++m_contentRevision;
     ++m_slotsRevision;
     emit slotsChanged();

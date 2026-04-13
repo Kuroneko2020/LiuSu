@@ -78,12 +78,12 @@ void drawImageInRect(QPainter &painter, const QImage &image, const QRectF &targe
         if (srcRatio > targetRatio) {
             const qreal width = image.height() * targetRatio;
             const qreal range = image.width() - width;
-            const qreal shift = qBound(-1.0, offset.x(), 1.0) * range * 0.5;
+            const qreal shift = -qBound(-1.0, offset.x(), 1.0) * range * 0.5;
             src = QRectF((range / 2.0) + shift, 0, width, image.height());
         } else {
             const qreal height = image.width() / targetRatio;
             const qreal range = image.height() - height;
-            const qreal shift = qBound(-1.0, offset.y(), 1.0) * range * 0.5;
+            const qreal shift = -qBound(-1.0, offset.y(), 1.0) * range * 0.5;
             src = QRectF(0, (range / 2.0) + shift, image.width(), height);
         }
         painter.drawImage(target, image, src);
