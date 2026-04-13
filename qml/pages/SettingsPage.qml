@@ -6,6 +6,12 @@ import QtQuick.Dialogs
 ScrollView {
     id: root
 
+    function ppiPresetIndex(value) {
+        if (value === 300) return 0
+        if (value === 600) return 1
+        return 2
+    }
+
     FolderDialog {
         id: cacheDirDialog
         title: "选择缓存目录"
@@ -42,12 +48,31 @@ ScrollView {
                     RowLayout {
                         Layout.fillWidth: true
                         Label { text: "默认 PPI"; Layout.preferredWidth: 140 }
-                        SpinBox {
-                            Layout.preferredWidth: 180
-                            from: 72
-                            to: 1200
-                            value: appController.autoDefaultPpi
-                            onValueModified: appController.autoDefaultPpi = value
+                        ComboBox {
+                            id: defaultPpiPreset
+                            Layout.preferredWidth: 220
+                            model: ["300", "600", "自定义"]
+                            currentIndex: root.ppiPresetIndex(appController.autoDefaultPpi)
+                            onActivated: {
+                                if (currentIndex === 0) appController.autoDefaultPpi = 300
+                                else if (currentIndex === 1) appController.autoDefaultPpi = 600
+                            }
+                        }
+                        TextField {
+                            Layout.preferredWidth: 120
+                            text: String(appController.autoDefaultPpi)
+                            enabled: defaultPpiPreset.currentIndex === 2
+                            color: enabled ? "#2f3a47" : "#8f98a3"
+                            onEditingFinished: {
+                                const v = Number(text)
+                                if (!isNaN(v)) appController.autoDefaultPpi = v
+                                text = String(appController.autoDefaultPpi)
+                            }
+                            background: Rectangle {
+                                radius: 6
+                                color: parent.enabled ? "#f1f4f7" : "#e9edf1"
+                                border.color: parent.enabled ? "#c7d0da" : "#d2d8df"
+                            }
                         }
                     }
 
@@ -80,6 +105,11 @@ ScrollView {
                             Layout.fillWidth: true
                             text: appController.defaultExportPath
                             onEditingFinished: appController.defaultExportPath = text
+                            background: Rectangle {
+                                radius: 6
+                                color: "#f1f4f7"
+                                border.color: "#c7d0da"
+                            }
                         }
                         Button {
                             text: "选择"
@@ -120,6 +150,11 @@ ScrollView {
                             Layout.fillWidth: true
                             text: appController.cacheDirectory
                             onEditingFinished: appController.cacheDirectory = text
+                            background: Rectangle {
+                                radius: 6
+                                color: "#f1f4f7"
+                                border.color: "#c7d0da"
+                            }
                         }
                         Button {
                             text: "选择"
@@ -131,7 +166,6 @@ ScrollView {
                         Layout.fillWidth: true
                         Label { text: "预览质量"; Layout.preferredWidth: 140 }
                         ComboBox {
-                            id: qualityCombo
                             Layout.fillWidth: true
                             model: [
                                 { label: "轻量（1600）", value: 1600 },

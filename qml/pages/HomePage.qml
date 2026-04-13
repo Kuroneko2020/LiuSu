@@ -9,6 +9,13 @@ Item {
 
     property int selectedTemplate: -1
     property int autoLayoutChoice: -1
+    readonly property var templateChoices: [2, 4, 9]
+
+    onVisibleChanged: {
+        if (visible) {
+            selectedTemplate = -1
+        }
+    }
 
     FileDialog {
         id: autoLayoutDialog
@@ -19,7 +26,9 @@ Item {
             if (home.autoLayoutChoice > 0) {
                 appController.startAutoLayoutWithFiles(home.autoLayoutChoice, selectedFiles)
             }
+            home.selectedTemplate = -1
         }
+        onRejected: home.selectedTemplate = -1
     }
 
     Dialog {
@@ -39,28 +48,38 @@ Item {
         }
     }
 
+    MouseArea {
+        anchors.fill: parent
+        z: 0
+        onClicked: home.selectedTemplate = -1
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 24
+        z: 1
 
         Item { Layout.fillHeight: true }
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 22
+            spacing: 24
 
             Repeater {
-                model: [2, 4, 9]
+                model: home.templateChoices
 
                 delegate: TemplateCard {
                     required property int index
                     required property int modelData
-                    Layout.preferredWidth: 340
-                    Layout.preferredHeight: 220
+                    Layout.preferredWidth: 380
+                    Layout.preferredHeight: 250
                     templateChoice: modelData
                     selected: home.selectedTemplate === index
-                    onClicked: home.selectedTemplate = index
-                    onManualLayout: appController.startManualLayout(modelData)
+                    onClicked: home.selectedTemplate = (home.selectedTemplate === index ? -1 : index)
+                    onManualLayout: {
+                        appController.startManualLayout(modelData)
+                        home.selectedTemplate = -1
+                    }
                     onAutoLayout: {
                         home.autoLayoutChoice = modelData
                         autoLayoutDialog.open()

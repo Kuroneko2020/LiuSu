@@ -11,9 +11,9 @@ Item {
     signal manualLayout()
     signal autoLayout()
 
-    implicitWidth: 340
-    implicitHeight: 220
-    scale: selected ? 1.03 : 1.0
+    implicitWidth: 380
+    implicitHeight: 250
+    scale: selected ? 1.035 : 1.0
 
     Behavior on scale {
         NumberAnimation { duration: 140; easing.type: Easing.InOutQuad }
@@ -22,7 +22,7 @@ Item {
     Rectangle {
         id: shadowLayer
         anchors.fill: previewFrame
-        anchors.margins: selected ? -4 : 0
+        anchors.margins: selected ? -5 : 0
         radius: previewFrame.radius + 2
         color: "#000"
         opacity: selected ? 0.10 : 0.0
@@ -40,7 +40,7 @@ Item {
         Rectangle {
             id: pagePreview
             anchors.centerIn: parent
-            width: parent.width * 0.88
+            width: parent.width * 0.9
             height: width / appController.pageAspectRatio
             color: "#f1f4f8"
             border.color: "#cfd6df"
@@ -63,10 +63,10 @@ Item {
             visible: selected
             z: 2
             anchors.centerIn: pagePreview
-            width: pagePreview.width * 0.62
-            height: 44
+            width: pagePreview.width * 0.64
+            height: 46
             radius: 8
-            color: "#edf2f7c8"
+            color: "#edf2f7cc"
             border.color: "#bdc7d3"
 
             Row {
@@ -82,6 +82,12 @@ Item {
                         color: parent.down ? "#d5dde6aa" : (parent.hovered ? "#e3eaf2aa" : "#00000000")
                         border.color: "#b8c3d0"
                     }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "#3f4a57"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
                 Button {
                     text: "自动布局"
@@ -91,6 +97,12 @@ Item {
                         radius: 6
                         color: parent.down ? "#d5dde6aa" : (parent.hovered ? "#e3eaf2aa" : "#00000000")
                         border.color: "#b8c3d0"
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "#3f4a57"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
                     }
                 }
             }

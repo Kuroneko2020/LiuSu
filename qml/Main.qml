@@ -40,10 +40,28 @@ ApplicationWindow {
                 font.bold: true
             }
             Item { Layout.fillWidth: true }
-            Button { text: "首页"; onClicked: root.currentPage = 0 }
-            Button { text: "编辑"; enabled: root.hasTaskContext; onClicked: if (root.hasTaskContext) root.currentPage = 1 }
-            Button { text: "导出"; enabled: root.hasTaskContext; onClicked: if (root.hasTaskContext) root.currentPage = 2 }
-            Button { text: "设置"; onClicked: root.currentPage = 3 }
+            Button {
+                text: "首页"
+                onClicked: root.currentPage = 0
+                background: Rectangle { radius: 6; color: parent.down ? "#d8dee6" : (parent.hovered ? "#e7edf3" : "#eef2f6"); border.color: "#c7d0da" }
+            }
+            Button {
+                text: "编辑"
+                enabled: root.hasTaskContext
+                onClicked: if (root.hasTaskContext) root.currentPage = 1
+                background: Rectangle { radius: 6; color: parent.enabled ? (parent.down ? "#d8dee6" : (parent.hovered ? "#e7edf3" : "#eef2f6")) : "#e9edf1"; border.color: parent.enabled ? "#c7d0da" : "#d2d8df" }
+            }
+            Button {
+                text: "导出"
+                enabled: root.hasTaskContext
+                onClicked: if (root.hasTaskContext) root.currentPage = 2
+                background: Rectangle { radius: 6; color: parent.enabled ? (parent.down ? "#d8dee6" : (parent.hovered ? "#e7edf3" : "#eef2f6")) : "#e9edf1"; border.color: parent.enabled ? "#c7d0da" : "#d2d8df" }
+            }
+            Button {
+                text: "设置"
+                onClicked: root.currentPage = 3
+                background: Rectangle { radius: 6; color: parent.down ? "#d8dee6" : (parent.hovered ? "#e7edf3" : "#eef2f6"); border.color: "#c7d0da" }
+            }
         }
     }
 
