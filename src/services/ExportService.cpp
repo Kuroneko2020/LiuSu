@@ -6,6 +6,7 @@
 #include <QDate>
 #include <QCryptographicHash>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QImage>
 #include <QImageReader>
@@ -265,6 +266,7 @@ QSize resolveOriginalQualityPageSize(const ProjectState &project, int pageIndex,
 ExportService::ExportService(QObject *parent)
     : QObject(parent)
 {
+    m_cacheRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
 }
 
 ExportService::Result ExportService::exportPages(const ProjectState &project, const Request &request) const
@@ -358,7 +360,7 @@ QString ExportService::renderPageThumbnail(const ProjectState &project, int page
 
     const QImage image = renderPageImage(project, pageIndex, QSize(width, height), false, true);
 
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/thumbs");
+    const QString dir = thumbsCacheDir();
     QDir().mkpath(dir);
     const QString digest = QString::fromUtf8(QCryptographicHash::hash(key.toUtf8(), QCryptographicHash::Sha1).toHex());
     const QString path = dir + QStringLiteral("/page_%1_%2.png").arg(pageIndex).arg(digest);
@@ -393,7 +395,7 @@ QString ExportService::renderSlotPreview(const ProjectState &project, int pageIn
                                .toUtf8();
     const QString digest = QString::fromUtf8(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex());
 
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor/slot-previews");
+    const QString dir = slotPreviewCacheDir();
     QDir().mkpath(dir);
     const QString previewPath = dir + QStringLiteral("/%1.png").arg(digest);
     if (QFileInfo::exists(previewPath)) {
@@ -415,6 +417,46 @@ QString ExportService::renderSlotPreview(const ProjectState &project, int pageIn
 void ExportService::clearThumbnailCache()
 {
     m_pageThumbnailCacheByKey.clear();
+    const QStringList dirs{thumbsCacheDir(), slotPreviewCacheDir()};
+    for (const QString &dirPath : dirs) {
+        QDir dir(dirPath);
+        if (!dir.exists()) {
+            continue;
+        }
+        const auto files = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+        for (const QFileInfo &fi : files) {
+            QFile::remove(fi.absoluteFilePath());
+        }
+    }
+}
+
+void ExportService::setCacheRoot(const QString &cacheRoot)
+{
+    if (cacheRoot.isEmpty() || m_cacheRoot == cacheRoot) {
+        return;
+    }
+    m_cacheRoot = cacheRoot;
+    QDir().mkpath(thumbsCacheDir());
+    QDir().mkpath(slotPreviewCacheDir());
+}
+
+QString ExportService::cacheRoot() const
+{
+    return m_cacheRoot;
+}
+
+QString ExportService::thumbsCacheDir() const
+{
+    const QString dir = m_cacheRoot + QStringLiteral("/thumbs");
+    QDir().mkpath(dir);
+    return dir;
+}
+
+QString ExportService::slotPreviewCacheDir() const
+{
+    const QString dir = m_cacheRoot + QStringLiteral("/slot-previews");
+    QDir().mkpath(dir);
+    return dir;
 }
 
 int ExportService::resolvePpi(const Request &request) const

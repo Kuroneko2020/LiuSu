@@ -37,10 +37,15 @@ public:
     QString renderPageThumbnail(const ProjectState &project, int pageIndex, int width = 240, int height = 160) const;
     QString renderSlotPreview(const ProjectState &project, int pageIndex, int slotIndex, int width, int height) const;
     void clearThumbnailCache();
+    void setCacheRoot(const QString &cacheRoot);
+    [[nodiscard]] QString cacheRoot() const;
 
 private:
     [[nodiscard]] int resolvePpi(const Request &request) const;
+    [[nodiscard]] QString thumbsCacheDir() const;
+    [[nodiscard]] QString slotPreviewCacheDir() const;
     mutable QHash<QString, QString> m_pageThumbnailCacheByKey;
+    QString m_cacheRoot;
 };
 
 } // namespace pte

@@ -462,6 +462,7 @@ void AppController::setCacheDirectory(const QString &value) {
     if (value.isEmpty() || m_settings.cacheDir == value) return;
     m_settings.cacheDir = ensureDir(value);
     m_imageService.setCacheRoot(value);
+    m_exportService.setCacheRoot(value);
     m_project.refreshSlotPreviewResources();
     clearPreviewCache();
     persistExportDefaults();
@@ -552,6 +553,7 @@ void AppController::loadSettings()
     m_exportSettings.customPpi = m_settings.defaultCustomPpi;
     m_exportSettings.originalQuality = false;
     m_imageService.setCacheRoot(m_settings.cacheDir);
+    m_exportService.setCacheRoot(m_settings.cacheDir);
     m_imageService.setPreviewMaxEdge(m_settings.previewMaxEdge);
     m_imageService.cleanupExpiredCache(m_settings.cacheRetentionDays);
 }
