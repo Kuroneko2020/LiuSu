@@ -21,6 +21,7 @@ class AppController : public QObject {
     Q_PROPERTY(QString resolutionPreset READ resolutionPreset WRITE setResolutionPreset NOTIFY exportSettingsChanged)
     Q_PROPERTY(int customPpi READ customPpi WRITE setCustomPpi NOTIFY exportSettingsChanged)
     Q_PROPERTY(bool cropMarks READ cropMarks WRITE setCropMarks NOTIFY exportSettingsChanged)
+    Q_PROPERTY(bool originalQualityExport READ originalQualityExport WRITE setOriginalQualityExport NOTIFY exportSettingsChanged)
     Q_PROPERTY(QString exportScope READ exportScope NOTIFY exportSettingsChanged)
     Q_PROPERTY(QString lastExportMessage READ lastExportMessage NOTIFY exportResultChanged)
     Q_PROPERTY(bool lastExportSuccess READ lastExportSuccess NOTIFY exportResultChanged)
@@ -37,7 +38,9 @@ class AppController : public QObject {
     Q_PROPERTY(bool defaultCropMarks READ defaultCropMarks WRITE setDefaultCropMarks NOTIFY appSettingsChanged)
     Q_PROPERTY(QString themePlaceholder READ themePlaceholder WRITE setThemePlaceholder NOTIFY appSettingsChanged)
     Q_PROPERTY(QString cacheDirectory READ cacheDirectory WRITE setCacheDirectory NOTIFY appSettingsChanged)
+    Q_PROPERTY(int cacheRetentionDays READ cacheRetentionDays WRITE setCacheRetentionDays NOTIFY appSettingsChanged)
     Q_PROPERTY(int previewMaxEdge READ previewMaxEdge WRITE setPreviewMaxEdge NOTIFY appSettingsChanged)
+    Q_PROPERTY(bool autoOriginalQualityExport READ autoOriginalQualityExport WRITE setAutoOriginalQualityExport NOTIFY appSettingsChanged)
     Q_PROPERTY(QString textureDirectory READ textureDirectory NOTIFY appSettingsChanged)
     Q_PROPERTY(int textureListRevision READ textureListRevision NOTIFY appSettingsChanged)
     Q_PROPERTY(qreal pageAspectRatio READ pageAspectRatio CONSTANT)
@@ -86,6 +89,8 @@ public:
     void setCustomPpi(int value);
     [[nodiscard]] bool cropMarks() const;
     void setCropMarks(bool value);
+    [[nodiscard]] bool originalQualityExport() const;
+    void setOriginalQualityExport(bool value);
     [[nodiscard]] QString exportScope() const;
 
     [[nodiscard]] QString lastExportMessage() const;
@@ -117,8 +122,12 @@ public:
     void setThemePlaceholder(const QString &value);
     [[nodiscard]] QString cacheDirectory() const;
     void setCacheDirectory(const QString &value);
+    [[nodiscard]] int cacheRetentionDays() const;
+    void setCacheRetentionDays(int days);
     [[nodiscard]] int previewMaxEdge() const;
     void setPreviewMaxEdge(int value);
+    [[nodiscard]] bool autoOriginalQualityExport() const;
+    void setAutoOriginalQualityExport(bool value);
     [[nodiscard]] QString textureDirectory() const;
     [[nodiscard]] int textureListRevision() const;
 
@@ -132,8 +141,8 @@ signals:
     void appSettingsChanged();
 
 private:
-    struct ExportSettings { QString path; QString format{"JPG"}; QString naming{"组合命名"}; QString resolution{"300 PPI"}; int customPpi{300}; bool cropMarks{false}; ExportService::Scope scope{ExportService::Scope::CurrentPage}; };
-    struct SettingsModel { QString autoPreset{"均衡填充"}; int autoDefaultPpi{300}; QString autoFill{"放大填充"}; QString autoOrientation{"保持原方向"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; QString cacheDir; int previewMaxEdge{1600}; QString textureDir; };
+    struct ExportSettings { QString path; QString format{"JPG"}; QString naming{"组合命名"}; QString resolution{"300 PPI"}; int customPpi{300}; bool cropMarks{false}; bool originalQuality{false}; ExportService::Scope scope{ExportService::Scope::CurrentPage}; };
+    struct SettingsModel { QString autoPreset{"均衡填充"}; int autoDefaultPpi{300}; QString autoFill{"放大填充"}; QString autoOrientation{"保持原方向"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; QString cacheDir; int cacheRetentionDays{30}; int previewMaxEdge{1600}; QString textureDir; bool autoOriginalQuality{false}; };
 
     [[nodiscard]] static TemplateType toTemplateType(int choice);
     void markPageThumbnailDirty(int pageIndex);

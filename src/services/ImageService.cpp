@@ -36,10 +36,6 @@ ImageService::ImageService(QObject *parent)
     : QObject(parent)
 {
     m_cacheRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
-    cleanupCacheDir(m_cacheRoot + QStringLiteral("/cache"), 14);
-    cleanupCacheDir(m_cacheRoot + QStringLiteral("/thumbs"), 14);
-    cleanupCacheDir(m_cacheRoot + QStringLiteral("/transformed"), 14);
-    cleanupCacheDir(m_cacheRoot + QStringLiteral("/slot-previews"), 14);
 }
 
 ImageResource ImageService::normalizeAndCacheFile(const QString &path)
@@ -257,6 +253,15 @@ bool ImageService::clearCache() const
         }
     }
     return ok;
+}
+
+void ImageService::cleanupExpiredCache(int retentionDays) const
+{
+    const int days = qMax(1, retentionDays);
+    cleanupCacheDir(m_cacheRoot + QStringLiteral("/cache"), days);
+    cleanupCacheDir(m_cacheRoot + QStringLiteral("/thumbs"), days);
+    cleanupCacheDir(m_cacheRoot + QStringLiteral("/transformed"), days);
+    cleanupCacheDir(m_cacheRoot + QStringLiteral("/slot-previews"), days);
 }
 
 QString ImageService::transformedCacheDir() const

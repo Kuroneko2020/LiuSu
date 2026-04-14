@@ -23,6 +23,7 @@ public:
     void setPreviewMaxEdge(int edge);
     [[nodiscard]] int previewMaxEdge() const;
     bool clearCache() const;
+    void cleanupExpiredCache(int retentionDays) const;
 
     [[nodiscard]] QStringList supportedInputFormats() const;
     [[nodiscard]] QString fileDialogFilter() const;

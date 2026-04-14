@@ -14,6 +14,7 @@ Item {
     onVisibleChanged: {
         if (visible) {
             selectedTemplate = -1
+            autoOriginalExport.checked = appController.autoOriginalQualityExport
         }
     }
 
@@ -100,5 +101,13 @@ Item {
         }
 
         Item { Layout.fillHeight: true }
+
+        CheckBox {
+            id: autoOriginalExport
+            Layout.alignment: Qt.AlignHCenter
+            text: "自动模式：原图导出"
+            checked: appController.autoOriginalQualityExport
+            onToggled: appController.autoOriginalQualityExport = checked
+        }
     }
 }

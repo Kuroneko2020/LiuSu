@@ -6,6 +6,9 @@ import "../components"
 
 Item {
     id: editor
+    property color panelBg: "#ffffff"
+    property color workbenchBg: "#e9edf2"
+    property color accentColor: "#3b82f6"
 
     FileDialog {
         id: singleImportDialog
@@ -36,7 +39,7 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
-        spacing: 12
+        spacing: 10
 
         RowLayout {
             Layout.fillWidth: true
@@ -72,25 +75,64 @@ Item {
 
         Frame {
             Layout.fillWidth: true
+            background: Rectangle {
+                radius: 10
+                color: editor.panelBg
+                border.color: "#d8e0ea"
+            }
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 8
+                spacing: 10
 
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: "背景"; font.bold: true }
                     Item { Layout.fillWidth: true }
-                    Button {
-                        text: "纯色"
-                        checkable: true
-                        checked: appController.project.backgroundMode === "color"
-                        onClicked: appController.project.backgroundMode = "color"
-                    }
-                    Button {
-                        text: "纹理"
-                        checkable: true
-                        checked: appController.project.backgroundMode === "texture"
-                        onClicked: appController.project.backgroundMode = "texture"
+                    Rectangle {
+                        Layout.preferredWidth: 180
+                        Layout.preferredHeight: 34
+                        radius: 8
+                        color: "#f0f4f8"
+                        border.color: "#d7e0ea"
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 2
+                            spacing: 2
+                            Button {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                text: "纯色"
+                                flat: true
+                                background: Rectangle {
+                                    radius: 6
+                                    color: appController.project.backgroundMode === "color" ? editor.accentColor : "transparent"
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    color: appController.project.backgroundMode === "color" ? "#ffffff" : "#4a5663"
+                                }
+                                onClicked: appController.project.backgroundMode = "color"
+                            }
+                            Button {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                text: "纹理"
+                                flat: true
+                                background: Rectangle {
+                                    radius: 6
+                                    color: appController.project.backgroundMode === "texture" ? editor.accentColor : "transparent"
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    color: appController.project.backgroundMode === "texture" ? "#ffffff" : "#4a5663"
+                                }
+                                onClicked: appController.project.backgroundMode = "texture"
+                            }
+                        }
                     }
                 }
 
@@ -101,11 +143,12 @@ Item {
                         model: ["#FFFFFF", "#F7F4EC", "#EFE4D2", "#E7E5E4", "#DCE5DC", "#DDE6F0", "#EADADA", "#2F3338"]
                         delegate: Rectangle {
                             required property string modelData
-                            width: 20
-                            height: 20
-                            radius: 4
+                            width: 32
+                            height: 32
+                            radius: 8
                             color: modelData
-                            border.color: "#9aa6b3"
+                            border.width: appController.project.backgroundColor.toString().toLowerCase() === modelData.toLowerCase() ? 3 : 1
+                            border.color: appController.project.backgroundColor.toString().toLowerCase() === modelData.toLowerCase() ? editor.accentColor : "#9aa6b3"
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
@@ -124,39 +167,54 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     visible: appController.project.backgroundMode === "texture"
+                    spacing: 6
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { text: "纹理目录：" + appController.textureDirectory; elide: Text.ElideMiddle; Layout.fillWidth: true }
+                        Label { text: "纹理素材"; font.bold: true }
+                        Item { Layout.fillWidth: true }
                         Button { text: "打开纹理文件夹"; onClicked: appController.openTextureDirectory() }
                         Button { text: "刷新纹理列表"; onClicked: appController.refreshTextures() }
                     }
-                    RowLayout {
+                    Label { text: "目录：" + appController.textureDirectory; color: "#768294"; elide: Text.ElideMiddle; Layout.fillWidth: true }
+                    ListView {
                         Layout.fillWidth: true
-                        Repeater {
-                            model: {
-                                appController.textureListRevision
-                                return appController.availableTextures()
+                        Layout.preferredHeight: 86
+                        orientation: ListView.Horizontal
+                        spacing: 8
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        model: {
+                            appController.textureListRevision
+                            return appController.availableTextures()
+                        }
+                        delegate: Rectangle {
+                            required property string modelData
+                            width: 112
+                            height: 72
+                            radius: 8
+                            color: "#f8fafc"
+                            border.width: appController.project.backgroundTexturePath === modelData ? 3 : 1
+                            border.color: appController.project.backgroundTexturePath === modelData ? editor.accentColor : "#c7d0da"
+                            Image {
+                                anchors.fill: parent
+                                anchors.margins: 2
+                                source: modelData
+                                fillMode: Image.PreserveAspectCrop
+                                smooth: true
                             }
-                            delegate: Rectangle {
-                                required property string modelData
-                                width: 54
-                                height: 36
-                                color: "#f0f2f4"
-                                border.color: "#c7d0da"
-                                Image {
-                                    anchors.fill: parent
-                                    anchors.margins: 1
-                                    source: modelData
-                                    fillMode: Image.Stretch
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: {
-                                        appController.project.backgroundMode = "texture"
-                                        appController.project.backgroundTexturePath = modelData
-                                    }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    appController.project.backgroundMode = "texture"
+                                    appController.project.backgroundTexturePath = modelData
                                 }
                             }
+                        }
+                        Label {
+                            anchors.centerIn: parent
+                            visible: parent.count === 0
+                            text: "纹理目录暂无可用图片（png/jpg/jpeg/webp/bmp）"
+                            color: "#6f7b88"
                         }
                     }
                 }
@@ -167,9 +225,9 @@ Item {
             id: previewContainer
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: 10
-            color: "#f5f7fa"
-            border.color: "#d4dbe3"
+            radius: 12
+            color: editor.workbenchBg
+            border.color: "#d0d8e2"
 
             TemplateCanvas {
                 id: templateCanvas

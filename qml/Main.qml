@@ -4,8 +4,10 @@ import QtQuick.Layouts
 
 ApplicationWindow {
     id: root
-    width: 1280
-    height: 800
+    width: 1233
+    height: 888
+    minimumWidth: 1233
+    minimumHeight: 888
     visible: true
     title: "6 英寸相纸照片拼版工具"
 

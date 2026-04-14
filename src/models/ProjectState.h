@@ -124,7 +124,7 @@ private:
     int m_slotsRevision = 0;
     int m_contentRevision = 0;
     QString m_backgroundMode = QStringLiteral("color");
-    QColor m_backgroundColor = QColor(QStringLiteral("#F7F4EC"));
+    QColor m_backgroundColor = QColor(QStringLiteral("#FFFFFF"));
     QString m_backgroundTexturePath;
 };
 

@@ -63,6 +63,7 @@ ScrollView {
                             Layout.fillWidth: true
                             model: ["JPG", "PNG"]
                             currentIndex: model.indexOf(appController.exportFormat)
+                            enabled: !appController.originalQualityExport
                             onActivated: appController.exportFormat = currentText
                         }
                     }
@@ -84,6 +85,7 @@ ScrollView {
                         ComboBox {
                             id: exportPpiPreset
                             Layout.preferredWidth: 220
+                            enabled: !appController.originalQualityExport
                             model: ["300", "600", "自定义"]
                             currentIndex: root.ppiPresetIndex(appController.resolutionPreset)
                             onActivated: {
@@ -94,7 +96,7 @@ ScrollView {
                         }
                         TextField {
                             Layout.preferredWidth: 120
-                            enabled: exportPpiPreset.currentIndex === 2
+                            enabled: !appController.originalQualityExport && exportPpiPreset.currentIndex === 2
                             color: enabled ? "#2f3a47" : "#8f98a3"
                             text: String(appController.customPpi)
                             onEditingFinished: {
@@ -114,6 +116,16 @@ ScrollView {
                         text: "导出裁切标记"
                         checked: appController.cropMarks
                         onToggled: appController.cropMarks = checked
+                    }
+                    CheckBox {
+                        text: "原图导出"
+                        checked: appController.originalQualityExport
+                        onToggled: appController.originalQualityExport = checked
+                    }
+                    Label {
+                        visible: appController.originalQualityExport
+                        text: "原图导出模式下自动使用 PNG，并忽略 PPI。"
+                        color: "#4d6b8f"
                     }
 
                     Button {

@@ -182,6 +182,26 @@ ScrollView {
                             onActivated: appController.previewMaxEdge = model[index].value
                         }
                     }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label { text: "缓存保留时间"; Layout.preferredWidth: 140 }
+                        ComboBox {
+                            Layout.fillWidth: true
+                            model: [
+                                { label: "1 天", value: 1 },
+                                { label: "1 周", value: 7 },
+                                { label: "1 个月", value: 30 }
+                            ]
+                            textRole: "label"
+                            currentIndex: {
+                                for (let i = 0; i < model.length; ++i) {
+                                    if (model[i].value === appController.cacheRetentionDays) return i
+                                }
+                                return 2
+                            }
+                            onActivated: appController.cacheRetentionDays = model[index].value
+                        }
+                    }
 
                     Button {
                         text: "清理缓存"

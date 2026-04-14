@@ -2,6 +2,7 @@
 
 #include "services/ImageService.h"
 #include "services/TemplateLayout.h"
+#include <QFileInfo>
 #include <QUrl>
 
 namespace pte {
@@ -43,6 +44,10 @@ void ProjectState::startNewSession(TemplateType templateType)
 {
     m_pages.clear();
     m_currentPageIndex = -1;
+    m_backgroundMode = QStringLiteral("color");
+    m_backgroundColor = QColor(QStringLiteral("#FFFFFF"));
+    m_backgroundTexturePath.clear();
+    emit backgroundChanged();
     createPage(templateType);
 }
 
@@ -132,9 +137,7 @@ QString ProjectState::slotImageSource(int slotIndex) const
         return {};
     }
     const auto &slot = page->slotStates.at(slotIndex);
-    const QString path = m_imageService
-        ? m_imageService->transformedPreviewPath(slot.image, slot.rotation, slot.mirrored)
-        : (slot.image.previewPath.isEmpty() ? slot.image.exportPath : slot.image.previewPath);
+    const QString path = slot.image.previewPath.isEmpty() ? slot.image.exportPath : slot.image.previewPath;
     if (path.isEmpty()) {
         return {};
     }
@@ -630,10 +633,14 @@ QString ProjectState::backgroundTexturePath() const
 
 void ProjectState::setBackgroundTexturePath(const QString &path)
 {
-    QString normalized = path;
-    const QUrl url(path);
-    if (url.isLocalFile()) {
-        normalized = url.toLocalFile();
+    QString normalized = path.trimmed();
+    const QUrl url(normalized);
+    if (!normalized.isEmpty() && !url.isValid()) {
+        normalized.clear();
+    } else if (!url.scheme().isEmpty()) {
+        normalized = url.toString();
+    } else if (QFileInfo(normalized).isAbsolute()) {
+        normalized = QUrl::fromLocalFile(normalized).toString();
     }
     if (m_backgroundTexturePath == normalized) {
         return;

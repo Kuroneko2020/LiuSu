@@ -14,6 +14,8 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QUrl>
+#include <cmath>
+#include <limits>
 
 namespace pte {
 namespace {
@@ -50,6 +52,10 @@ QString pageThumbnailCacheKey(const ProjectState &project, int pageIndex, int wi
                       .arg(width)
                       .arg(height)
                       .arg(project.pageTemplateChoice(pageIndex));
+    key += QStringLiteral("|bg:%1|%2|%3")
+               .arg(project.backgroundMode())
+               .arg(project.backgroundColor().name(QColor::HexArgb))
+               .arg(project.backgroundTexturePath());
     const int slotCountOnPage = project.pageSlotCount(pageIndex);
     for (int slot = 0; slot < slotCountOnPage; ++slot) {
         key += QStringLiteral("|%1:%2:%3:%4:%5:%6:%7")
@@ -199,6 +205,61 @@ QImage renderPageImage(const ProjectState &project, int pageIndex, const QSize &
     return canvas;
 }
 
+QSize resolveOriginalQualityPageSize(const ProjectState &project, int pageIndex, const QSize &fallback)
+{
+    const int templateChoice = project.pageTemplateChoice(pageIndex);
+    const auto normalizedRects = layout::slotRectsNormalized(templateChoice);
+    if (normalizedRects.isEmpty()) {
+        return fallback;
+    }
+
+    qreal maxScale = std::numeric_limits<qreal>::max();
+    bool hasImage = false;
+
+    for (int slot = 0; slot < normalizedRects.size(); ++slot) {
+        if (!project.pageSlotHasImage(pageIndex, slot)) {
+            continue;
+        }
+        hasImage = true;
+
+        QImageReader reader(project.pageSlotImagePath(pageIndex, slot));
+        QSize srcSize = reader.size();
+        if (srcSize.isEmpty()) {
+            continue;
+        }
+        const int rot = ((project.pageSlotRotation(pageIndex, slot) % 360) + 360) % 360;
+        if (rot == 90 || rot == 270) {
+            srcSize.transpose();
+        }
+
+        const QRectF &slotRect = normalizedRects.at(slot);
+        const qreal targetRatio = slotRect.height() > 0 ? (slotRect.width() / slotRect.height()) : 1.0;
+        const qreal srcRatio = srcSize.height() > 0 ? (static_cast<qreal>(srcSize.width()) / srcSize.height()) : targetRatio;
+        qreal usedW = srcSize.width();
+        qreal usedH = srcSize.height();
+        if (project.pageSlotFillCrop(pageIndex, slot)) {
+            if (srcRatio > targetRatio) {
+                usedW = srcSize.height() * targetRatio;
+            } else {
+                usedH = srcSize.width() / targetRatio;
+            }
+        }
+        const qreal scaleX = usedW / qMax(1e-6, slotRect.width());
+        const qreal scaleY = usedH / qMax(1e-6, slotRect.height());
+        const qreal slotMaxScale = qMax(1.0, qMin(scaleX, scaleY));
+        maxScale = qMin(maxScale, slotMaxScale);
+    }
+
+    if (!hasImage || !std::isfinite(maxScale)) {
+        return fallback;
+    }
+
+    const qreal aspect = layout::pageAspectRatio(templateChoice);
+    const int pageH = qMax(1, qFloor(maxScale));
+    const int pageW = qMax(1, qRound(pageH * aspect));
+    return QSize(pageW, pageH);
+}
+
 } // namespace
 
 ExportService::ExportService(QObject *parent)
@@ -236,11 +297,15 @@ ExportService::Result ExportService::exportPages(const ProjectState &project, co
 
     const int ppi = resolvePpi(request);
     const QSizeF mm = layout::physicalSizeMm(2);
-    const QSize exportSize(qRound(mm.width() / 25.4 * ppi), qRound(mm.height() / 25.4 * ppi));
-    const QString extension = request.format.compare("PNG", Qt::CaseInsensitive) == 0 ? "png" : "jpg";
+    const QSize fallbackSize(qRound(mm.width() / 25.4 * ppi), qRound(mm.height() / 25.4 * ppi));
+    const QString extension = request.originalQuality ? QStringLiteral("png")
+        : (request.format.compare("PNG", Qt::CaseInsensitive) == 0 ? QStringLiteral("png") : QStringLiteral("jpg"));
 
     int sequence = 1;
     for (int pageIndex : pageIndexes) {
+        const QSize exportSize = request.originalQuality
+            ? resolveOriginalQualityPageSize(project, pageIndex, fallbackSize)
+            : fallbackSize;
         const QImage canvas = renderPageImage(project, pageIndex, exportSize, request.cropMarks, false);
 
         QStringList usedNames;

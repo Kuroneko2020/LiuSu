@@ -21,6 +21,7 @@ public:
         QString resolutionPreset; // 300 PPI / 600 PPI / 自定义 PPI
         int customPpi = 300;
         bool cropMarks = false;
+        bool originalQuality = false;
         Scope scope = Scope::CurrentPage;
     };
 

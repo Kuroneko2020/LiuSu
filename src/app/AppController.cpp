@@ -153,6 +153,7 @@ void AppController::startAutoLayoutWithFiles(int choice, const QVariantList &fil
     }
 
     m_exportSettings.scope = ExportService::Scope::Queue;
+    m_exportSettings.originalQuality = m_settings.autoOriginalQuality;
     runExport();
 }
 
@@ -339,6 +340,7 @@ void AppController::runExport()
     req.resolutionPreset = m_exportSettings.resolution;
     req.customPpi = m_exportSettings.customPpi;
     req.cropMarks = m_exportSettings.cropMarks;
+    req.originalQuality = m_exportSettings.originalQuality;
     req.scope = m_exportSettings.scope;
 
     const auto result = m_exportService.exportPages(m_project, req);
@@ -415,6 +417,8 @@ int AppController::customPpi() const { return m_exportSettings.customPpi; }
 void AppController::setCustomPpi(int value) { if (m_exportSettings.customPpi == value) return; m_exportSettings.customPpi = value; emit exportSettingsChanged(); }
 bool AppController::cropMarks() const { return m_exportSettings.cropMarks; }
 void AppController::setCropMarks(bool value) { if (m_exportSettings.cropMarks == value) return; m_exportSettings.cropMarks = value; emit exportSettingsChanged(); }
+bool AppController::originalQualityExport() const { return m_exportSettings.originalQuality; }
+void AppController::setOriginalQualityExport(bool value) { if (m_exportSettings.originalQuality == value) return; m_exportSettings.originalQuality = value; emit exportSettingsChanged(); }
 QString AppController::exportScope() const { return m_exportSettings.scope == ExportService::Scope::Queue ? QStringLiteral("全队列") : QStringLiteral("当前页"); }
 
 QString AppController::lastExportMessage() const { return m_lastExportMessage; }
@@ -454,6 +458,20 @@ void AppController::setCacheDirectory(const QString &value) {
     persistExportDefaults();
     emit appSettingsChanged();
 }
+int AppController::cacheRetentionDays() const { return m_settings.cacheRetentionDays; }
+void AppController::setCacheRetentionDays(int days)
+{
+    int normalized = 30;
+    if (days <= 1) {
+        normalized = 1;
+    } else if (days <= 7) {
+        normalized = 7;
+    }
+    if (m_settings.cacheRetentionDays == normalized) return;
+    m_settings.cacheRetentionDays = normalized;
+    persistExportDefaults();
+    emit appSettingsChanged();
+}
 int AppController::previewMaxEdge() const { return m_settings.previewMaxEdge; }
 void AppController::setPreviewMaxEdge(int value) {
     const int clamped = qBound(1600, value, 2560);
@@ -462,6 +480,14 @@ void AppController::setPreviewMaxEdge(int value) {
     m_imageService.setPreviewMaxEdge(clamped);
     m_project.refreshSlotPreviewResources();
     clearPreviewCache();
+    persistExportDefaults();
+    emit appSettingsChanged();
+}
+bool AppController::autoOriginalQualityExport() const { return m_settings.autoOriginalQuality; }
+void AppController::setAutoOriginalQualityExport(bool value)
+{
+    if (m_settings.autoOriginalQuality == value) return;
+    m_settings.autoOriginalQuality = value;
     persistExportDefaults();
     emit appSettingsChanged();
 }
@@ -493,8 +519,10 @@ void AppController::loadSettings()
     m_settings.defaultCrop = settings.value(QStringLiteral("export/defaultCropMarks"), false).toBool();
     m_settings.defaultCustomPpi = settings.value(QStringLiteral("export/defaultCustomPpi"), 300).toInt();
     m_settings.cacheDir = settings.value(QStringLiteral("cache/dir"), defaultCacheRoot).toString();
+    m_settings.cacheRetentionDays = settings.value(QStringLiteral("cache/retentionDays"), 30).toInt();
     m_settings.previewMaxEdge = settings.value(QStringLiteral("cache/previewMaxEdge"), 1600).toInt();
     m_settings.textureDir = settings.value(QStringLiteral("texture/dir"), defaultTextureRoot).toString();
+    m_settings.autoOriginalQuality = settings.value(QStringLiteral("auto/originalQuality"), false).toBool();
     ensureDir(m_settings.defaultPath);
     ensureDir(m_settings.cacheDir);
     ensureDir(m_settings.textureDir);
@@ -504,8 +532,10 @@ void AppController::loadSettings()
     m_exportSettings.resolution = m_settings.defaultResolution;
     m_exportSettings.cropMarks = m_settings.defaultCrop;
     m_exportSettings.customPpi = m_settings.defaultCustomPpi;
+    m_exportSettings.originalQuality = false;
     m_imageService.setCacheRoot(m_settings.cacheDir);
     m_imageService.setPreviewMaxEdge(m_settings.previewMaxEdge);
+    m_imageService.cleanupExpiredCache(m_settings.cacheRetentionDays);
 }
 
 void AppController::persistExportDefaults() const
@@ -522,8 +552,10 @@ void AppController::persistExportDefaults() const
     settings.setValue(QStringLiteral("export/defaultCropMarks"), m_settings.defaultCrop);
     settings.setValue(QStringLiteral("export/defaultCustomPpi"), m_settings.defaultCustomPpi);
     settings.setValue(QStringLiteral("cache/dir"), m_settings.cacheDir);
+    settings.setValue(QStringLiteral("cache/retentionDays"), m_settings.cacheRetentionDays);
     settings.setValue(QStringLiteral("cache/previewMaxEdge"), m_settings.previewMaxEdge);
     settings.setValue(QStringLiteral("texture/dir"), m_settings.textureDir);
+    settings.setValue(QStringLiteral("auto/originalQuality"), m_settings.autoOriginalQuality);
 }
 
 void AppController::markPageThumbnailDirty(int pageIndex)

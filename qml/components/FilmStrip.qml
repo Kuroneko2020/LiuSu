@@ -16,7 +16,20 @@ Rectangle {
         spacing: 8
         clip: true
         boundsBehavior: Flickable.StopAtBounds
+        interactive: true
         model: filmStrip.pageCount
+        highlightMoveDuration: 120
+
+        function ensureCurrentVisible() {
+            positionViewAtIndex(appController.project.currentPageIndex, ListView.Contain)
+        }
+
+        Connections {
+            target: appController.project
+            function onCurrentPageChanged() {
+                pageList.ensureCurrentVisible()
+            }
+        }
 
         delegate: Rectangle {
             required property int index
@@ -46,11 +59,37 @@ Rectangle {
                 id: hoverArea
                 anchors.fill: parent
                 hoverEnabled: true
+                preventStealing: false
                 onClicked: appController.project.switchToPage(pageIndex)
             }
 
             ToolTip.visible: hoverArea.containsMouse
             ToolTip.text: "第" + (pageIndex + 1) + "页"
         }
+
+        ScrollBar.horizontal: ScrollBar {
+            policy: ScrollBar.AsNeeded
+            opacity: 0.65
+            contentItem: Rectangle {
+                implicitHeight: 4
+                radius: 2
+                color: "#a8b3c2"
+            }
+            background: Rectangle {
+                implicitHeight: 4
+                radius: 2
+                color: "#dbe2ea"
+            }
+        }
     }
+
+    WheelHandler {
+        target: pageList
+        orientation: Qt.Horizontal
+        onWheel: (event) => {
+            pageList.contentX = Math.max(0, Math.min(pageList.contentWidth - pageList.width, pageList.contentX - event.angleDelta.y))
+            event.accepted = true
+        }
+    }
+
 }
