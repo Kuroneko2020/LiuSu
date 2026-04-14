@@ -23,7 +23,6 @@ Frame {
             model: [
                 { label: "首页", idx: 0, requireTask: false },
                 { label: "编辑", idx: 1, requireTask: true },
-                { label: "导出", idx: 2, requireTask: true },
                 { label: "设置", idx: 3, requireTask: false }
             ]
             delegate: Button {

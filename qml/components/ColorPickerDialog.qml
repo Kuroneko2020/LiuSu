@@ -31,10 +31,39 @@ Dialog {
     onOpened: syncFromColor(selectedColor)
 
     footer: RowLayout {
-        spacing: 8
-        Button { text: "取消"; onClicked: root.close() }
+        spacing: 10
+        Rectangle {
+            Layout.preferredWidth: 56
+            Layout.preferredHeight: 34
+            radius: 6
+            color: root.selectedColor
+            border.color: "#c7d0da"
+        }
+        Label { text: "HEX" }
+        TextField {
+            id: hexField
+            Layout.preferredWidth: 170
+            onEditingFinished: {
+                const c = Qt.color(text)
+                if (c.a > 0 || text.toLowerCase() === "#000000") {
+                    root.syncFromColor(c)
+                } else {
+                    text = root.selectedColor.toString()
+                }
+            }
+        }
+        Item { Layout.fillWidth: true }
+        Button {
+            text: "取消"
+            implicitWidth: 96
+            implicitHeight: 36
+            onClicked: root.close()
+        }
         Button {
             text: "确定"
+            implicitWidth: 96
+            implicitHeight: 36
+            highlighted: true
             onClicked: {
                 root.confirmed(root.selectedColor)
                 root.close()
@@ -146,29 +175,5 @@ Dialog {
             }
         }
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-            Rectangle {
-                Layout.preferredWidth: 56
-                Layout.preferredHeight: 34
-                radius: 6
-                color: root.selectedColor
-                border.color: "#c7d0da"
-            }
-            Label { text: "HEX" }
-            TextField {
-                id: hexField
-                Layout.fillWidth: true
-                onEditingFinished: {
-                    const c = Qt.color(text)
-                    if (c.a > 0 || text.toLowerCase() === "#000000") {
-                        root.syncFromColor(c)
-                    } else {
-                        text = root.selectedColor.toString()
-                    }
-                }
-            }
-        }
     }
 }

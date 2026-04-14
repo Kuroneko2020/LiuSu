@@ -91,11 +91,25 @@ Item {
                     Button {
                         visible: appController.project.backgroundMode === "texture"
                         text: "打开纹理文件夹"
+                        flat: true
+                        implicitHeight: 34
+                        background: Rectangle {
+                            radius: 8
+                            color: parent.down ? "#dbe6f5" : (parent.hovered ? "#ebf1fa" : "#f4f7fb")
+                            border.color: "#d0daea"
+                        }
                         onClicked: appController.openTextureDirectory()
                     }
                     Button {
                         visible: appController.project.backgroundMode === "texture"
                         text: "刷新纹理列表"
+                        flat: true
+                        implicitHeight: 34
+                        background: Rectangle {
+                            radius: 8
+                            color: parent.down ? "#dbe6f5" : (parent.hovered ? "#ebf1fa" : "#f4f7fb")
+                            border.color: "#d0daea"
+                        }
                         onClicked: appController.refreshTextures()
                     }
                     Rectangle {
@@ -150,7 +164,7 @@ Item {
                     Layout.fillWidth: true
                     visible: appController.project.backgroundMode === "color"
                     Repeater {
-                        model: ["#FFFFFF", "#F7F4EC", "#EFE4D2", "#E7E5E4", "#DCE5DC", "#DDE6F0", "#EADADA", "#2F3338"]
+                        model: ["#FFFFFF", "#F7F4EC", "#EFE4D2", "#ECE7E1", "#E7E5E4", "#DCE5DC", "#DDE6F0", "#D8E3EA", "#DFE9E4", "#EADADA", "#D9D2C7", "#C9D0D8", "#8A929D", "#2F3338"]
                         delegate: Rectangle {
                             required property string modelData
                             width: 32
@@ -168,11 +182,25 @@ Item {
                             }
                         }
                     }
-                    Button {
-                        text: "自定义颜色"
-                        onClicked: {
-                            backgroundColorDialog.selectedColor = appController.project.backgroundColor
-                            backgroundColorDialog.open()
+                    Rectangle {
+                        width: 32
+                        height: 32
+                        radius: 8
+                        border.width: 1
+                        border.color: "#8aa0bb"
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: "#ff5b8a" }
+                            GradientStop { position: 0.25; color: "#ffb347" }
+                            GradientStop { position: 0.5; color: "#6cd98b" }
+                            GradientStop { position: 0.75; color: "#55a8ff" }
+                            GradientStop { position: 1.0; color: "#b07bff" }
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                backgroundColorDialog.selectedColor = appController.project.backgroundColor
+                                backgroundColorDialog.open()
+                            }
                         }
                     }
                 }

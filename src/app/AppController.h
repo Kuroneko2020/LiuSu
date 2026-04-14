@@ -30,6 +30,8 @@ class AppController : public QObject {
     Q_PROPERTY(int autoDefaultPpi READ autoDefaultPpi WRITE setAutoDefaultPpi NOTIFY appSettingsChanged)
     Q_PROPERTY(QString autoFillStrategy READ autoFillStrategy WRITE setAutoFillStrategy NOTIFY appSettingsChanged)
     Q_PROPERTY(QString autoOrientationPolicy READ autoOrientationPolicy WRITE setAutoOrientationPolicy NOTIFY appSettingsChanged)
+    Q_PROPERTY(QString autoNamingRule READ autoNamingRule WRITE setAutoNamingRule NOTIFY appSettingsChanged)
+    Q_PROPERTY(bool autoCropMarks READ autoCropMarks WRITE setAutoCropMarks NOTIFY appSettingsChanged)
     Q_PROPERTY(QString defaultExportPath READ defaultExportPath WRITE setDefaultExportPath NOTIFY appSettingsChanged)
     Q_PROPERTY(bool rememberLastPath READ rememberLastPath WRITE setRememberLastPath NOTIFY appSettingsChanged)
     Q_PROPERTY(QString defaultExportFormat READ defaultExportFormat WRITE setDefaultExportFormat NOTIFY appSettingsChanged)
@@ -107,6 +109,10 @@ public:
     void setAutoFillStrategy(const QString &value);
     [[nodiscard]] QString autoOrientationPolicy() const;
     void setAutoOrientationPolicy(const QString &value);
+    [[nodiscard]] QString autoNamingRule() const;
+    void setAutoNamingRule(const QString &value);
+    [[nodiscard]] bool autoCropMarks() const;
+    void setAutoCropMarks(bool value);
     [[nodiscard]] QString defaultExportPath() const;
     void setDefaultExportPath(const QString &value);
     [[nodiscard]] bool rememberLastPath() const;
@@ -144,7 +150,7 @@ signals:
 
 private:
     struct ExportSettings { QString path; QString format{"JPG"}; QString naming{"组合命名"}; QString resolution{"300 PPI"}; int customPpi{300}; bool cropMarks{false}; bool originalQuality{false}; ExportService::Scope scope{ExportService::Scope::CurrentPage}; };
-    struct SettingsModel { QString autoPreset{"均衡填充"}; int autoDefaultPpi{300}; QString autoFill{"放大填充"}; QString autoOrientation{"保持原方向"}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; QString cacheDir; int cacheRetentionDays{30}; int previewMaxEdge{1600}; QString textureDir; bool autoOriginalQuality{false}; };
+    struct SettingsModel { QString autoPreset{"均衡填充"}; int autoDefaultPpi{300}; QString autoFill{"原图完整放入"}; QString autoOrientation{"自动右转 90°"}; QString autoNamingRule{"组合命名"}; bool autoCropMarks{false}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; QString cacheDir; int cacheRetentionDays{30}; int previewMaxEdge{1600}; QString textureDir; bool autoOriginalQuality{false}; };
 
     [[nodiscard]] static TemplateType toTemplateType(int choice);
     void markPageThumbnailDirty(int pageIndex);

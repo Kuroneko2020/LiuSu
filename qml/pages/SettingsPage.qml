@@ -67,6 +67,7 @@ ScrollView {
                         ComboBox {
                             id: defaultPpiPreset
                             Layout.preferredWidth: 220
+                            enabled: !appController.autoOriginalQualityExport
                             model: ["300", "600", "自定义"]
                             currentIndex: root.ppiPresetIndex(appController.autoDefaultPpi)
                             onActivated: {
@@ -77,7 +78,7 @@ ScrollView {
                         TextField {
                             Layout.preferredWidth: 120
                             text: String(appController.autoDefaultPpi)
-                            enabled: defaultPpiPreset.currentIndex === 2
+                            enabled: !appController.autoOriginalQualityExport && defaultPpiPreset.currentIndex === 2
                             color: enabled ? "#2f3a47" : "#8f98a3"
                             onEditingFinished: {
                                 const v = Number(text)
@@ -144,15 +145,36 @@ ScrollView {
                         Label { text: "导出格式"; Layout.preferredWidth: 140 }
                         ComboBox {
                             Layout.fillWidth: true
+                            enabled: !appController.autoOriginalQualityExport
                             model: ["JPG", "PNG"]
                             currentIndex: model.indexOf(appController.defaultExportFormat)
                             onActivated: appController.defaultExportFormat = currentText
                         }
                     }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label { text: "命名方案"; Layout.preferredWidth: 140 }
+                        ComboBox {
+                            Layout.fillWidth: true
+                            model: ["组合命名", "日期-序号"]
+                            currentIndex: model.indexOf(appController.autoNamingRule)
+                            onActivated: appController.autoNamingRule = currentText
+                        }
+                    }
+                    CheckBox {
+                        text: "裁切标记"
+                        checked: appController.autoCropMarks
+                        onToggled: appController.autoCropMarks = checked
+                    }
                     CheckBox {
                         text: "原图导出"
                         checked: appController.autoOriginalQualityExport
                         onToggled: appController.autoOriginalQualityExport = checked
+                    }
+                    Label {
+                        visible: appController.autoOriginalQualityExport
+                        text: "原图导出模式下自动使用 PNG，并忽略 PPI。"
+                        color: "#4d6b8f"
                     }
                     }
                 }

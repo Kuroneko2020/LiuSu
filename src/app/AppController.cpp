@@ -138,7 +138,7 @@ void AppController::startAutoLayoutWithFiles(int choice, const QVariantList &fil
         QImageReader reader(resource.exportPath);
         const QSize sz = reader.size();
         const qreal imageAspect = sz.height() > 0 ? static_cast<qreal>(sz.width()) / sz.height() : 1.0;
-        const auto decision = AutoLayoutPolicy::decide(m_settings.autoPreset, imageAspect, m_project.slotRectNormalized(targetSlot));
+        const auto decision = AutoLayoutPolicy::decide(m_settings.autoPreset, m_settings.autoFill, m_settings.autoOrientation, imageAspect, m_project.slotRectNormalized(targetSlot));
         m_project.configureSlot(targetSlot, decision.fillCrop, decision.rotation, decision.mirrored);
         ++imported;
     }
@@ -153,6 +153,9 @@ void AppController::startAutoLayoutWithFiles(int choice, const QVariantList &fil
     }
 
     m_exportSettings.scope = ExportService::Scope::Queue;
+    m_exportSettings.naming = m_settings.autoNamingRule;
+    m_exportSettings.cropMarks = m_settings.autoCropMarks;
+    m_exportSettings.format = m_settings.defaultFormat;
     m_exportSettings.originalQuality = m_settings.autoOriginalQuality;
     runExport();
 }
@@ -443,6 +446,10 @@ QString AppController::autoFillStrategy() const { return m_settings.autoFill; }
 void AppController::setAutoFillStrategy(const QString &value) { if (m_settings.autoFill == value) return; m_settings.autoFill = value; persistExportDefaults(); emit appSettingsChanged(); }
 QString AppController::autoOrientationPolicy() const { return m_settings.autoOrientation; }
 void AppController::setAutoOrientationPolicy(const QString &value) { if (m_settings.autoOrientation == value) return; m_settings.autoOrientation = value; persistExportDefaults(); emit appSettingsChanged(); }
+QString AppController::autoNamingRule() const { return m_settings.autoNamingRule; }
+void AppController::setAutoNamingRule(const QString &value) { if (m_settings.autoNamingRule == value) return; m_settings.autoNamingRule = value; persistExportDefaults(); emit appSettingsChanged(); }
+bool AppController::autoCropMarks() const { return m_settings.autoCropMarks; }
+void AppController::setAutoCropMarks(bool value) { if (m_settings.autoCropMarks == value) return; m_settings.autoCropMarks = value; persistExportDefaults(); emit appSettingsChanged(); }
 QString AppController::defaultExportPath() const { return m_settings.defaultPath; }
 void AppController::setDefaultExportPath(const QString &value) { const QString normalized = ensureDir(value); if (m_settings.defaultPath == normalized) return; m_settings.defaultPath = normalized; persistExportDefaults(); emit appSettingsChanged(); }
 bool AppController::rememberLastPath() const { return m_settings.rememberPath; }
@@ -525,8 +532,10 @@ void AppController::loadSettings()
     QSettings settings(QStringLiteral("PhotoTemplateEditor"), QStringLiteral("PhotoTemplateEditor"));
     m_settings.autoPreset = settings.value(QStringLiteral("auto/preset"), QStringLiteral("均衡填充")).toString();
     m_settings.autoDefaultPpi = settings.value(QStringLiteral("auto/defaultPpi"), 300).toInt();
-    m_settings.autoFill = settings.value(QStringLiteral("auto/defaultFill"), QStringLiteral("放大填充")).toString();
-    m_settings.autoOrientation = settings.value(QStringLiteral("auto/orientationPolicy"), QStringLiteral("保持原方向")).toString();
+    m_settings.autoFill = settings.value(QStringLiteral("auto/defaultFill"), QStringLiteral("原图完整放入")).toString();
+    m_settings.autoOrientation = settings.value(QStringLiteral("auto/orientationPolicy"), QStringLiteral("自动右转 90°")).toString();
+    m_settings.autoNamingRule = settings.value(QStringLiteral("auto/namingRule"), QStringLiteral("组合命名")).toString();
+    m_settings.autoCropMarks = settings.value(QStringLiteral("auto/cropMarks"), false).toBool();
     const QString defaultExportRoot = ensureDir(defaultPicturesDir() + QStringLiteral("/Photo Template Editor/Exports"));
     const QString defaultCacheRoot = ensureDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/preview"));
     const QString defaultTextureRoot = ensureDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/textures"));
@@ -565,6 +574,8 @@ void AppController::persistExportDefaults() const
     settings.setValue(QStringLiteral("auto/defaultPpi"), m_settings.autoDefaultPpi);
     settings.setValue(QStringLiteral("auto/defaultFill"), m_settings.autoFill);
     settings.setValue(QStringLiteral("auto/orientationPolicy"), m_settings.autoOrientation);
+    settings.setValue(QStringLiteral("auto/namingRule"), m_settings.autoNamingRule);
+    settings.setValue(QStringLiteral("auto/cropMarks"), m_settings.autoCropMarks);
     settings.setValue(QStringLiteral("export/defaultPath"), m_settings.defaultPath);
     settings.setValue(QStringLiteral("export/rememberLastPath"), m_settings.rememberPath);
     settings.setValue(QStringLiteral("export/defaultFormat"), m_settings.defaultFormat);
