@@ -1,0 +1,125 @@
+import QtQuick
+import QtQuick.Controls
+
+Item {
+    id: card
+
+    property int templateChoice: 2
+    property bool selected: false
+
+    signal clicked()
+    signal manualLayout()
+    signal autoLayout()
+
+    implicitWidth: 380
+    implicitHeight: 250
+    scale: selected ? 1.035 : 1.0
+
+    Behavior on scale {
+        NumberAnimation { duration: 140; easing.type: Easing.InOutQuad }
+    }
+
+    Rectangle {
+        id: shadowLayer
+        anchors.fill: previewFrame
+        anchors.margins: selected ? -5 : 0
+        radius: previewFrame.radius + 2
+        color: "#000"
+        opacity: selected ? 0.10 : 0.0
+        z: -1
+    }
+
+    Rectangle {
+        id: previewFrame
+        anchors.fill: parent
+        radius: 10
+        color: "#f2f5f8"
+        border.color: selected ? "#b3bcc8" : "#d2d8e0"
+        border.width: 1
+
+        Rectangle {
+            id: pagePreview
+            anchors.centerIn: parent
+            width: parent.width * 0.9
+            height: width / appController.pageAspectRatio
+            color: "#f1f4f8"
+            border.color: "#cfd6df"
+
+            Repeater {
+                model: appController.templateSlotRects(card.templateChoice)
+                delegate: Rectangle {
+                    required property var modelData
+                    x: modelData.x * parent.width
+                    y: modelData.y * parent.height
+                    width: modelData.width * parent.width
+                    height: modelData.height * parent.height
+                    color: "#e6ebf2"
+                    border.color: "#c7cfda"
+                }
+            }
+        }
+
+        Rectangle {
+            visible: selected
+            z: 2
+            anchors.centerIn: pagePreview
+            width: pagePreview.width * 0.64
+            height: 46
+            radius: 8
+            color: Qt.rgba(0.929, 0.949, 0.969, 0.80)
+            border.color: "#bdc7d3"
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 8
+
+                Button {
+                    text: "手动布局"
+                    flat: true
+                    onClicked: card.manualLayout()
+                    background: Rectangle {
+                        radius: 6
+                        color: parent.down
+                            ? Qt.rgba(0.835, 0.867, 0.902, 0.67)
+                            : (parent.hovered
+                                ? Qt.rgba(0.890, 0.918, 0.949, 0.67)
+                                : "transparent")
+                        border.color: "#b8c3d0"
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "#3f4a57"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+                Button {
+                    text: "自动布局"
+                    flat: true
+                    onClicked: card.autoLayout()
+                    background: Rectangle {
+                        radius: 6
+                        color: parent.down
+                            ? Qt.rgba(0.835, 0.867, 0.902, 0.67)
+                            : (parent.hovered
+                                ? Qt.rgba(0.890, 0.918, 0.949, 0.67)
+                                : "transparent")
+                        border.color: "#b8c3d0"
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "#3f4a57"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+            }
+        }
+
+        MouseArea {
+            z: 1
+            anchors.fill: parent
+            onClicked: card.clicked()
+        }
+    }
+}

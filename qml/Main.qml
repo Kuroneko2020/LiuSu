@@ -1,0 +1,77 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+
+ApplicationWindow {
+    id: root
+    width: 1280
+    height: 800
+    visible: true
+    title: "6 英寸相纸照片拼版工具"
+
+    property int currentPage: 0 // 0 home, 1 editor, 2 export, 3 settings
+    readonly property bool hasTaskContext: appController.project.pageCount > 0
+    onActiveChanged: {
+        if (!root.active) {
+            appController.project.clearSelection()
+        }
+    }
+
+    Connections {
+        target: appController
+        function onRequestNavigateToEditor() {
+            if (root.hasTaskContext) {
+                root.currentPage = 1
+            }
+        }
+        function onRequestNavigateToExport() {
+            if (root.hasTaskContext) {
+                root.currentPage = 2
+            }
+        }
+    }
+
+    header: ToolBar {
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: 8
+            Label {
+                text: "Photo Template Editor"
+                font.bold: true
+            }
+            Item { Layout.fillWidth: true }
+            Button {
+                text: "首页"
+                onClicked: root.currentPage = 0
+                background: Rectangle { radius: 6; color: parent.down ? "#d8dee6" : (parent.hovered ? "#e7edf3" : "#eef2f6"); border.color: "#c7d0da" }
+            }
+            Button {
+                text: "编辑"
+                enabled: root.hasTaskContext
+                onClicked: if (root.hasTaskContext) root.currentPage = 1
+                background: Rectangle { radius: 6; color: parent.enabled ? (parent.down ? "#d8dee6" : (parent.hovered ? "#e7edf3" : "#eef2f6")) : "#e9edf1"; border.color: parent.enabled ? "#c7d0da" : "#d2d8df" }
+            }
+            Button {
+                text: "导出"
+                enabled: root.hasTaskContext
+                onClicked: if (root.hasTaskContext) root.currentPage = 2
+                background: Rectangle { radius: 6; color: parent.enabled ? (parent.down ? "#d8dee6" : (parent.hovered ? "#e7edf3" : "#eef2f6")) : "#e9edf1"; border.color: parent.enabled ? "#c7d0da" : "#d2d8df" }
+            }
+            Button {
+                text: "设置"
+                onClicked: root.currentPage = 3
+                background: Rectangle { radius: 6; color: parent.down ? "#d8dee6" : (parent.hovered ? "#e7edf3" : "#eef2f6"); border.color: "#c7d0da" }
+            }
+        }
+    }
+
+    StackLayout {
+        anchors.fill: parent
+        currentIndex: root.currentPage
+
+        HomePage { }
+        EditorPage { }
+        ExportPage { }
+        SettingsPage { }
+    }
+}

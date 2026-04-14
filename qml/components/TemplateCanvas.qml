@@ -1,0 +1,146 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import "."
+
+Rectangle {
+    id: canvas
+    color: "white"
+    border.color: "#d3d9e0"
+    radius: 8
+
+    readonly property int slotCount: appController.project.currentTemplateSlotCount
+    readonly property int slotsRevision: appController.project.slotsRevision
+    property int swapSourceSlot: -1
+    property int swapTargetSlot: -1
+
+    signal importSlotRequested(int slotIndex)
+
+    function slotIndexAt(scenePos) {
+        for (let i = 0; i < slotRepeater.count; ++i) {
+            const item = slotRepeater.itemAt(i)
+            if (!item) continue
+            const topLeft = item.mapToItem(null, 0, 0)
+            const bottomRight = item.mapToItem(null, item.width, item.height)
+            if (scenePos.x >= topLeft.x && scenePos.x <= bottomRight.x
+                    && scenePos.y >= topLeft.y && scenePos.y <= bottomRight.y) {
+                return i
+            }
+        }
+        return -1
+    }
+
+    Item {
+        anchors.fill: parent
+
+        Rectangle {
+            anchors.fill: parent
+            color: appController.project.backgroundMode === "color"
+                ? appController.project.backgroundColor
+                : "white"
+        }
+
+        Image {
+            anchors.fill: parent
+            visible: appController.project.backgroundMode === "texture"
+                     && appController.project.backgroundTexturePath !== ""
+            source: appController.project.backgroundTexturePath
+            fillMode: Image.Stretch
+            smooth: true
+            cache: true
+            onStatusChanged: {
+                if (status === Image.Error) {
+                    appController.project.backgroundMode = "color"
+                }
+            }
+        }
+
+        Repeater {
+            id: slotRepeater
+            model: canvas.slotCount
+            delegate: SlotItem {
+                required property int index
+
+                property int _rev: canvas.slotsRevision
+                property rect slotRect: {
+                    _rev
+                    return appController.project.slotRectNormalized(index)
+                }
+                x: slotRect.x * parent.width
+                y: slotRect.y * parent.height
+                width: slotRect.width * parent.width
+                height: slotRect.height * parent.height
+
+                slotIndex: index
+                hasImage: {
+                    _rev
+                    return appController.project.slotHasImage(index)
+                }
+                selected: {
+                    _rev
+                    return appController.project.slotSelected(index)
+                }
+                imageSource: {
+                    _rev
+                    return appController.project.slotImageSource(index)
+                }
+                fillCropMode: {
+                    _rev
+                    return appController.project.slotFillCrop(index)
+                }
+                rotationDegrees: {
+                    _rev
+                    return appController.project.slotRotation(index)
+                }
+                mirrored: {
+                    _rev
+                    return appController.project.slotMirrored(index)
+                }
+                cropOffsetX: {
+                    _rev
+                    return appController.project.slotOffsetX(index)
+                }
+                cropOffsetY: {
+                    _rev
+                    return appController.project.slotOffsetY(index)
+                }
+
+                swapTargetHighlighted: canvas.swapSourceSlot >= 0 && canvas.swapTargetSlot === slotIndex && canvas.swapTargetSlot !== canvas.swapSourceSlot
+
+                onAddClicked: canvas.importSlotRequested(slotIndex)
+                onSlotClicked: appController.project.selectSlot(slotIndex)
+                onRotateClicked: appController.project.rotateSelectedSlot90()
+                onMirrorClicked: appController.project.mirrorSelectedSlot()
+                onToggleFillMode: appController.project.toggleSelectedSlotFillMode()
+                onSwapRequested: (fromIndex, toIndex) => appController.project.swapOrMoveSlots(fromIndex, toIndex)
+                onContentDragFinished: (dx, dy) => appController.project.adjustSelectedSlotOffset(dx, dy)
+                onCompositionOffsetSet: (x, y) => appController.project.setSelectedSlotOffset(x, y)
+                onCompositionResetRequested: appController.project.resetSelectedSlotOffset()
+                onRemovePhotoRequested: appController.project.clearSlot(slotIndex)
+                onSwapDragStarted: (fromIndex, scenePos) => {
+                    canvas.swapSourceSlot = fromIndex
+                    canvas.swapTargetSlot = canvas.slotIndexAt(scenePos)
+                }
+                onSwapDragMoved: (scenePos) => {
+                    if (canvas.swapSourceSlot < 0) return
+                    canvas.swapTargetSlot = canvas.slotIndexAt(scenePos)
+                }
+                onSwapDragFinished: (scenePos) => {
+                    if (canvas.swapSourceSlot < 0) return
+                    const toIndex = canvas.slotIndexAt(scenePos)
+                    if (toIndex >= 0 && toIndex !== canvas.swapSourceSlot) {
+                        appController.project.swapOrMoveSlots(canvas.swapSourceSlot, toIndex)
+                    }
+                    canvas.swapSourceSlot = -1
+                    canvas.swapTargetSlot = -1
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            z: -1
+            onClicked: appController.project.clearSelection()
+        }
+    }
+}
