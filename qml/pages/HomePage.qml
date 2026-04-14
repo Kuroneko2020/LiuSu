@@ -6,6 +6,8 @@ import "../components"
 
 Item {
     id: home
+    property int currentPage: 0
+    signal navigateRequested(int pageIndex)
 
     property int selectedTemplate: -1
     property int autoLayoutChoice: -1
@@ -14,7 +16,6 @@ Item {
     onVisibleChanged: {
         if (visible) {
             selectedTemplate = -1
-            autoOriginalExport.checked = appController.autoOriginalQualityExport
         }
     }
 
@@ -70,6 +71,12 @@ Item {
         anchors.fill: parent
         anchors.margins: 24
         z: 1
+        spacing: 12
+
+        PageTopBar {
+            currentPage: home.currentPage
+            onNavigate: (pageIndex) => home.navigateRequested(pageIndex)
+        }
 
         Item { Layout.fillHeight: true }
 
@@ -101,13 +108,5 @@ Item {
         }
 
         Item { Layout.fillHeight: true }
-
-        CheckBox {
-            id: autoOriginalExport
-            Layout.alignment: Qt.AlignHCenter
-            text: "自动模式：原图导出"
-            checked: appController.autoOriginalQualityExport
-            onToggled: appController.autoOriginalQualityExport = checked
-        }
     }
 }

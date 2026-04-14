@@ -26,6 +26,9 @@ struct SlotState {
 struct PageState {
     TemplateType templateType = TemplateType::TwoUp;
     QVector<SlotState> slotStates;
+    QString backgroundMode = QStringLiteral("color");
+    QColor backgroundColor = QColor(QStringLiteral("#FFFFFF"));
+    QString backgroundTexturePath;
 
     [[nodiscard]] bool isValid() const;
 };
@@ -106,6 +109,9 @@ public:
     [[nodiscard]] bool pageSlotFillCrop(int pageIndex, int slotIndex) const;
     [[nodiscard]] QPointF pageSlotOffset(int pageIndex, int slotIndex) const;
     [[nodiscard]] QRectF pageSlotRectNormalized(int pageIndex, int slotIndex) const;
+    [[nodiscard]] QString pageBackgroundMode(int pageIndex) const;
+    [[nodiscard]] QColor pageBackgroundColor(int pageIndex) const;
+    [[nodiscard]] QString pageBackgroundTexturePath(int pageIndex) const;
 
 signals:
     void pagesChanged();
@@ -123,9 +129,6 @@ private:
     int m_currentPageIndex = -1;
     int m_slotsRevision = 0;
     int m_contentRevision = 0;
-    QString m_backgroundMode = QStringLiteral("color");
-    QColor m_backgroundColor = QColor(QStringLiteral("#FFFFFF"));
-    QString m_backgroundTexturePath;
 };
 
 } // namespace pte

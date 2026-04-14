@@ -2,9 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import "../components"
 
 ScrollView {
     id: root
+    property int currentPage: 3
+    signal navigateRequested(int pageIndex)
 
     function ppiPresetIndex(value) {
         if (value === 300) return 0
@@ -16,6 +19,11 @@ ScrollView {
         id: cacheDirDialog
         title: "选择缓存目录"
         onAccepted: appController.setCacheDirectoryFromDialog(selectedFolder)
+    }
+    FolderDialog {
+        id: textureDirDialog
+        title: "选择纹理目录"
+        onAccepted: appController.setTextureDirectoryFromDialog(selectedFolder)
     }
 
     FolderDialog {
@@ -36,7 +44,12 @@ ScrollView {
             anchors.topMargin: 16
             spacing: 12
 
-            Label { text: "设置"; font.pixelSize: 24; font.bold: true }
+            PageTopBar {
+                Layout.fillWidth: true
+                currentPage: root.currentPage
+                onNavigate: (pageIndex) => root.navigateRequested(pageIndex)
+            }
+            Label { text: "设置"; font.pixelSize: 22; font.bold: true }
 
             Frame {
                 Layout.fillWidth: true
@@ -133,6 +146,11 @@ ScrollView {
                             onActivated: appController.defaultExportFormat = currentText
                         }
                     }
+                    CheckBox {
+                        text: "原图导出"
+                        checked: appController.autoOriginalQualityExport
+                        onToggled: appController.autoOriginalQualityExport = checked
+                    }
                 }
             }
 
@@ -207,11 +225,21 @@ ScrollView {
                         text: "清理缓存"
                         onClicked: appController.clearPreviewCache()
                     }
-                    Label {
-                        text: "纹理目录：" + appController.textureDirectory
-                        color: "#6f7b88"
-                        elide: Text.ElideMiddle
+                    RowLayout {
                         Layout.fillWidth: true
+                        Label { text: "纹理目录"; Layout.preferredWidth: 140 }
+                        TextField {
+                            Layout.fillWidth: true
+                            text: appController.textureDirectory
+                            onEditingFinished: appController.textureDirectory = text
+                            background: Rectangle {
+                                radius: 6
+                                color: "#f1f4f7"
+                                border.color: "#c7d0da"
+                            }
+                        }
+                        Button { text: "选择文件夹"; onClicked: textureDirDialog.open() }
+                        Button { text: "打开"; onClicked: appController.openTextureDirectory() }
                     }
                 }
             }

@@ -41,7 +41,7 @@ class AppController : public QObject {
     Q_PROPERTY(int cacheRetentionDays READ cacheRetentionDays WRITE setCacheRetentionDays NOTIFY appSettingsChanged)
     Q_PROPERTY(int previewMaxEdge READ previewMaxEdge WRITE setPreviewMaxEdge NOTIFY appSettingsChanged)
     Q_PROPERTY(bool autoOriginalQualityExport READ autoOriginalQualityExport WRITE setAutoOriginalQualityExport NOTIFY appSettingsChanged)
-    Q_PROPERTY(QString textureDirectory READ textureDirectory NOTIFY appSettingsChanged)
+    Q_PROPERTY(QString textureDirectory READ textureDirectory WRITE setTextureDirectory NOTIFY appSettingsChanged)
     Q_PROPERTY(int textureListRevision READ textureListRevision NOTIFY appSettingsChanged)
     Q_PROPERTY(qreal pageAspectRatio READ pageAspectRatio CONSTANT)
     Q_PROPERTY(int thumbnailListRevision READ thumbnailListRevision NOTIFY thumbnailsChanged)
@@ -66,6 +66,7 @@ public:
     Q_INVOKABLE void setExportPathFromDialog(const QString &folderUrl);
     Q_INVOKABLE void setDefaultExportPathFromDialog(const QString &folderUrl);
     Q_INVOKABLE void setCacheDirectoryFromDialog(const QString &folderUrl);
+    Q_INVOKABLE void setTextureDirectoryFromDialog(const QString &folderUrl);
     Q_INVOKABLE QVariantList availableTextures() const;
     Q_INVOKABLE void openTextureDirectory();
     Q_INVOKABLE void refreshTextures();
@@ -129,6 +130,7 @@ public:
     [[nodiscard]] bool autoOriginalQualityExport() const;
     void setAutoOriginalQualityExport(bool value);
     [[nodiscard]] QString textureDirectory() const;
+    void setTextureDirectory(const QString &value);
     [[nodiscard]] int textureListRevision() const;
 
 signals:

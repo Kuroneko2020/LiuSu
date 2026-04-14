@@ -1,11 +1,12 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Dialogs
 import "../components"
 
 Item {
     id: editor
+    property int currentPage: 1
+    signal navigateRequested(int pageIndex)
     property color panelBg: "#ffffff"
     property color workbenchBg: "#e9edf2"
     property color accentColor: "#3b82f6"
@@ -27,12 +28,59 @@ Item {
         onAccepted: appController.batchImportFromFiles(selectedFiles)
     }
 
-    ColorDialog {
+    Dialog {
         id: backgroundColorDialog
-        selectedColor: appController.project.backgroundColor
-        onAccepted: {
-            appController.project.backgroundMode = "color"
-            appController.project.backgroundColor = selectedColor
+        parent: Overlay.overlay
+        modal: true
+        width: 420
+        height: 320
+        title: "自定义颜色"
+        property color draftColor: appController.project.backgroundColor
+        onOpened: {
+            draftColor = appController.project.backgroundColor
+            hueSlider.value = Math.max(0, draftColor.hsvHue)
+            satSlider.value = Math.max(0, draftColor.hsvSaturation)
+            valSlider.value = Math.max(0, draftColor.hsvValue)
+            hexField.text = draftColor.toString()
+        }
+        standardButtons: Dialog.NoButton
+        footer: RowLayout {
+            spacing: 8
+            Button { text: "取消"; onClicked: backgroundColorDialog.close() }
+            Button {
+                text: "确定"
+                onClicked: {
+                    appController.project.backgroundMode = "color"
+                    appController.project.backgroundColor = backgroundColorDialog.draftColor
+                    backgroundColorDialog.close()
+                }
+            }
+        }
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 10
+            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 44; radius: 8; color: backgroundColorDialog.draftColor; border.color: "#c7d0da" }
+            Label { text: "色相" }
+            Slider { id: hueSlider; Layout.fillWidth: true; from: 0; to: 1; onMoved: backgroundColorDialog.draftColor = Qt.hsva(value, satSlider.value, valSlider.value, 1.0) }
+            Label { text: "饱和度" }
+            Slider { id: satSlider; Layout.fillWidth: true; from: 0; to: 1; onMoved: backgroundColorDialog.draftColor = Qt.hsva(hueSlider.value, value, valSlider.value, 1.0) }
+            Label { text: "明度" }
+            Slider { id: valSlider; Layout.fillWidth: true; from: 0; to: 1; onMoved: backgroundColorDialog.draftColor = Qt.hsva(hueSlider.value, satSlider.value, value, 1.0) }
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: "HEX" }
+                TextField {
+                    id: hexField
+                    Layout.fillWidth: true
+                    onEditingFinished: {
+                        const c = Qt.color(text)
+                        if (c.a > 0 || text.toLowerCase() === "#000000") {
+                            backgroundColorDialog.draftColor = c
+                        }
+                        text = backgroundColorDialog.draftColor.toString()
+                    }
+                }
+            }
         }
     }
 
@@ -41,11 +89,10 @@ Item {
         anchors.margins: 16
         spacing: 10
 
-        RowLayout {
+        PageTopBar {
             Layout.fillWidth: true
-            Label { text: "编辑页"; font.pixelSize: 24; font.bold: true }
-            Item { Layout.fillWidth: true }
-
+            currentPage: editor.currentPage
+            onNavigate: (pageIndex) => editor.navigateRequested(pageIndex)
             IconToolButton {
                 icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/import.svg"
                 tooltipText: "批量导入"
@@ -167,18 +214,14 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     visible: appController.project.backgroundMode === "texture"
-                    spacing: 6
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { text: "纹理素材"; font.bold: true }
-                        Item { Layout.fillWidth: true }
                         Button { text: "打开纹理文件夹"; onClicked: appController.openTextureDirectory() }
                         Button { text: "刷新纹理列表"; onClicked: appController.refreshTextures() }
                     }
-                    Label { text: "目录：" + appController.textureDirectory; color: "#768294"; elide: Text.ElideMiddle; Layout.fillWidth: true }
                     ListView {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 86
+                        Layout.preferredHeight: 70
                         orientation: ListView.Horizontal
                         spacing: 8
                         clip: true
@@ -189,8 +232,8 @@ Item {
                         }
                         delegate: Rectangle {
                             required property string modelData
-                            width: 112
-                            height: 72
+                            width: 90
+                            height: 58
                             radius: 8
                             color: "#f8fafc"
                             border.width: appController.project.backgroundTexturePath === modelData ? 3 : 1
@@ -215,6 +258,12 @@ Item {
                             visible: parent.count === 0
                             text: "纹理目录暂无可用图片（png/jpg/jpeg/webp/bmp）"
                             color: "#6f7b88"
+                        }
+                        WheelHandler {
+                            onWheel: (event) => {
+                                parent.contentX = Math.max(0, Math.min(parent.contentWidth - parent.width, parent.contentX - event.angleDelta.y))
+                                event.accepted = true
+                            }
                         }
                     }
                 }

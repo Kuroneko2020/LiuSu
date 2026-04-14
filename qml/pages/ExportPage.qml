@@ -2,9 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import "../components"
 
 ScrollView {
     id: root
+    property int currentPage: 2
+    signal navigateRequested(int pageIndex)
 
     function ppiPresetIndex(text) {
         if (text === "300 PPI") return 0
@@ -30,7 +33,12 @@ ScrollView {
             anchors.topMargin: 16
             spacing: 12
 
-            Label { text: "导出"; font.pixelSize: 24; font.bold: true }
+            PageTopBar {
+                Layout.fillWidth: true
+                currentPage: root.currentPage
+                onNavigate: (pageIndex) => root.navigateRequested(pageIndex)
+            }
+            Label { text: "导出"; font.pixelSize: 22; font.bold: true }
             Label { text: "当前导出范围：" + appController.exportScope; color: "#5f6b79" }
 
             Frame {

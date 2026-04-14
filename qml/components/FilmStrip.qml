@@ -7,6 +7,7 @@ Rectangle {
     radius: 8
     border.color: "#d7dde6"
     readonly property int pageCount: appController.project.pageCount
+    property bool draggingList: false
 
     ListView {
         id: pageList
@@ -60,35 +61,57 @@ Rectangle {
                 anchors.fill: parent
                 hoverEnabled: true
                 preventStealing: false
-                onClicked: appController.project.switchToPage(pageIndex)
+                property real downX: 0
+                onPressed: (mouse) => downX = mouse.x
+                onReleased: (mouse) => {
+                    if (Math.abs(mouse.x - downX) < 6 && !filmStrip.draggingList) {
+                        appController.project.switchToPage(pageIndex)
+                    }
+                }
             }
 
             ToolTip.visible: hoverArea.containsMouse
             ToolTip.text: "第" + (pageIndex + 1) + "页"
         }
 
-        ScrollBar.horizontal: ScrollBar {
-            policy: ScrollBar.AsNeeded
-            opacity: 0.65
-            contentItem: Rectangle {
-                implicitHeight: 4
-                radius: 2
-                color: "#a8b3c2"
-            }
-            background: Rectangle {
-                implicitHeight: 4
-                radius: 2
-                color: "#dbe2ea"
-            }
-        }
     }
 
     WheelHandler {
         target: pageList
         orientation: Qt.Horizontal
         onWheel: (event) => {
-            pageList.contentX = Math.max(0, Math.min(pageList.contentWidth - pageList.width, pageList.contentX - event.angleDelta.y))
+            const maxX = Math.max(0, pageList.contentWidth - pageList.width)
+            pageList.contentX = Math.max(0, Math.min(maxX, pageList.contentX - event.angleDelta.y))
             event.accepted = true
+        }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: true
+        preventStealing: false
+        propagateComposedEvents: true
+        property real lastX: 0
+        onPressed: (mouse) => {
+            filmStrip.draggingList = false
+            lastX = mouse.x
+            mouse.accepted = false
+        }
+        onPositionChanged: (mouse) => {
+            if (!(mouse.buttons & Qt.LeftButton)) return
+            const dx = mouse.x - lastX
+            if (Math.abs(dx) > 2) {
+                filmStrip.draggingList = true
+                const maxX = Math.max(0, pageList.contentWidth - pageList.width)
+                pageList.contentX = Math.max(0, Math.min(maxX, pageList.contentX - dx))
+                lastX = mouse.x
+            }
+            mouse.accepted = false
+        }
+        onReleased: (mouse) => {
+            Qt.callLater(() => filmStrip.draggingList = false)
+            mouse.accepted = false
         }
     }
 

@@ -53,9 +53,9 @@ QString pageThumbnailCacheKey(const ProjectState &project, int pageIndex, int wi
                       .arg(height)
                       .arg(project.pageTemplateChoice(pageIndex));
     key += QStringLiteral("|bg:%1|%2|%3")
-               .arg(project.backgroundMode())
-               .arg(project.backgroundColor().name(QColor::HexArgb))
-               .arg(project.backgroundTexturePath());
+               .arg(project.pageBackgroundMode(pageIndex))
+               .arg(project.pageBackgroundColor(pageIndex).name(QColor::HexArgb))
+               .arg(project.pageBackgroundTexturePath(pageIndex));
     const int slotCountOnPage = project.pageSlotCount(pageIndex);
     for (int slot = 0; slot < slotCountOnPage; ++slot) {
         key += QStringLiteral("|%1:%2:%3:%4:%5:%6:%7")
@@ -156,8 +156,8 @@ void drawCropMarks(QPainter &painter, const QSize &size, const QVector<QRectF> &
 QImage renderPageImage(const ProjectState &project, int pageIndex, const QSize &size, bool cropMarks, bool usePreviewCache)
 {
     QImage canvas(size, QImage::Format_ARGB32_Premultiplied);
-    const QString bgMode = project.backgroundMode();
-    const QColor bgColor = project.backgroundColor().isValid() ? project.backgroundColor() : QColor(QStringLiteral("#F7F4EC"));
+    const QString bgMode = project.pageBackgroundMode(pageIndex);
+    const QColor bgColor = project.pageBackgroundColor(pageIndex).isValid() ? project.pageBackgroundColor(pageIndex) : QColor(QStringLiteral("#FFFFFF"));
     canvas.fill(bgMode == QStringLiteral("color") ? bgColor : Qt::white);
 
     QPainter painter(&canvas);
@@ -168,7 +168,7 @@ QImage renderPageImage(const ProjectState &project, int pageIndex, const QSize &
     const QVector<QRectF> rects = layout::slotRectsPixels(templateChoice, size);
 
     if (bgMode == QStringLiteral("texture")) {
-        QString texturePath = project.backgroundTexturePath();
+        QString texturePath = project.pageBackgroundTexturePath(pageIndex);
         const QUrl textureUrl(texturePath);
         if (textureUrl.isLocalFile()) {
             texturePath = textureUrl.toLocalFile();

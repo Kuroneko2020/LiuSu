@@ -287,6 +287,15 @@ void AppController::setCacheDirectoryFromDialog(const QString &folderUrl)
     setCacheDirectory(dir);
 }
 
+void AppController::setTextureDirectoryFromDialog(const QString &folderUrl)
+{
+    const QString dir = toLocalPath(folderUrl);
+    if (dir.isEmpty()) {
+        return;
+    }
+    setTextureDirectory(dir);
+}
+
 QVariantList AppController::availableTextures() const
 {
     QVariantList out;
@@ -492,6 +501,15 @@ void AppController::setAutoOriginalQualityExport(bool value)
     emit appSettingsChanged();
 }
 QString AppController::textureDirectory() const { return m_settings.textureDir; }
+void AppController::setTextureDirectory(const QString &value)
+{
+    const QString normalized = ensureDir(value);
+    if (normalized.isEmpty() || m_settings.textureDir == normalized) return;
+    m_settings.textureDir = normalized;
+    persistExportDefaults();
+    refreshTextures();
+    emit appSettingsChanged();
+}
 int AppController::textureListRevision() const { return m_textureListRevision; }
 
 TemplateType AppController::toTemplateType(int choice)

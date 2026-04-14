@@ -44,10 +44,6 @@ void ProjectState::startNewSession(TemplateType templateType)
 {
     m_pages.clear();
     m_currentPageIndex = -1;
-    m_backgroundMode = QStringLiteral("color");
-    m_backgroundColor = QColor(QStringLiteral("#FFFFFF"));
-    m_backgroundTexturePath.clear();
-    emit backgroundChanged();
     createPage(templateType);
 }
 
@@ -97,6 +93,7 @@ void ProjectState::switchToPage(int pageIndex)
     emit currentPageChanged();
     ++m_slotsRevision;
     emit slotsChanged();
+    emit backgroundChanged();
 }
 
 int ProjectState::currentTemplateSlotCount() const
@@ -599,36 +596,41 @@ int ProjectState::contentRevision() const
 
 QString ProjectState::backgroundMode() const
 {
-    return m_backgroundMode;
+    const auto *page = currentPage();
+    return page ? page->backgroundMode : QStringLiteral("color");
 }
 
 void ProjectState::setBackgroundMode(const QString &mode)
 {
     const QString next = (mode == QStringLiteral("texture")) ? QStringLiteral("texture") : QStringLiteral("color");
-    if (m_backgroundMode == next) {
+    auto *page = currentPage();
+    if (!page || page->backgroundMode == next) {
         return;
     }
-    m_backgroundMode = next;
+    page->backgroundMode = next;
     emit backgroundChanged();
 }
 
 QColor ProjectState::backgroundColor() const
 {
-    return m_backgroundColor;
+    const auto *page = currentPage();
+    return page ? page->backgroundColor : QColor(QStringLiteral("#FFFFFF"));
 }
 
 void ProjectState::setBackgroundColor(const QColor &color)
 {
-    if (!color.isValid() || m_backgroundColor == color) {
+    auto *page = currentPage();
+    if (!page || !color.isValid() || page->backgroundColor == color) {
         return;
     }
-    m_backgroundColor = color;
+    page->backgroundColor = color;
     emit backgroundChanged();
 }
 
 QString ProjectState::backgroundTexturePath() const
 {
-    return m_backgroundTexturePath;
+    const auto *page = currentPage();
+    return page ? page->backgroundTexturePath : QString{};
 }
 
 void ProjectState::setBackgroundTexturePath(const QString &path)
@@ -642,11 +644,36 @@ void ProjectState::setBackgroundTexturePath(const QString &path)
     } else if (QFileInfo(normalized).isAbsolute()) {
         normalized = QUrl::fromLocalFile(normalized).toString();
     }
-    if (m_backgroundTexturePath == normalized) {
+    auto *page = currentPage();
+    if (!page || page->backgroundTexturePath == normalized) {
         return;
     }
-    m_backgroundTexturePath = normalized;
+    page->backgroundTexturePath = normalized;
     emit backgroundChanged();
+}
+
+QString ProjectState::pageBackgroundMode(int pageIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return QStringLiteral("color");
+    }
+    return m_pages.at(pageIndex).backgroundMode;
+}
+
+QColor ProjectState::pageBackgroundColor(int pageIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return QColor(QStringLiteral("#FFFFFF"));
+    }
+    return m_pages.at(pageIndex).backgroundColor;
+}
+
+QString ProjectState::pageBackgroundTexturePath(int pageIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return {};
+    }
+    return m_pages.at(pageIndex).backgroundTexturePath;
 }
 
 void ProjectState::refreshSlotPreviewResources()
