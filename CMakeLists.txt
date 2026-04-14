@@ -48,6 +48,7 @@ qt_add_qml_module(photo_template_editor
         qml/components/SlotItem.qml
         qml/components/FilmStrip.qml
         qml/components/PageTopBar.qml
+        qml/components/ColorPickerDialog.qml
     RESOURCES
         res/icons/rotate-right.svg
         res/icons/mirror.svg

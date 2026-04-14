@@ -29,59 +29,11 @@ Item {
         onAccepted: appController.batchImportFromFiles(selectedFiles)
     }
 
-    Dialog {
+    ColorPickerDialog {
         id: backgroundColorDialog
-        parent: Overlay.overlay
-        modal: true
-        width: 420
-        height: 320
-        title: "自定义颜色"
-        property color draftColor: appController.project.backgroundColor
-        onOpened: {
-            draftColor = appController.project.backgroundColor
-            hueSlider.value = Math.max(0, draftColor.hsvHue)
-            satSlider.value = Math.max(0, draftColor.hsvSaturation)
-            valSlider.value = Math.max(0, draftColor.hsvValue)
-            hexField.text = draftColor.toString()
-        }
-        standardButtons: Dialog.NoButton
-        footer: RowLayout {
-            spacing: 8
-            Button { text: "取消"; onClicked: backgroundColorDialog.close() }
-            Button {
-                text: "确定"
-                onClicked: {
-                    appController.project.backgroundMode = "color"
-                    appController.project.backgroundColor = backgroundColorDialog.draftColor
-                    backgroundColorDialog.close()
-                }
-            }
-        }
-        ColumnLayout {
-            anchors.fill: parent
-            spacing: 10
-            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 44; radius: 8; color: backgroundColorDialog.draftColor; border.color: "#c7d0da" }
-            Label { text: "色相" }
-            Slider { id: hueSlider; Layout.fillWidth: true; from: 0; to: 1; onMoved: backgroundColorDialog.draftColor = Qt.hsva(value, satSlider.value, valSlider.value, 1.0) }
-            Label { text: "饱和度" }
-            Slider { id: satSlider; Layout.fillWidth: true; from: 0; to: 1; onMoved: backgroundColorDialog.draftColor = Qt.hsva(hueSlider.value, value, valSlider.value, 1.0) }
-            Label { text: "明度" }
-            Slider { id: valSlider; Layout.fillWidth: true; from: 0; to: 1; onMoved: backgroundColorDialog.draftColor = Qt.hsva(hueSlider.value, satSlider.value, value, 1.0) }
-            RowLayout {
-                Layout.fillWidth: true
-                Label { text: "HEX" }
-                TextField {
-                    id: hexField
-                    Layout.fillWidth: true
-                    onEditingFinished: {
-                        const c = Qt.color(text)
-                        if (c.a > 0 || text.toLowerCase() === "#000000") {
-                            backgroundColorDialog.draftColor = c
-                        }
-                        text = backgroundColorDialog.draftColor.toString()
-                    }
-                }
-            }
+        onConfirmed: (colorValue) => {
+            appController.project.backgroundMode = "color"
+            appController.project.backgroundColor = colorValue
         }
     }
 
@@ -136,6 +88,16 @@ Item {
                     Layout.fillWidth: true
                     Label { text: "背景"; font.bold: true }
                     Item { Layout.fillWidth: true }
+                    Button {
+                        visible: appController.project.backgroundMode === "texture"
+                        text: "打开纹理文件夹"
+                        onClicked: appController.openTextureDirectory()
+                    }
+                    Button {
+                        visible: appController.project.backgroundMode === "texture"
+                        text: "刷新纹理列表"
+                        onClicked: appController.refreshTextures()
+                    }
                     Rectangle {
                         Layout.preferredWidth: 180
                         Layout.preferredHeight: 34
@@ -208,21 +170,19 @@ Item {
                     }
                     Button {
                         text: "自定义颜色"
-                        onClicked: backgroundColorDialog.open()
+                        onClicked: {
+                            backgroundColorDialog.selectedColor = appController.project.backgroundColor
+                            backgroundColorDialog.open()
+                        }
                     }
                 }
 
                 ColumnLayout {
                     Layout.fillWidth: true
                     visible: appController.project.backgroundMode === "texture"
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Button { text: "打开纹理文件夹"; onClicked: appController.openTextureDirectory() }
-                        Button { text: "刷新纹理列表"; onClicked: appController.refreshTextures() }
-                    }
                     ListView {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 70
+                        Layout.preferredHeight: 64
                         orientation: ListView.Horizontal
                         spacing: 8
                         clip: true

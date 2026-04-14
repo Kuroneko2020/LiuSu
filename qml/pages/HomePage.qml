@@ -69,7 +69,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 24
+        anchors.margins: 16
         z: 1
         spacing: 12
 

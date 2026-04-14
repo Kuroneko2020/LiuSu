@@ -23,14 +23,12 @@ ScrollView {
 
     Item {
         width: root.availableWidth
-        implicitHeight: content.implicitHeight + 32
+        implicitHeight: pageLayout.implicitHeight + 32
 
         ColumnLayout {
-            id: content
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(parent.width - 32, 860)
-            anchors.top: parent.top
-            anchors.topMargin: 16
+            id: pageLayout
+            anchors.fill: parent
+            anchors.margins: 16
             spacing: 12
 
             PageTopBar {
@@ -38,14 +36,21 @@ ScrollView {
                 currentPage: root.currentPage
                 onNavigate: (pageIndex) => root.navigateRequested(pageIndex)
             }
-            Label { text: "导出"; font.pixelSize: 22; font.bold: true }
-            Label { text: "当前导出范围：" + appController.exportScope; color: "#5f6b79" }
 
-            Frame {
+            ColumnLayout {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: Math.min(parent.width, 860)
                 Layout.fillWidth: true
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 10
+                spacing: 12
+
+                Label { text: "导出"; font.pixelSize: 22; font.bold: true }
+                Label { text: "当前导出范围：" + appController.exportScope; color: "#5f6b79" }
+
+                Frame {
+                    Layout.fillWidth: true
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 10
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -136,24 +141,25 @@ ScrollView {
                         color: "#4d6b8f"
                     }
 
-                    Button {
-                        text: "开始导出"
-                        onClicked: appController.runExport()
+                        Button {
+                            text: "开始导出"
+                            onClicked: appController.runExport()
+                        }
                     }
                 }
-            }
 
-            Rectangle {
-                Layout.fillWidth: true
-                implicitHeight: 44
-                radius: 6
-                visible: appController.lastExportMessage.length > 0
-                color: appController.lastExportSuccess ? "#e8f2ea" : "#f4e8e8"
-                border.color: appController.lastExportSuccess ? "#9ebca4" : "#c9a4a4"
-                Label {
-                    anchors.centerIn: parent
-                    text: appController.lastExportMessage
-                    color: appController.lastExportSuccess ? "#2f5a38" : "#6e3a3a"
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 44
+                    radius: 6
+                    visible: appController.lastExportMessage.length > 0
+                    color: appController.lastExportSuccess ? "#e8f2ea" : "#f4e8e8"
+                    border.color: appController.lastExportSuccess ? "#9ebca4" : "#c9a4a4"
+                    Label {
+                        anchors.centerIn: parent
+                        text: appController.lastExportMessage
+                        color: appController.lastExportSuccess ? "#2f5a38" : "#6e3a3a"
+                    }
                 }
             }
         }

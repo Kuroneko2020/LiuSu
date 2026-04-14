@@ -34,14 +34,12 @@ ScrollView {
 
     Item {
         width: root.availableWidth
-        implicitHeight: content.implicitHeight + 32
+        implicitHeight: pageLayout.implicitHeight + 32
 
         ColumnLayout {
-            id: content
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(parent.width - 32, 860)
-            anchors.top: parent.top
-            anchors.topMargin: 16
+            id: pageLayout
+            anchors.fill: parent
+            anchors.margins: 16
             spacing: 12
 
             PageTopBar {
@@ -49,11 +47,16 @@ ScrollView {
                 currentPage: root.currentPage
                 onNavigate: (pageIndex) => root.navigateRequested(pageIndex)
             }
-            Label { text: "设置"; font.pixelSize: 22; font.bold: true }
-
-            Frame {
+            ColumnLayout {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: Math.min(parent.width, 860)
                 Layout.fillWidth: true
-                ColumnLayout {
+                spacing: 12
+                Label { text: "设置"; font.pixelSize: 22; font.bold: true }
+
+                Frame {
+                    Layout.fillWidth: true
+                    ColumnLayout {
                     anchors.fill: parent
                     spacing: 10
                     Label { text: "自动拼版默认值"; font.bold: true }
@@ -151,12 +154,12 @@ ScrollView {
                         checked: appController.autoOriginalQualityExport
                         onToggled: appController.autoOriginalQualityExport = checked
                     }
+                    }
                 }
-            }
 
-            Frame {
-                Layout.fillWidth: true
-                ColumnLayout {
+                Frame {
+                    Layout.fillWidth: true
+                    ColumnLayout {
                     anchors.fill: parent
                     spacing: 10
                     Label { text: "缓存"; font.bold: true }
@@ -241,12 +244,12 @@ ScrollView {
                         Button { text: "选择文件夹"; onClicked: textureDirDialog.open() }
                         Button { text: "打开"; onClicked: appController.openTextureDirectory() }
                     }
+                    }
                 }
-            }
 
-            Frame {
-                Layout.fillWidth: true
-                ColumnLayout {
+                Frame {
+                    Layout.fillWidth: true
+                    ColumnLayout {
                     anchors.fill: parent
                     spacing: 10
                     Label { text: "其他"; font.bold: true }
@@ -259,6 +262,7 @@ ScrollView {
                             currentIndex: model.indexOf(appController.themePlaceholder)
                             onActivated: appController.themePlaceholder = currentText
                         }
+                    }
                     }
                 }
             }
