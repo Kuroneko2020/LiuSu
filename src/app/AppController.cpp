@@ -48,6 +48,17 @@ QStringList toLocalPaths(const QVariantList &pathsOrUrls)
     }
     return out;
 }
+
+QString ppiPresetForValue(int ppi)
+{
+    if (ppi == 600) {
+        return QStringLiteral("600 PPI");
+    }
+    if (ppi == 300) {
+        return QStringLiteral("300 PPI");
+    }
+    return QStringLiteral("自定义 PPI");
+}
 }
 
 AppController::AppController(QObject *parent)
@@ -103,14 +114,21 @@ void AppController::startAutoLayout(int choice)
 
 void AppController::startAutoLayoutWithFiles(int choice, const QVariantList &fileUrls)
 {
-    m_pendingTemplateChoice = choice;
-    m_pendingAutoMode = true;
-    m_pendingAutoFiles = fileUrls;
     if (m_project.hasValidPages()) {
+        m_pendingTemplateChoice = choice;
+        m_pendingAutoMode = true;
+        m_pendingAutoFiles = fileUrls;
         emit requestConfirmNewSession();
         return;
     }
 
+    m_pendingAutoMode = false;
+    m_pendingAutoFiles.clear();
+    executeAutoLayoutWithFiles(choice, fileUrls);
+}
+
+void AppController::executeAutoLayoutWithFiles(int choice, const QVariantList &fileUrls)
+{
     m_project.startNewSession(toTemplateType(choice));
 
     const auto images = m_imageService.normalizeAndCacheFiles(toLocalPaths(fileUrls));
@@ -138,7 +156,8 @@ void AppController::startAutoLayoutWithFiles(int choice, const QVariantList &fil
         QImageReader reader(resource.exportPath);
         const QSize sz = reader.size();
         const qreal imageAspect = sz.height() > 0 ? static_cast<qreal>(sz.width()) / sz.height() : 1.0;
-        const auto decision = AutoLayoutPolicy::decide(m_settings.autoPreset, m_settings.autoFill, m_settings.autoOrientation, imageAspect, m_project.slotRectNormalized(targetSlot));
+        const qreal slotAspect = layout::slotAspectRatio(m_project.currentTemplateChoice(), m_project.slotRectNormalized(targetSlot));
+        const auto decision = AutoLayoutPolicy::decide(m_settings.autoPreset, m_settings.autoFill, m_settings.autoOrientation, imageAspect, slotAspect);
         m_project.configureSlot(targetSlot, decision.fillCrop, decision.rotation, decision.mirrored);
         ++imported;
     }
@@ -156,6 +175,8 @@ void AppController::startAutoLayoutWithFiles(int choice, const QVariantList &fil
     m_exportSettings.naming = m_settings.autoNamingRule;
     m_exportSettings.cropMarks = m_settings.autoCropMarks;
     m_exportSettings.format = m_settings.defaultFormat;
+    m_exportSettings.resolution = ppiPresetForValue(m_settings.autoDefaultPpi);
+    m_exportSettings.customPpi = m_settings.autoDefaultPpi;
     m_exportSettings.originalQuality = m_settings.autoOriginalQuality;
     runExport();
 }
@@ -170,10 +191,11 @@ void AppController::confirmStartNewSession(bool accepted)
     }
 
     if (m_pendingAutoMode) {
+        const int pendingChoice = m_pendingTemplateChoice;
         const QVariantList pendingFiles = m_pendingAutoFiles;
         m_pendingAutoMode = false;
         m_pendingAutoFiles.clear();
-        startAutoLayoutWithFiles(m_pendingTemplateChoice, pendingFiles);
+        executeAutoLayoutWithFiles(pendingChoice, pendingFiles);
         return;
     } else {
         m_project.startNewSession(toTemplateType(m_pendingTemplateChoice));
@@ -529,14 +551,14 @@ TemplateType AppController::toTemplateType(int choice)
 
 void AppController::loadSettings()
 {
-    QSettings settings(QStringLiteral("PhotoTemplateEditor"), QStringLiteral("PhotoTemplateEditor"));
+    QSettings settings(QStringLiteral("Liusu"), QStringLiteral("Liusu"));
     m_settings.autoPreset = settings.value(QStringLiteral("auto/preset"), QStringLiteral("均衡填充")).toString();
     m_settings.autoDefaultPpi = settings.value(QStringLiteral("auto/defaultPpi"), 300).toInt();
     m_settings.autoFill = settings.value(QStringLiteral("auto/defaultFill"), QStringLiteral("原图完整放入")).toString();
     m_settings.autoOrientation = settings.value(QStringLiteral("auto/orientationPolicy"), QStringLiteral("自动右转 90°")).toString();
     m_settings.autoNamingRule = settings.value(QStringLiteral("auto/namingRule"), QStringLiteral("组合命名")).toString();
     m_settings.autoCropMarks = settings.value(QStringLiteral("auto/cropMarks"), false).toBool();
-    const QString defaultExportRoot = ensureDir(defaultPicturesDir() + QStringLiteral("/Photo Template Editor/Exports"));
+    const QString defaultExportRoot = ensureDir(defaultPicturesDir() + QStringLiteral("/Liusu/Exports"));
     const QString defaultCacheRoot = ensureDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/preview"));
     const QString defaultTextureRoot = ensureDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/textures"));
 
@@ -569,7 +591,7 @@ void AppController::loadSettings()
 
 void AppController::persistExportDefaults() const
 {
-    QSettings settings(QStringLiteral("PhotoTemplateEditor"), QStringLiteral("PhotoTemplateEditor"));
+    QSettings settings(QStringLiteral("Liusu"), QStringLiteral("Liusu"));
     settings.setValue(QStringLiteral("auto/preset"), m_settings.autoPreset);
     settings.setValue(QStringLiteral("auto/defaultPpi"), m_settings.autoDefaultPpi);
     settings.setValue(QStringLiteral("auto/defaultFill"), m_settings.autoFill);

@@ -153,6 +153,7 @@ private:
     struct SettingsModel { QString autoPreset{"均衡填充"}; int autoDefaultPpi{300}; QString autoFill{"原图完整放入"}; QString autoOrientation{"自动右转 90°"}; QString autoNamingRule{"组合命名"}; bool autoCropMarks{false}; QString defaultPath; bool rememberPath{true}; QString defaultFormat{"JPG"}; QString defaultResolution{"300 PPI"}; int defaultCustomPpi{300}; bool defaultCrop{false}; QString theme{"系统"}; QString cacheDir; int cacheRetentionDays{30}; int previewMaxEdge{1600}; QString textureDir; bool autoOriginalQuality{false}; };
 
     [[nodiscard]] static TemplateType toTemplateType(int choice);
+    void executeAutoLayoutWithFiles(int choice, const QVariantList &fileUrls);
     void markPageThumbnailDirty(int pageIndex);
     void scheduleThumbnailSignal();
     void handlePagesChanged();

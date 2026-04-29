@@ -1,7 +1,7 @@
 #pragma once
 
-#include <QRectF>
 #include <QString>
+#include <QtGlobal>
 
 namespace pte {
 
@@ -13,7 +13,7 @@ struct AutoLayoutDecision {
 
 class AutoLayoutPolicy {
 public:
-    static AutoLayoutDecision decide(const QString &preset, const QString &fillStrategy, const QString &orientationPolicy, qreal imageAspect, const QRectF &slotRect);
+    static AutoLayoutDecision decide(const QString &preset, const QString &fillStrategy, const QString &orientationPolicy, qreal imageAspect, qreal slotAspect);
 };
 
 } // namespace pte

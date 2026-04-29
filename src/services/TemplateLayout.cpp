@@ -13,6 +13,13 @@ qreal pageAspectRatio(int templateChoice)
     return mm.height() > 0 ? mm.width() / mm.height() : 1.0;
 }
 
+qreal slotAspectRatio(int templateChoice, const QRectF &normalizedSlotRect)
+{
+    return normalizedSlotRect.height() > 0.0
+        ? (normalizedSlotRect.width() * pageAspectRatio(templateChoice)) / normalizedSlotRect.height()
+        : 1.0;
+}
+
 QVector<QRectF> slotRectsNormalized(int templateChoice)
 {
     const QSizeF paperMm = physicalSizeMm(templateChoice);

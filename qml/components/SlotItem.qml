@@ -166,7 +166,7 @@ Rectangle {
     Image {
         anchors.centerIn: parent
         visible: !hasImage
-        source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/slot-plus.svg"
+        source: "qrc:/qt/qml/Liusu/res/icons/slot-plus.svg"
         sourceSize.width: 34
         sourceSize.height: 34
         width: 34
@@ -236,14 +236,14 @@ Rectangle {
         IconToolButton {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
-            icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/rotate-right.svg"
+            icon.source: "qrc:/qt/qml/Liusu/res/icons/rotate-right.svg"
             onClicked: slotRoot.rotateClicked()
             tooltipText: "右转 90°"
         }
         IconToolButton {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
-            icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/mirror.svg"
+            icon.source: "qrc:/qt/qml/Liusu/res/icons/mirror.svg"
             onClicked: slotRoot.mirrorClicked()
             tooltipText: "水平镜像"
         }
@@ -251,8 +251,8 @@ Rectangle {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
             icon.source: fillCropMode
-                ? "qrc:/qt/qml/PhotoTemplateEditor/res/icons/fit-inside.svg"
-                : "qrc:/qt/qml/PhotoTemplateEditor/res/icons/fill-crop.svg"
+                ? "qrc:/qt/qml/Liusu/res/icons/fit-inside.svg"
+                : "qrc:/qt/qml/Liusu/res/icons/fill-crop.svg"
             onClicked: slotRoot.toggleFillMode()
             tooltipText: fillCropMode ? "当前：铺满裁切；点击切换到完整放入" : "当前：完整放入；点击切换到铺满裁切"
         }
@@ -260,7 +260,7 @@ Rectangle {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
             visible: canAdjustComposition
-            icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/adjust.svg"
+            icon.source: "qrc:/qt/qml/Liusu/res/icons/adjust.svg"
             onClicked: compositionMode = true
             tooltipText: "调整构图"
         }
@@ -268,7 +268,7 @@ Rectangle {
         IconToolButton {
             Layout.preferredWidth: 24
             Layout.preferredHeight: 24
-            icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/delete.svg"
+            icon.source: "qrc:/qt/qml/Liusu/res/icons/delete.svg"
             onClicked: slotRoot.removePhotoRequested()
             tooltipText: "删除照片"
         }

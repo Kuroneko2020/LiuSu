@@ -35,7 +35,7 @@ void cleanupCacheDir(const QString &dirPath, int days)
 ImageService::ImageService(QObject *parent)
     : QObject(parent)
 {
-    m_cacheRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
+    m_cacheRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/liusu");
 }
 
 ImageResource ImageService::normalizeAndCacheFile(const QString &path)

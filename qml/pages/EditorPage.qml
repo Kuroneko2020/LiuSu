@@ -47,27 +47,27 @@ Item {
             currentPage: editor.currentPage
             onNavigate: (pageIndex) => editor.navigateRequested(pageIndex)
             IconToolButton {
-                icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/import.svg"
+                icon.source: "qrc:/qt/qml/Liusu/res/icons/import.svg"
                 tooltipText: "批量导入"
                 onClicked: batchImportDialog.open()
             }
             IconToolButton {
-                icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/page-add.svg"
+                icon.source: "qrc:/qt/qml/Liusu/res/icons/page-add.svg"
                 tooltipText: "新建空白页"
                 onClicked: appController.createBlankPageForCurrentTemplate()
             }
             IconToolButton {
-                icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/export-one.svg"
+                icon.source: "qrc:/qt/qml/Liusu/res/icons/export-one.svg"
                 tooltipText: "导出当前页"
                 onClicked: appController.exportCurrentPage()
             }
             IconToolButton {
-                icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/export-all.svg"
+                icon.source: "qrc:/qt/qml/Liusu/res/icons/export-all.svg"
                 tooltipText: "导出全队列"
                 onClicked: appController.exportQueue()
             }
             IconToolButton {
-                icon.source: "qrc:/qt/qml/PhotoTemplateEditor/res/icons/page-delete.svg"
+                icon.source: "qrc:/qt/qml/Liusu/res/icons/page-delete.svg"
                 tooltipText: "删除当前页"
                 onClicked: appController.project.deleteCurrentPage()
             }

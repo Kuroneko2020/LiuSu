@@ -1,6 +1,6 @@
-# Photo Template Editor
+# 留素
 
-这是一个桌面端的照片拼版小工具，目标是帮你把多张照片快速排成 6 英寸相纸页面，方便后续统一导出。  
+留素是一个桌面端的照片拼版小工具，目标是帮你把多张照片快速排成 6 英寸相纸页面，方便后续统一导出。  
 项目基于 **Qt 6 + C++ + QML** 开发，当前版本已经有可运行的主流程，可以继续往“真正可生产使用”的方向迭代。
 
 ---
@@ -73,7 +73,7 @@
 ```bash
 cmake -S . -B build
 cmake --build build
-./build/photo_template_editor
+./build/liusu
 ```
 
 如果 CMake 提示找不到 `Qt6Config.cmake`，通常是本机 Qt SDK 没装全，或者 `CMAKE_PREFIX_PATH` / `Qt6_DIR` 没配好。

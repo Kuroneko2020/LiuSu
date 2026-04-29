@@ -8,9 +8,9 @@
 namespace pte {
 
 namespace {
-void slotOffsetCapabilities(const QRectF &slotRect, const QSize &imageSize, bool &allowX, bool &allowY)
+void slotOffsetCapabilities(qreal slotAspect, const QSize &imageSize, bool &allowX, bool &allowY)
 {
-    const qreal slotAspect = (slotRect.height() > 0.0) ? (slotRect.width() / slotRect.height()) : 1.0;
+    slotAspect = slotAspect > 0.0 ? slotAspect : 1.0;
     const qreal imageAspect = (imageSize.height() > 0) ? (static_cast<qreal>(imageSize.width()) / imageSize.height()) : slotAspect;
     allowX = imageAspect > slotAspect + 1e-6;
     allowY = imageAspect < slotAspect - 1e-6;
@@ -319,7 +319,8 @@ void ProjectState::adjustSelectedSlotOffset(qreal dx, qreal dy)
     const QSize previewSize = m_imageService
         ? m_imageService->transformedPreviewSize(slot.image, slot.rotation)
         : QSize(slot.image.previewWidth, slot.image.previewHeight);
-    slotOffsetCapabilities(slotRect, previewSize, allowX, allowY);
+    const qreal slotAspect = layout::slotAspectRatio(static_cast<int>(page->templateType), slotRect);
+    slotOffsetCapabilities(slotAspect, previewSize, allowX, allowY);
 
     const qreal nextX = allowX ? qBound(-1.0, slot.cropOffset.x() + dx, 1.0) : 0.0;
     const qreal nextY = allowY ? qBound(-1.0, slot.cropOffset.y() + dy, 1.0) : 0.0;
@@ -351,7 +352,8 @@ void ProjectState::setSelectedSlotOffset(qreal x, qreal y)
     const QSize previewSize = m_imageService
         ? m_imageService->transformedPreviewSize(slot.image, slot.rotation)
         : QSize(slot.image.previewWidth, slot.image.previewHeight);
-    slotOffsetCapabilities(slotRectNormalized(index), previewSize, allowX, allowY);
+    const qreal slotAspect = layout::slotAspectRatio(static_cast<int>(page->templateType), slotRectNormalized(index));
+    slotOffsetCapabilities(slotAspect, previewSize, allowX, allowY);
     const qreal nextX = allowX ? qBound(-1.0, x, 1.0) : 0.0;
     const qreal nextY = allowY ? qBound(-1.0, y, 1.0) : 0.0;
     if (qFuzzyCompare(slot.cropOffset.x() + 1.0, nextX + 1.0)

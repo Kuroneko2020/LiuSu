@@ -9,7 +9,7 @@ ApplicationWindow {
     minimumWidth: 1233
     minimumHeight: 888
     visible: true
-    title: "6 英寸相纸照片拼版工具"
+    title: "留素"
 
     property int currentPage: 0 // 0 home, 1 editor, 2 export, 3 settings
     readonly property bool hasTaskContext: appController.project.pageCount > 0

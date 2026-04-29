@@ -7,9 +7,9 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    QCoreApplication::setOrganizationName(QStringLiteral("PhotoTemplateEditor"));
-    QCoreApplication::setApplicationName(QStringLiteral("PhotoTemplateEditor"));
-    QApplication::setApplicationDisplayName(QStringLiteral("Photo Template Editor"));
+    QCoreApplication::setOrganizationName(QStringLiteral("Liusu"));
+    QCoreApplication::setApplicationName(QStringLiteral("Liusu"));
+    QApplication::setApplicationDisplayName(QStringLiteral("留素"));
 
     pte::AppController controller;
 
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
         QCoreApplication::exit(-1);
     }, Qt::QueuedConnection);
 
-    engine.loadFromModule("PhotoTemplateEditor", "Main");
+    engine.loadFromModule("Liusu", "Main");
 
     return app.exec();
 }

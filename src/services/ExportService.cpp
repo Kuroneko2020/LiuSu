@@ -216,6 +216,7 @@ QSize resolveOriginalQualityPageSize(const ProjectState &project, int pageIndex,
 
     qreal maxScale = std::numeric_limits<qreal>::max();
     bool hasImage = false;
+    const qreal pageAspect = layout::pageAspectRatio(templateChoice);
 
     for (int slot = 0; slot < normalizedRects.size(); ++slot) {
         if (!project.pageSlotHasImage(pageIndex, slot)) {
@@ -234,7 +235,7 @@ QSize resolveOriginalQualityPageSize(const ProjectState &project, int pageIndex,
         }
 
         const QRectF &slotRect = normalizedRects.at(slot);
-        const qreal targetRatio = slotRect.height() > 0 ? (slotRect.width() / slotRect.height()) : 1.0;
+        const qreal targetRatio = layout::slotAspectRatio(templateChoice, slotRect);
         const qreal srcRatio = srcSize.height() > 0 ? (static_cast<qreal>(srcSize.width()) / srcSize.height()) : targetRatio;
         qreal usedW = srcSize.width();
         qreal usedH = srcSize.height();
@@ -245,7 +246,7 @@ QSize resolveOriginalQualityPageSize(const ProjectState &project, int pageIndex,
                 usedH = srcSize.width() / targetRatio;
             }
         }
-        const qreal scaleX = usedW / qMax(1e-6, slotRect.width());
+        const qreal scaleX = usedW / qMax(1e-6, slotRect.width() * pageAspect);
         const qreal scaleY = usedH / qMax(1e-6, slotRect.height());
         const qreal slotMaxScale = qMax(1.0, qMin(scaleX, scaleY));
         maxScale = qMin(maxScale, slotMaxScale);
@@ -255,9 +256,8 @@ QSize resolveOriginalQualityPageSize(const ProjectState &project, int pageIndex,
         return fallback;
     }
 
-    const qreal aspect = layout::pageAspectRatio(templateChoice);
     const int pageH = qMax(1, qFloor(maxScale));
-    const int pageW = qMax(1, qRound(pageH * aspect));
+    const int pageW = qMax(1, qRound(pageH * pageAspect));
     return QSize(pageW, pageH);
 }
 
@@ -266,7 +266,7 @@ QSize resolveOriginalQualityPageSize(const ProjectState &project, int pageIndex,
 ExportService::ExportService(QObject *parent)
     : QObject(parent)
 {
-    m_cacheRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/photo-template-editor");
+    m_cacheRoot = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + QStringLiteral("/liusu");
 }
 
 ExportService::Result ExportService::exportPages(const ProjectState &project, const Request &request) const

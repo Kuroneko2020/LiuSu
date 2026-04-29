@@ -9,9 +9,9 @@ constexpr qreal kPortraitRotateThreshold = 1.05;
 constexpr qreal kBalancedMismatchThreshold = 1.5;
 }
 
-AutoLayoutDecision AutoLayoutPolicy::decide(const QString &preset, const QString &fillStrategy, const QString &orientationPolicy, qreal imageAspect, const QRectF &slotRect)
+AutoLayoutDecision AutoLayoutPolicy::decide(const QString &preset, const QString &fillStrategy, const QString &orientationPolicy, qreal imageAspect, qreal slotAspect)
 {
-    const qreal slotAspect = slotRect.width() > 0 && slotRect.height() > 0 ? slotRect.width() / slotRect.height() : 1.0;
+    slotAspect = slotAspect > 0.0 ? slotAspect : 1.0;
 
     AutoLayoutDecision d;
     if (fillStrategy == QStringLiteral("原图完整放入") || preset == QStringLiteral("证件照优先")) {
