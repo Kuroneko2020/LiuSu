@@ -1,69 +1,84 @@
-# 留素
+# 留素 (Liusu)
 
-把几张照片拼成一张可打印的 6 英寸页面，就这点事。
-
----
-
-## 适合谁用
-
-- 想把多张照片快速拼成 2 宫格、4 宫格或 9 宫格
-- 需要批量处理，统一导出，不用每次去设计软件里手动摆
-- 最终输出是打印或数字发布
+留素是一款简洁高效的桌面端照片拼版工具，帮助你将多张照片快速组合成一张 6 英寸标准相纸，支持直接打印或分享传播。
 
 ---
 
 ## 功能一览
 
-**首页** — 选择模板（2/4/9 格），手动创建任务或自动导入图片按规则分配槽位
+### 📋 模板选择
+- 提供三种固定模板：**2 格（两张拼图）**、**4 格（四张拼图）**、**9 格（九张拼图）**
+- 手动布局：逐个槽位导入，自主控制每张照片的位置
+- 自动布局：选择模板后一键自动分配导入的图片
 
-**编辑页** — 给每个槽位选图、替换、删除；支持旋转 90°、镜像、填充模式切换（完整放入 / 铺满裁切）；可以设页面背景（纯色或纹理）和构图偏移；自定义取色器
+### 🖼️ 照片编辑
+- **旋转**：每张照片可单独旋转 90°
+- **镜像**：水平翻转
+- **填充模式**：完整放入（留白）/ 铺满裁切
+- **批量导入**：一次性向当前页面所有空槽位填充图片
+- 多页面横向滚动浏览
 
-**胶片栏** — 页面缩略图横向滚动浏览，多页时拖动切换
+### 🎨 页面样式
+- **纯色背景**：自定义任意颜色
+- **纹理背景**：支持自定义纹理图片
 
-**导出页** — 导出当前页或全部；可设置命名规则、格式（JPG/PNG）、PPI（300/600/自定义）、裁切标记；原图导出模式不按 PPI 预设计算像素尺寸，但文件会写入实际物理尺寸对应的分辨率元数据
+### 📤 导出设置
+- 格式：JPG / PNG
+- 分辨率：预设 300 PPI、600 PPI 或自定义 PPI
+- 文件命名规则：组合命名 / 日期-序号
+- 裁切标记开关
+- **原图导出模式**：保留原始像素尺寸，不压缩
 
-**设置页** — 自动拼版默认参数（填充策略、方向、PPI）、缓存目录与保留时间、纹理目录管理
+### ⚙️ 设置选项
+- 默认填充策略、方向策略
+- 默认导出路径、格式、分辨率
+- 缓存目录与自动清理
+- 纹理目录管理
+- 预览质量调节
 
 ---
 
-## 技术栈
+## 运行方法
 
-| 层级 | 技术 |
-|------|------|
-| UI | QML / Qt Quick / Qt Quick Controls 2 |
-| 核心逻辑 | C++17 |
-| 构建工具 | CMake |
-| 核心模块 | AppController · ProjectState · ImageService · ExportService · AutoLayoutPolicy · TemplateLayout |
+### 环境要求
+- Qt 6.5 或更高版本（包含以下模块）：
+  - Core / Gui / Qml / Quick / QuickControls2
+- CMake 3.21+
 
----
-
-## 构建
-
-### 依赖
-
-Qt 6.5+，包含以下模块：
-
-Core · Gui · Qml · Quick · QuickControls2
-
-### 编译运行
+### 编译构建
 
 ```bash
 cmake -S . -B build
 cmake --build build
-./build/liusu
 ```
 
-如果 CMake 报找不到 `Qt6Config.cmake`，检查本机 Qt SDK 是否装全，以及 `CMAKE_PREFIX_PATH` 或 `Qt6_DIR` 环境变量是否指向了正确的 Qt 安装路径。
+如果 CMake 无法找到 Qt，请通过以下方式指定 Qt 安装路径：
+
+```bash
+cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/qt6
+# 或设置 Qt6_DIR 环境变量
+```
+
+### 启动
+
+```bash
+./build/liusu.exe
+```
 
 ---
 
-## 图片格式支持
+## 支持的图片格式
 
-导入时支持：JPG / JPEG · PNG · WebP · BMP · TIFF · HEIC / HEIF
+| 格式 | 说明 |
+|------|------|
+| JPG / JPEG | ✅ 完全支持 |
+| PNG | ✅ 完全支持 |
+| WebP | ✅ 完全支持 |
+| BMP | ✅ 完全支持 |
+| TIFF | ✅ 完全支持 |
+| HEIC / HEIF | ⚠️ 依赖系统 Qt 插件，部分系统可能无法读取 |
 
-HEIC / HEIF 依赖系统 Qt 图像插件，无插件时可能导入失败。
-
-EXIF 方向信息会在预览和导出尺寸计算中参与自动旋转。
+> EXIF 方向信息会自动应用。
 
 ---
 
@@ -71,26 +86,73 @@ EXIF 方向信息会在预览和导出尺寸计算中参与自动旋转。
 
 ```
 LiuSu/
-├── src/
-│   ├── app/          # AppController 应用入口与流程编排
-│   ├── models/      # ProjectState 项目状态模型
-│   ├── services/    # ImageService / ExportService / AutoLayoutPolicy / TemplateLayout
-│   └── main.cpp
-├── qml/
-│   ├── pages/       # HomePage / EditorPage / ExportPage / SettingsPage
-│   └── components/  # 各类可复用 QML 组件
-├── res/             # SVG 图标等资源
-└── docs/            # 产品需求文档与各阶段进度记录
+├── CMakeLists.txt          # CMake 构建配置
+├── README.md               # 项目说明文档
+├── .gitignore              # Git 忽略文件
+│
+├── docs/                   # 产品需求与开发进度文档
+│   ├── product-requirements.md
+│   └── implementation-plan.md
+│
+├── src/                    # C++ 核心代码
+│   ├── main.cpp            # 程序入口
+│   ├── app/                # 应用控制器（流程管理）
+│   │   ├── AppController.cpp
+│   │   └── AppController.h
+│   ├── models/             # 数据模型（项目状态、类型定义）
+│   │   ├── ProjectState.h / .cpp
+│   │   ├── Types.h
+│   │   └── ImageResource.h
+│   └── services/           # 服务层（图像处理、导出、自动布局）
+│       ├── ImageService.h / .cpp
+│       ├── ExportService.h / .cpp
+│       ├── TemplateLayout.h / .cpp
+│       └── AutoLayoutPolicy.h / .cpp
+│
+├── qml/                    # Qt Quick QML 界面
+│   ├── Main.qml            # 应用主窗口
+│   ├── pages/              # 四个主要页面
+│   │   ├── HomePage.qml    # 首页（模板选择）
+│   │   ├── EditorPage.qml  # 编辑页
+│   │   ├── ExportPage.qml  # 导出页
+│   │   └── SettingsPage.qml # 设置页
+│   └── components/         # 可复用 UI 组件
+│       ├── TemplateCard.qml
+│       ├── TemplateCanvas.qml
+│       ├── SlotItem.qml
+│       ├── FilmStrip.qml
+│       ├── ColorPickerDialog.qml
+│       ├── IconToolButton.qml
+│       └── PageTopBar.qml
+│
+└── res/                    # 资源文件（图标）
+    └── icons/
 ```
 
 ---
 
-## 已知限制（第一版不做）
+## 未来版本计划
+
+以下功能将在后续迭代中加入：
 
 - 自定义模板编辑器
 - 修图 / 滤镜 / 调色
 - 文字、贴纸、边框素材
-- 多图层
-- 账号系统 / 云同步
-- AI 选图 / 人脸识别
-- RAW / PSD / PDF 支持
+- 多图层支持
+- 账号系统与云同步
+- AI 自动选图
+- 人脸识别自动构图
+- RAW / PSD / PDF 文件支持
+
+---
+
+## 技术栈
+
+- **语言**：C++ (C++17)
+- **GUI 框架**：Qt Quick / QML
+- **构建系统**：CMake
+- **Qt 版本**：6.5+
+
+---
+
+> 💡 本项目**留素 (Liusu)** 由 **ChatGPT** 全权策划并通过 **Codex** 开发完成。
