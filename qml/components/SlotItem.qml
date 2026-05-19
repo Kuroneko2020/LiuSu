@@ -14,6 +14,7 @@ Rectangle {
     property bool hasImage: false
     property bool selected: false
     property string imageSource: ""
+    property string compositionSource: ""
     property bool fillCropMode: false
     property int rotationDegrees: 0
     property bool mirrored: false
@@ -27,6 +28,7 @@ Rectangle {
     readonly property bool canMoveHorizontal: fillCropMode && contentLayer.overflowX > 0
     readonly property bool canMoveVertical: fillCropMode && contentLayer.overflowY > 0
     readonly property bool canAdjustComposition: hasImage && fillCropMode && (canMoveHorizontal || canMoveVertical)
+    readonly property bool liveCompositionVisible: hasImage && fillCropMode && compositionMode && compositionSource !== ""
 
     signal addClicked()
     signal slotClicked()
@@ -69,85 +71,92 @@ Rectangle {
         color: hasImage ? "#f4f4f4" : (hovered ? "#e8edf3" : "#eef1f4")
         clip: true
 
+        Image {
+            id: renderedPhoto
+            anchors.fill: parent
+            source: imageSource
+            visible: hasImage && source !== "" && !slotRoot.liveCompositionVisible
+            fillMode: Image.Stretch
+            smooth: true
+            cache: true
+        }
+
         Item {
-            id: contentLayer
-            readonly property bool quarterTurn: Math.abs(rotationDegrees % 180) === 90
-            readonly property real baseSourceW: photo.sourceSize.width > 0 ? photo.sourceSize.width : contentViewport.width
-            readonly property real baseSourceH: photo.sourceSize.height > 0 ? photo.sourceSize.height : contentViewport.height
-            readonly property real sourceW: quarterTurn ? baseSourceH : baseSourceW
-            readonly property real sourceH: quarterTurn ? baseSourceW : baseSourceH
-            readonly property real imageAspect: sourceH > 0 ? sourceW / sourceH : 1
-            readonly property real viewportAspect: contentViewport.height > 0 ? contentViewport.width / contentViewport.height : 1
-            readonly property real fittedWidth: imageAspect >= viewportAspect ? contentViewport.width : contentViewport.height * imageAspect
-            readonly property real fittedHeight: imageAspect >= viewportAspect ? contentViewport.width / imageAspect : contentViewport.height
-            readonly property real croppedWidth: imageAspect >= viewportAspect ? contentViewport.height * imageAspect : contentViewport.width
-            readonly property real croppedHeight: imageAspect >= viewportAspect ? contentViewport.height : contentViewport.width / imageAspect
-            readonly property real layerWidth: fillCropMode ? croppedWidth : fittedWidth
-            readonly property real layerHeight: fillCropMode ? croppedHeight : fittedHeight
-            readonly property real overflowX: Math.max(0, layerWidth - contentViewport.width)
-            readonly property real overflowY: Math.max(0, layerHeight - contentViewport.height)
-            readonly property real liveOffsetX: fillCropMode && overflowX > 0 ? Math.max(-1.0, Math.min(1.0, cropOffsetX + dragDeltaX)) : 0
-            readonly property real liveOffsetY: fillCropMode && overflowY > 0 ? Math.max(-1.0, Math.min(1.0, cropOffsetY + dragDeltaY)) : 0
+            id: liveCompositionLayer
+            anchors.fill: parent
+            visible: slotRoot.liveCompositionVisible
 
-            width: Math.max(1, layerWidth)
-            height: Math.max(1, layerHeight)
-            x: (contentViewport.width - width) * 0.5 + (fillCropMode ? liveOffsetX * overflowX * 0.5 : 0)
-            y: (contentViewport.height - height) * 0.5 + (fillCropMode ? liveOffsetY * overflowY * 0.5 : 0)
+            Item {
+                id: contentLayer
+                readonly property real sourceW: compositionPhoto.sourceSize.width > 0 ? compositionPhoto.sourceSize.width : contentViewport.width
+                readonly property real sourceH: compositionPhoto.sourceSize.height > 0 ? compositionPhoto.sourceSize.height : contentViewport.height
+                readonly property real imageAspect: sourceH > 0 ? sourceW / sourceH : 1
+                readonly property real viewportAspect: contentViewport.height > 0 ? contentViewport.width / contentViewport.height : 1
+                readonly property real fittedWidth: imageAspect >= viewportAspect ? contentViewport.width : contentViewport.height * imageAspect
+                readonly property real fittedHeight: imageAspect >= viewportAspect ? contentViewport.width / imageAspect : contentViewport.height
+                readonly property real croppedWidth: imageAspect >= viewportAspect ? contentViewport.height * imageAspect : contentViewport.width
+                readonly property real croppedHeight: imageAspect >= viewportAspect ? contentViewport.height : contentViewport.width / imageAspect
+                readonly property real layerWidth: fillCropMode ? croppedWidth : fittedWidth
+                readonly property real layerHeight: fillCropMode ? croppedHeight : fittedHeight
+                readonly property real overflowX: Math.max(0, layerWidth - contentViewport.width)
+                readonly property real overflowY: Math.max(0, layerHeight - contentViewport.height)
+                readonly property real liveOffsetX: fillCropMode && overflowX > 0 ? Math.max(-1.0, Math.min(1.0, cropOffsetX + dragDeltaX)) : 0
+                readonly property real liveOffsetY: fillCropMode && overflowY > 0 ? Math.max(-1.0, Math.min(1.0, cropOffsetY + dragDeltaY)) : 0
 
-            Image {
-                id: photo
-                anchors.fill: parent
-                source: imageSource
-                visible: hasImage && source !== ""
-                fillMode: Image.Stretch
-                smooth: true
-                cache: true
-                transform: [
-                    Translate { x: photo.width / 2; y: photo.height / 2 },
-                    Rotation { angle: rotationDegrees; origin.x: 0; origin.y: 0 },
-                    Scale { xScale: mirrored ? -1 : 1; yScale: 1; origin.x: 0; origin.y: 0 },
-                    Translate { x: -photo.width / 2; y: -photo.height / 2 }
-                ]
+                width: Math.max(1, layerWidth)
+                height: Math.max(1, layerHeight)
+                x: (contentViewport.width - width) * 0.5 + (fillCropMode ? liveOffsetX * overflowX * 0.5 : 0)
+                y: (contentViewport.height - height) * 0.5 + (fillCropMode ? liveOffsetY * overflowY * 0.5 : 0)
+
+                Image {
+                    id: compositionPhoto
+                    anchors.fill: parent
+                    source: compositionSource
+                    visible: hasImage && source !== ""
+                    fillMode: Image.Stretch
+                    smooth: true
+                    cache: true
+                }
             }
+        }
 
-            MouseArea {
-                anchors.fill: contentViewport
-                enabled: hasImage && selected && fillCropMode && compositionMode
-                property real lastX
-                property real lastY
-                property real totalDx
-                property real totalDy
-                onPressed: {
-                    lastX = mouse.x
-                    lastY = mouse.y
-                    totalDx = 0
-                    totalDy = 0
-                    slotRoot.dragDeltaX = 0
-                    slotRoot.dragDeltaY = 0
-                }
-                onPositionChanged: {
-                    const dx = (mouse.x - lastX) / Math.max(1, contentViewport.width)
-                    const dy = (mouse.y - lastY) / Math.max(1, contentViewport.height)
-                    lastX = mouse.x
-                    lastY = mouse.y
-                    totalDx = contentLayer.overflowX > 0
-                        ? Math.max(-1.0 - cropOffsetX, Math.min(1.0 - cropOffsetX, totalDx + dx * 2.0))
-                        : 0
-                    totalDy = contentLayer.overflowY > 0
-                        ? Math.max(-1.0 - cropOffsetY, Math.min(1.0 - cropOffsetY, totalDy + dy * 2.0))
-                        : 0
-                    slotRoot.dragDeltaX = totalDx
-                    slotRoot.dragDeltaY = totalDy
-                }
-                onReleased: {
-                    slotRoot.contentDragFinished(slotRoot.dragDeltaX, slotRoot.dragDeltaY)
-                    slotRoot.dragDeltaX = 0
-                    slotRoot.dragDeltaY = 0
-                }
-                onCanceled: {
-                    slotRoot.dragDeltaX = 0
-                    slotRoot.dragDeltaY = 0
-                }
+        MouseArea {
+            anchors.fill: parent
+            enabled: hasImage && selected && fillCropMode && compositionMode
+            property real lastX
+            property real lastY
+            property real totalDx
+            property real totalDy
+            onPressed: {
+                lastX = mouse.x
+                lastY = mouse.y
+                totalDx = 0
+                totalDy = 0
+                slotRoot.dragDeltaX = 0
+                slotRoot.dragDeltaY = 0
+            }
+            onPositionChanged: {
+                const dx = (mouse.x - lastX) / Math.max(1, contentViewport.width)
+                const dy = (mouse.y - lastY) / Math.max(1, contentViewport.height)
+                lastX = mouse.x
+                lastY = mouse.y
+                totalDx = contentLayer.overflowX > 0
+                    ? Math.max(-1.0 - cropOffsetX, Math.min(1.0 - cropOffsetX, totalDx + dx * 2.0))
+                    : 0
+                totalDy = contentLayer.overflowY > 0
+                    ? Math.max(-1.0 - cropOffsetY, Math.min(1.0 - cropOffsetY, totalDy + dy * 2.0))
+                    : 0
+                slotRoot.dragDeltaX = totalDx
+                slotRoot.dragDeltaY = totalDy
+            }
+            onReleased: {
+                slotRoot.contentDragFinished(slotRoot.dragDeltaX, slotRoot.dragDeltaY)
+                slotRoot.dragDeltaX = 0
+                slotRoot.dragDeltaY = 0
+            }
+            onCanceled: {
+                slotRoot.dragDeltaX = 0
+                slotRoot.dragDeltaY = 0
             }
         }
     }
@@ -176,7 +185,7 @@ Rectangle {
 
     Rectangle {
         anchors.fill: parent
-        visible: hasImage && photo.status === Image.Error
+        visible: hasImage && (renderedPhoto.status === Image.Error || compositionPhoto.status === Image.Error)
         color: "#2a2a2a"
         Label {
             anchors.centerIn: parent

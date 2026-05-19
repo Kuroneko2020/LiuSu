@@ -2,6 +2,8 @@
 #include <QDir>
 
 #include <QDesktopServices>
+#include <QFileInfo>
+#include <QImage>
 #include <QImageReader>
 #include <QSettings>
 #include <QStandardPaths>
@@ -58,6 +60,36 @@ QString ppiPresetForValue(int ppi)
         return QStringLiteral("300 PPI");
     }
     return QStringLiteral("自定义 PPI");
+}
+
+QSize readOrientedImageSize(const QString &path)
+{
+    QImageReader reader(path);
+    reader.setAutoTransform(true);
+    const QImage image = reader.read();
+    return image.isNull() ? QSize{} : image.size();
+}
+
+QSize resourceOrientedSize(const ImageResource &resource)
+{
+    QSize size(resource.orientedWidth, resource.orientedHeight);
+    if (!size.isEmpty()) {
+        return size;
+    }
+    size = QSize(resource.previewWidth, resource.previewHeight);
+    if (!size.isEmpty()) {
+        return size;
+    }
+    return readOrientedImageSize(resource.exportPath);
+}
+
+QString importFailureMessage(const QString &path, const ImageService &imageService)
+{
+    const QString suffix = QFileInfo(path).suffix().toLower();
+    if (suffix == QStringLiteral("heic") || suffix == QStringLiteral("heif")) {
+        return imageService.heifSupportNote();
+    }
+    return QStringLiteral("导入失败：无法读取所选图片。");
 }
 }
 
@@ -153,8 +185,7 @@ void AppController::executeAutoLayoutWithFiles(int choice, const QVariantList &f
         const auto &resource = images.at(imported);
         m_project.assignImageToSlot(targetSlot, resource);
 
-        QImageReader reader(resource.exportPath);
-        const QSize sz = reader.size();
+        const QSize sz = resourceOrientedSize(resource);
         const qreal imageAspect = sz.height() > 0 ? static_cast<qreal>(sz.width()) / sz.height() : 1.0;
         const qreal slotAspect = layout::slotAspectRatio(m_project.currentTemplateChoice(), m_project.slotRectNormalized(targetSlot));
         const auto decision = AutoLayoutPolicy::decide(m_settings.autoPreset, m_settings.autoFill, m_settings.autoOrientation, imageAspect, slotAspect);
@@ -228,6 +259,9 @@ void AppController::importToSlotFromFile(int slotIndex, const QString &fileUrl)
 {
     const auto resource = m_imageService.normalizeAndCacheFile(toLocalPath(fileUrl));
     if (resource.exportPath.isEmpty()) {
+        m_lastExportSuccess = false;
+        m_lastExportMessage = importFailureMessage(toLocalPath(fileUrl), m_imageService);
+        emit exportResultChanged();
         return;
     }
     m_project.assignImageToSlot(slotIndex, resource);
@@ -352,16 +386,8 @@ bool AppController::clearPreviewCache()
 {
     const bool ok = m_imageService.clearCache();
     m_exportService.clearThumbnailCache();
-    if (ok) {
-        m_pageThumbnailCache.clear();
-        m_dirtyThumbnailPages.clear();
-        for (int i = 0; i < m_project.pageCount(); ++i) {
-            m_dirtyThumbnailPages.insert(i);
-            m_pageThumbnailRevisions[i] = m_pageThumbnailRevisions.value(i, 0) + 1;
-        }
-        ++m_thumbnailListRevision;
-        emit thumbnailsChanged();
-    }
+    m_project.refreshSlotPreviewResources();
+    invalidatePreviewOutputs();
     return ok;
 }
 
@@ -420,7 +446,8 @@ QString AppController::slotPreviewSource(int slotIndex, int width, int height)
     if (path.isEmpty()) {
         return {};
     }
-    return QUrl::fromLocalFile(path).toString();
+    return QUrl::fromLocalFile(path).toString()
+           + QStringLiteral("?v=%1-%2").arg(m_project.contentRevision()).arg(m_thumbnailListRevision);
 }
 
 QVariantList AppController::templateSlotRects(int choice) const
@@ -488,12 +515,15 @@ QString AppController::themePlaceholder() const { return m_settings.theme; }
 void AppController::setThemePlaceholder(const QString &value) { if (m_settings.theme == value) return; m_settings.theme = value; emit appSettingsChanged(); }
 QString AppController::cacheDirectory() const { return m_settings.cacheDir; }
 void AppController::setCacheDirectory(const QString &value) {
-    if (value.isEmpty() || m_settings.cacheDir == value) return;
-    m_settings.cacheDir = ensureDir(value);
-    m_imageService.setCacheRoot(value);
-    m_exportService.setCacheRoot(value);
+    const QString normalized = ensureDir(value);
+    if (normalized.isEmpty() || m_settings.cacheDir == normalized) return;
+    m_imageService.clearCache();
+    m_exportService.clearThumbnailCache();
+    m_settings.cacheDir = normalized;
+    m_imageService.setCacheRoot(normalized);
+    m_exportService.setCacheRoot(normalized);
     m_project.refreshSlotPreviewResources();
-    clearPreviewCache();
+    invalidatePreviewOutputs();
     persistExportDefaults();
     emit appSettingsChanged();
 }
@@ -515,10 +545,12 @@ int AppController::previewMaxEdge() const { return m_settings.previewMaxEdge; }
 void AppController::setPreviewMaxEdge(int value) {
     const int clamped = qBound(1600, value, 2560);
     if (m_settings.previewMaxEdge == clamped) return;
+    m_imageService.clearCache();
+    m_exportService.clearThumbnailCache();
     m_settings.previewMaxEdge = clamped;
     m_imageService.setPreviewMaxEdge(clamped);
     m_project.refreshSlotPreviewResources();
-    clearPreviewCache();
+    invalidatePreviewOutputs();
     persistExportDefaults();
     emit appSettingsChanged();
 }
@@ -622,6 +654,18 @@ void AppController::markPageThumbnailDirty(int pageIndex)
     if (!m_deferThumbnailSignals) {
         scheduleThumbnailSignal();
     }
+}
+
+void AppController::invalidatePreviewOutputs()
+{
+    m_pageThumbnailCache.clear();
+    m_dirtyThumbnailPages.clear();
+    for (int i = 0; i < m_project.pageCount(); ++i) {
+        m_dirtyThumbnailPages.insert(i);
+        m_pageThumbnailRevisions[i] = m_pageThumbnailRevisions.value(i, 0) + 1;
+    }
+    ++m_thumbnailListRevision;
+    emit thumbnailsChanged();
 }
 
 void AppController::scheduleThumbnailSignal()

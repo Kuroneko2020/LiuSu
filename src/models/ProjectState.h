@@ -7,6 +7,7 @@
 #include <QColor>
 #include <QPointF>
 #include <QRectF>
+#include <QSize>
 #include <QVector>
 
 namespace pte {
@@ -59,6 +60,7 @@ public:
     Q_INVOKABLE bool slotSelected(int slotIndex) const;
     Q_INVOKABLE QString slotImagePath(int slotIndex) const;
     Q_INVOKABLE QString slotImageSource(int slotIndex) const;
+    Q_INVOKABLE QString slotTransformedPreviewSource(int slotIndex) const;
     Q_INVOKABLE QString slotOriginalBaseName(int slotIndex) const;
     Q_INVOKABLE int slotRotation(int slotIndex) const;
     Q_INVOKABLE bool slotMirrored(int slotIndex) const;
@@ -104,6 +106,7 @@ public:
     [[nodiscard]] QString pageSlotImagePath(int pageIndex, int slotIndex) const;
     [[nodiscard]] QString pageSlotPreviewPath(int pageIndex, int slotIndex) const;
     [[nodiscard]] QString pageSlotOriginalBaseName(int pageIndex, int slotIndex) const;
+    [[nodiscard]] QSize pageSlotOrientedImageSize(int pageIndex, int slotIndex) const;
     [[nodiscard]] int pageSlotRotation(int pageIndex, int slotIndex) const;
     [[nodiscard]] bool pageSlotMirrored(int pageIndex, int slotIndex) const;
     [[nodiscard]] bool pageSlotFillCrop(int pageIndex, int slotIndex) const;

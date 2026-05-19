@@ -4,6 +4,7 @@
 #include "services/TemplateLayout.h"
 
 #include <QDate>
+#include <QDateTime>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -44,6 +45,30 @@ QString uniquePath(const QDir &dir, const QString &baseName, const QString &ext)
         candidate = dir.filePath(QStringLiteral("%1_%2.%3").arg(baseName).arg(idx++).arg(ext));
     }
     return candidate;
+}
+
+bool isWritableDirectory(const QDir &dir)
+{
+    const QFileInfo info(dir.absolutePath());
+    return info.exists() && info.isDir() && info.isWritable();
+}
+
+QSize readOrientedImageSize(const QString &path)
+{
+    QImageReader reader(path);
+    reader.setAutoTransform(true);
+    const QImage image = reader.read();
+    return image.isNull() ? QSize{} : image.size();
+}
+
+void applyPhysicalResolution(QImage &image, int templateChoice)
+{
+    const QSizeF mm = layout::physicalSizeMm(templateChoice);
+    if (image.isNull() || mm.width() <= 0.0 || mm.height() <= 0.0) {
+        return;
+    }
+    image.setDotsPerMeterX(qMax(1, qRound(image.width() * 1000.0 / mm.width())));
+    image.setDotsPerMeterY(qMax(1, qRound(image.height() * 1000.0 / mm.height())));
 }
 
 QString pageThumbnailCacheKey(const ProjectState &project, int pageIndex, int width, int height)
@@ -224,8 +249,10 @@ QSize resolveOriginalQualityPageSize(const ProjectState &project, int pageIndex,
         }
         hasImage = true;
 
-        QImageReader reader(project.pageSlotImagePath(pageIndex, slot));
-        QSize srcSize = reader.size();
+        QSize srcSize = project.pageSlotOrientedImageSize(pageIndex, slot);
+        if (srcSize.isEmpty()) {
+            srcSize = readOrientedImageSize(project.pageSlotImagePath(pageIndex, slot));
+        }
         if (srcSize.isEmpty()) {
             continue;
         }
@@ -278,6 +305,10 @@ ExportService::Result ExportService::exportPages(const ProjectState &project, co
         result.message = QStringLiteral("导出路径无效，请先选择有效目录。");
         return result;
     }
+    if (!isWritableDirectory(outDir)) {
+        result.message = QStringLiteral("导出路径不可写，请选择有写入权限的目录。");
+        return result;
+    }
 
     QVector<int> pageIndexes;
     if (request.scope == Scope::CurrentPage) {
@@ -308,7 +339,8 @@ ExportService::Result ExportService::exportPages(const ProjectState &project, co
         const QSize exportSize = request.originalQuality
             ? resolveOriginalQualityPageSize(project, pageIndex, fallbackSize)
             : fallbackSize;
-        const QImage canvas = renderPageImage(project, pageIndex, exportSize, request.cropMarks, false);
+        QImage canvas = renderPageImage(project, pageIndex, exportSize, request.cropMarks, false);
+        applyPhysicalResolution(canvas, project.pageTemplateChoice(pageIndex));
 
         QStringList usedNames;
         for (int slot = 0; slot < project.pageSlotCount(pageIndex); ++slot) {
@@ -378,12 +410,15 @@ QString ExportService::renderSlotPreview(const ProjectState &project, int pageIn
     const int w = qMax(16, width);
     const int h = qMax(16, height);
     const QString path = project.pageSlotPreviewPath(pageIndex, slotIndex);
-    const int rotation = 0;
-    const bool mirrored = false;
+    const int rotation = project.pageSlotRotation(pageIndex, slotIndex);
+    const bool mirrored = project.pageSlotMirrored(pageIndex, slotIndex);
     const bool fillCrop = project.pageSlotFillCrop(pageIndex, slotIndex);
     const QPointF offset = project.pageSlotOffset(pageIndex, slotIndex);
-    const QByteArray key = QStringLiteral("%1|%2|%3|%4|%5|%6|%7|%8|%9")
+    const QFileInfo sourceInfo(path);
+    const QByteArray key = QStringLiteral("%1|%2|%3|%4|%5|%6|%7|%8|%9|%10|%11")
                                .arg(path)
+                               .arg(sourceInfo.size())
+                               .arg(sourceInfo.lastModified().toMSecsSinceEpoch())
                                .arg(pageIndex)
                                .arg(slotIndex)
                                .arg(rotation)
@@ -407,7 +442,7 @@ QString ExportService::renderSlotPreview(const ProjectState &project, int pageIn
     QPainter painter(&canvas);
     painter.setRenderHint(QPainter::Antialiasing, true);
     painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-    const QImage image = transformImage(path, rotation, mirrored);
+    const QImage image = transformImage(path, 0, false);
     drawImageInRect(painter, image, QRectF(0, 0, w, h), fillCrop, offset);
     painter.end();
     canvas.save(previewPath, "PNG");

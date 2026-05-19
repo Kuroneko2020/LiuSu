@@ -7,10 +7,20 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+include(GNUInstallDirs)
+
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Widgets)
 
 qt_standard_project_setup(REQUIRES 6.5)
-qt_policy(SET QTP0004 NEW)
+set(LIUSU_QT_VERSION_FOR_POLICIES "")
+if(DEFINED QT_VERSION)
+    set(LIUSU_QT_VERSION_FOR_POLICIES "${QT_VERSION}")
+elseif(DEFINED Qt6_VERSION)
+    set(LIUSU_QT_VERSION_FOR_POLICIES "${Qt6_VERSION}")
+endif()
+if(LIUSU_QT_VERSION_FOR_POLICIES VERSION_GREATER_EQUAL "6.8.0")
+    qt_policy(SET QTP0004 NEW)
+endif()
 
 qt_add_executable(liusu
     src/main.cpp

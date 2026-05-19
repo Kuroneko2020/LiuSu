@@ -110,6 +110,7 @@ ImageResource ImageService::normalizeAndCache(const QString &path) const
     resource.originalBaseName = info.completeBaseName();
     resource.exportPath = info.absoluteFilePath();
     resource.originalLastModifiedMs = info.lastModified().toMSecsSinceEpoch();
+    resource.originalFileSize = info.size();
 
     QImage image = reader.read();
     if (image.isNull()) {
@@ -119,13 +120,17 @@ ImageResource ImageService::normalizeAndCache(const QString &path) const
         return resource;
     }
 
+    resource.orientedWidth = image.width();
+    resource.orientedHeight = image.height();
+
     if (image.width() > m_previewMaxEdge || image.height() > m_previewMaxEdge) {
         image = image.scaled(m_previewMaxEdge, m_previewMaxEdge, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
 
     const QString cacheDir = previewCacheDir();
-    const QByteArray key = QStringLiteral("%1|%2|%3|%4|%5")
+    const QByteArray key = QStringLiteral("%1|%2|%3|%4|%5|%6")
                                .arg(resource.originalPath)
+                               .arg(info.size())
                                .arg(info.lastModified().toMSecsSinceEpoch())
                                .arg(image.width())
                                .arg(image.height())
@@ -162,8 +167,10 @@ QString ImageService::transformedPreviewPath(const ImageResource &resource, int 
     const qint64 stamp = resource.originalLastModifiedMs > 0
         ? resource.originalLastModifiedMs
         : info.lastModified().toMSecsSinceEpoch();
-    const QByteArray key = QStringLiteral("%1|%2|%3|%4|%5")
+    const qint64 fileSize = resource.originalFileSize > 0 ? resource.originalFileSize : info.size();
+    const QByteArray key = QStringLiteral("%1|%2|%3|%4|%5|%6")
                                .arg(resource.originalPath.isEmpty() ? info.absoluteFilePath() : resource.originalPath)
+                               .arg(fileSize)
                                .arg(stamp)
                                .arg(m_previewMaxEdge)
                                .arg(normalizedRotation)
@@ -200,7 +207,9 @@ QSize ImageService::transformedPreviewSize(const ImageResource &resource, int ro
     QSize size(resource.previewWidth, resource.previewHeight);
     if (size.isEmpty()) {
         QImageReader reader(resource.previewPath.isEmpty() ? resource.exportPath : resource.previewPath);
-        size = reader.size();
+        reader.setAutoTransform(true);
+        const QImage image = reader.read();
+        size = image.isNull() ? QSize{} : image.size();
     }
     if ((((rotation % 360) + 360) % 180) == 90) {
         size.transpose();

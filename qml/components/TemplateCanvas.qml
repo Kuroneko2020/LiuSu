@@ -82,7 +82,12 @@ Rectangle {
                 }
                 imageSource: {
                     _rev
-                    return appController.project.slotImageSource(index)
+                    appController.thumbnailListRevision
+                    return appController.slotPreviewSource(index, Math.max(1, Math.round(width)), Math.max(1, Math.round(height)))
+                }
+                compositionSource: {
+                    _rev
+                    return appController.project.slotTransformedPreviewSource(index)
                 }
                 fillCropMode: {
                     _rev

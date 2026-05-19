@@ -141,6 +141,16 @@ QString ProjectState::slotImageSource(int slotIndex) const
     return QUrl::fromLocalFile(path).toString();
 }
 
+QString ProjectState::slotTransformedPreviewSource(int slotIndex) const
+{
+    const QString path = pageSlotPreviewPath(m_currentPageIndex, slotIndex);
+    if (path.isEmpty()) {
+        return {};
+    }
+    return QUrl::fromLocalFile(path).toString()
+           + QStringLiteral("?v=%1").arg(m_contentRevision);
+}
+
 void ProjectState::setImageService(ImageService *imageService)
 {
     m_imageService = imageService;
@@ -226,8 +236,8 @@ void ProjectState::assignImageToSlot(int slotIndex, const pte::ImageResource &re
     slot = SlotState{};
     slot.hasImage = true;
     slot.image = resource;
-    if (!slot.selected) {
-        selectSlot(slotIndex);
+    for (int i = 0; i < page->slotStates.size(); ++i) {
+        page->slotStates[i].selected = (i == slotIndex);
     }
 
     ++m_contentRevision;
@@ -501,6 +511,19 @@ QString ProjectState::pageSlotOriginalBaseName(int pageIndex, int slotIndex) con
     return slotStates.at(slotIndex).image.originalBaseName;
 }
 
+QSize ProjectState::pageSlotOrientedImageSize(int pageIndex, int slotIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= m_pages.size()) {
+        return {};
+    }
+    const auto &slotStates = m_pages.at(pageIndex).slotStates;
+    if (slotIndex < 0 || slotIndex >= slotStates.size()) {
+        return {};
+    }
+    const auto &image = slotStates.at(slotIndex).image;
+    return QSize(image.orientedWidth, image.orientedHeight);
+}
+
 int ProjectState::pageSlotRotation(int pageIndex, int slotIndex) const
 {
     if (pageIndex < 0 || pageIndex >= m_pages.size()) {
@@ -692,6 +715,11 @@ void ProjectState::refreshSlotPreviewResources()
             const ImageResource refreshed = m_imageService->refreshResource(slot.image);
             if (!refreshed.exportPath.isEmpty()) {
                 slot.image = refreshed;
+                changed = true;
+            } else if (!slot.image.previewPath.isEmpty() && slot.image.previewPath != slot.image.exportPath) {
+                slot.image.previewPath = slot.image.exportPath;
+                slot.image.previewWidth = slot.image.orientedWidth;
+                slot.image.previewHeight = slot.image.orientedHeight;
                 changed = true;
             }
         }

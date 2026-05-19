@@ -155,6 +155,7 @@ private:
     [[nodiscard]] static TemplateType toTemplateType(int choice);
     void executeAutoLayoutWithFiles(int choice, const QVariantList &fileUrls);
     void markPageThumbnailDirty(int pageIndex);
+    void invalidatePreviewOutputs();
     void scheduleThumbnailSignal();
     void handlePagesChanged();
     void loadSettings();
