@@ -1,0 +1,14 @@
+# 只读参考：旧留素项目快照，保留在本地，不进入仓库（边界见 docs/规范/文档治理规则.md）
+/references/
+
+# 操作系统杂物
+Thumbs.db
+Desktop.ini
+
+# 构建与 IDE 输出（源码阶段适用）
+build/
+build-*/
+out/
+CMakeLists.txt.user
+*.pro.user
+*.log
