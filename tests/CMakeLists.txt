@@ -6,3 +6,4 @@ target_link_libraries(tst_smoke PRIVATE Qt6::Test)
 add_test(NAME smoke COMMAND tst_smoke)
 
 add_subdirectory(domain)
+add_subdirectory(image)

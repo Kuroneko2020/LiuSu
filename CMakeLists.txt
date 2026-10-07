@@ -26,6 +26,7 @@ target_link_libraries(LiuSu PRIVATE Qt6::Quick Qt6::QuickControls2)
 
 # 领域层独立于应用壳构建，供应用与测试共同链接。
 add_subdirectory(src/domain)
+add_subdirectory(src/services)
 
 enable_testing()
 add_subdirectory(tests)
