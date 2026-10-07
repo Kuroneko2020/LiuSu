@@ -13,6 +13,8 @@ qt_standard_project_setup(REQUIRES 6.5)
 # 随子方案 02/03 落地时各自建立 CMake 目标，业务代码不得回填进 app 壳。
 qt_add_executable(LiuSu
     src/app/main.cpp
+    src/app/PreviewController.h
+    src/app/PreviewController.cpp
 )
 
 qt_add_qml_module(LiuSu
@@ -22,7 +24,24 @@ qt_add_qml_module(LiuSu
         qml/Main.qml
 )
 
+# 预览演示图：EXIF 方向测试图集嵌入资源，供渲染管线可视化验证。
+set(LIUSU_PREVIEW_IMAGES
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/exif1.jpg
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/exif3.jpg
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/exif6.jpg
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/exif8.jpg
+)
+foreach(img ${LIUSU_PREVIEW_IMAGES})
+    get_filename_component(img_name ${img} NAME)
+    set_source_files_properties(${img} PROPERTIES QT_RESOURCE_ALIAS ${img_name})
+endforeach()
+qt_add_resources(LiuSu "preview_images"
+    PREFIX "/images"
+    FILES ${LIUSU_PREVIEW_IMAGES}
+)
+
 target_link_libraries(LiuSu PRIVATE Qt6::Quick Qt6::QuickControls2)
+target_link_libraries(LiuSu PRIVATE liusu_services)
 
 # 领域层独立于应用壳构建，供应用与测试共同链接。
 add_subdirectory(src/domain)

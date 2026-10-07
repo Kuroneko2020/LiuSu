@@ -1,5 +1,8 @@
+#include "PreviewController.h"
+
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QQuickStyle>
 
 int main(int argc, char *argv[])
@@ -9,7 +12,10 @@ int main(int argc, char *argv[])
     // 界面风格稿选定前先用 Basic 风格占位；后续在 05 子方案按选定风格调整。
     QQuickStyle::setStyle(QStringLiteral("Basic"));
 
+    PreviewController preview;
+
     QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty(QStringLiteral("preview"), &preview);
     // QML 加载失败直接退出非零码，避免半启动状态被误判为可用。
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

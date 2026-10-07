@@ -4,6 +4,7 @@ qt_add_library(liusu_services STATIC
     image/ImageLoader.cpp
     image/SlotImageCacheKey.cpp
     image/ThumbnailCache.cpp
+    render/PageRenderer.cpp
 )
 
 target_link_libraries(liusu_services PUBLIC liusu_domain Qt6::Gui)

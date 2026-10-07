@@ -7,3 +7,4 @@ add_test(NAME smoke COMMAND tst_smoke)
 
 add_subdirectory(domain)
 add_subdirectory(image)
+add_subdirectory(render)
