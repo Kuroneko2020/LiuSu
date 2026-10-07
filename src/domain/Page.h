@@ -40,12 +40,12 @@ struct SolidBackground {
 };
 
 // 页面档案：一种相纸的物理尺寸定义。
-// 宽高按纸张纵向记录（短边为宽）；导出方向旋转属于导出参数，不改档案。
+// 默认横版记录（148 宽 × 100 高）；导出方向旋转属于导出参数，不改档案。
 struct PageProfile {
     QString id;
     QString displayName;
-    qreal widthMm{100.0};
-    qreal heightMm{148.0};
+    qreal widthMm{148.0};
+    qreal heightMm{100.0};
 
     bool operator==(const PageProfile& other) const;
 };

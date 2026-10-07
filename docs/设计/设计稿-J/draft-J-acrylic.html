@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>留素 · 风格稿 J 乳白亚克力展示板</title>
+<style>
+  /* ================================================================
+     留素 × 亚克力展示板材质
+     乳白半透明玻璃板 · 四角金属螺丝 · 可见板缘厚度 · 斜面反光 · 内容衬于玻璃后
+     ================================================================ */
+  :root {
+    --bg-hi: #edeae4; --bg-lo: #e0dcd2;
+    --line: rgba(28,25,18,.12); --line-soft: rgba(28,25,18,.07);
+    --ink: #1c1a16; --ink-2: #6f6a60; --ink-3: #a39c8e;
+    --signal: #d98e2b; --signal-deep: #b97517; --signal-soft: rgba(217,142,43,.16);
+    --hatch: repeating-linear-gradient(45deg, rgba(28,25,18,.055) 0 5px, transparent 5px 10px);
+    /* 亚克力板基底：奶白半透明 */
+    --acrylic: linear-gradient(158deg, rgba(253,253,251,.80) 0%, rgba(248,247,243,.62) 42%, rgba(244,243,238,.58) 100%);
+    --acrylic-edge: #e9e6de;
+    --acrylic-edge-dark: #c9c5b9;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  body { width: 1440px; font-family: "MiSans","Segoe UI","Microsoft YaHei",sans-serif; color: var(--ink);
+    background: var(--bg-hi); padding: 26px 0 44px; font-variant-numeric: tabular-nums; }
+  .artboard { display: flex; flex-direction: column; align-items: center; }
+  .artboard + .artboard { margin-top: 36px; }
+  .board-label { width: 1360px; margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--ink-2); letter-spacing: 1px; }
+  .board-label b { color: var(--signal-deep); }
+
+  .app { width: 1360px; height: 828px; border-radius: 6px; position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    background: linear-gradient(165deg, #f0ece6 0%, #e6e2d9 55%, #dcd7cb 100%);
+    border: 1px solid var(--line);
+    box-shadow: 0 2px 6px rgba(28,25,18,.06), 0 28px 70px rgba(28,25,18,.16); }
+  .app::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(640px 420px at 14% 0%, rgba(255,255,255,.8), transparent 62%),
+      radial-gradient(520px 380px at 88% 6%, rgba(217,142,43,.09), transparent 60%),
+      radial-gradient(760px 520px at 50% 118%, rgba(28,25,18,.10), transparent 65%); }
+
+  /* ================================================================
+     核心材质：亚克力展示板
+     .acrylic = 板体；.screws = 四角螺丝；.sheen = 斜面反光
+     挤出式偏移阴影 = 板材厚度
+     ================================================================ */
+  .acrylic {
+    position: relative;
+    background: var(--acrylic);
+    backdrop-filter: blur(5px) saturate(1.05);
+    border: 1px solid rgba(255,255,255,.95);
+    box-shadow:
+      inset 0 0 0 2px rgba(255,255,255,.42),
+      inset 3px 3px 12px rgba(255,255,255,.55),
+      3px 4px 0 -1px var(--acrylic-edge),      /* 挤出板缘：厚度 */
+      4px 5px 0 -1px var(--acrylic-edge-dark),
+      0 16px 38px rgba(28,25,18,.15);
+  }
+  .acrylic .sheen { position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(118deg, rgba(255,255,255,.42) 0%, rgba(255,255,255,.10) 26%, transparent 44%, rgba(255,255,255,.16) 82%, rgba(255,255,255,.34) 100%); }
+  .acrylic .screws { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+  .acrylic .screws::before { content: ""; position: absolute; inset: 8px;
+    filter: drop-shadow(0 1px 1.5px rgba(28,25,18,.45));
+    background:
+      radial-gradient(circle at 3.5px 3.5px, #ffffff 0 1.2px, #b5b1a7 1.6px 2.8px, rgba(0,0,0,0) 3.6px),
+      radial-gradient(circle at calc(100% - 3.5px) 3.5px, #ffffff 0 1.2px, #b5b1a7 1.6px 2.8px, rgba(0,0,0,0) 3.6px),
+      radial-gradient(circle at 3.5px calc(100% - 3.5px), #ffffff 0 1.2px, #b5b1a7 1.6px 2.8px, rgba(0,0,0,0) 3.6px),
+      radial-gradient(circle at calc(100% - 3.5px) calc(100% - 3.5px), #ffffff 0 1.2px, #b5b1a7 1.6px 2.8px, rgba(0,0,0,0) 3.6px);
+    background-repeat: no-repeat; }
+
+  /* ===== 顶栏：最实的亚克力板 ===== */
+  .topbar { height: 58px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 24px;
+    position: relative; z-index: 9; margin: 14px 18px 0; }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand .zh { font-size: 19px; font-weight: 700; letter-spacing: 4px; }
+  .brand .en { font-size: 9.5px; letter-spacing: 2.6px; color: var(--ink-3); font-weight: 600; }
+  .nav { display: flex; gap: 20px; height: 100%; align-items: stretch; }
+  .nav a { display: inline-flex; align-items: center; position: relative; font-size: 13.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; transition: color .18s; }
+  .nav a .idx { font-size: 9px; color: var(--ink-3); margin-right: 5px; letter-spacing: 1px; font-weight: 600; }
+  .nav a.on { color: var(--ink); }
+  .nav a.on::after { content: ""; position: absolute; left: 0; right: 0; bottom: 8px; height: 2px; background: var(--signal); }
+  .nav a.off { color: var(--ink-3); opacity: .55; cursor: default; }
+  .topbar .spacer { flex: 1; }
+  .readout { font-size: 10.5px; letter-spacing: 1.6px; color: var(--ink-3); font-weight: 600; }
+  .readout b { color: var(--ink-2); font-weight: 700; }
+  /* 玻璃按钮 = 小亚克力块 */
+  .tbtn {
+    height: 36px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 600; color: var(--ink-2); cursor: pointer;
+    transition: all .18s cubic-bezier(.25,.9,.3,1);
+  }
+  .tbtn:hover { transform: translateY(-2px); color: var(--ink); }
+  .tbtn:active { transform: scale(.96); }
+  .tbtn.hover-demo { color: var(--ink); transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--signal-soft), 3px 4px 0 -1px var(--acrylic-edge), 0 10px 20px rgba(28,25,18,.14); }
+  .tsep { width: 1px; height: 20px; background: var(--line); margin: 0 5px; }
+  .btn-primary {
+    height: 38px; padding: 0 19px; display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: #f4f1ea; font-size: 12.5px; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; transition: all .18s; box-shadow: 3px 4px 0 -1px var(--acrylic-edge-dark), 0 10px 22px rgba(28,25,18,.24);
+  }
+  .btn-primary .tick { width: 6px; height: 6px; background: var(--signal); }
+  .btn-primary:hover { background: #000; transform: translateY(-1px); }
+
+  /* ===== 页面几何（旧版 TemplateLayout.cpp） ===== */
+  .ppage { position: relative; background: #fff; width: 100%; height: 100%; overflow: hidden; }
+  .slot { position: absolute; }
+  .slot .ph { position: absolute; inset: 0; }
+  .geo-full .s1 { left: 0; top: 0; width: 100%; height: 100%; }
+  .geo-duo .s1 { left: 4.73%; top: 5%; width: 40.54%; height: 90%; }
+  .geo-duo .s2 { left: 54.73%; top: 5%; width: 40.54%; height: 90%; }
+  .geo-quad .s1 { left: 2.70%; top: 3%; width: 44.60%; height: 44%; }
+  .geo-quad .s2 { left: 52.70%; top: 3%; width: 44.60%; height: 44%; }
+  .geo-quad .s3 { left: 2.70%; top: 53%; width: 44.60%; height: 44%; }
+  .geo-quad .s4 { left: 52.70%; top: 53%; width: 44.60%; height: 44%; }
+  .geo-grid9 .p1 { left: 0.45%; top: 0.67%; } .geo-grid9 .p2 { left: 33.78%; top: 0.67%; } .geo-grid9 .p3 { left: 67.12%; top: 0.67%; }
+  .geo-grid9 .p4 { left: 0.45%; top: 34%; } .geo-grid9 .p5 { left: 33.78%; top: 34%; } .geo-grid9 .p6 { left: 67.12%; top: 34%; }
+  .geo-grid9 .p7 { left: 0.45%; top: 67.33%; } .geo-grid9 .p8 { left: 33.78%; top: 67.33%; } .geo-grid9 .p9 { left: 67.12%; top: 67.33%; }
+  .geo-grid9 .slot { width: 32.43%; height: 32%; }
+  .h1 { background: linear-gradient(140deg,#e8c896,#cf9455 60%,#a96a3d); }
+  .h2 { background: linear-gradient(160deg,#b7c9b0,#7f9a7d 60%,#546b56); }
+  .h3 { background: linear-gradient(150deg,#aeb6c2,#79839a 55%,#4d5670); }
+  .h4 { background: linear-gradient(155deg,#d6b5a4,#b07d63 60%,#7c4f3b); }
+  .h5 { background: linear-gradient(150deg,#d9cfa8,#b3a267 55%,#7d7040); }
+  .h6 { background: linear-gradient(160deg,#c2cfc4,#8ba391 55%,#59725f); }
+  .h7 { background: linear-gradient(140deg,#c5cdd8,#95a0b4); }
+  .h8 { background: linear-gradient(155deg,#d8c2b6,#ab8874); }
+  .h9 { background: linear-gradient(150deg,#cfc9b4,#a29c7e); }
+
+  /* ================================================================
+     主页：照片装裱在亚克力展示板后（衬于玻璃后微微发雾）
+     ================================================================ */
+  .home { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 38px; }
+  .home-brand { display: flex; align-items: flex-end; gap: 26px; }
+  .brand-block .l1 { font-size: 36px; font-weight: 700; letter-spacing: 10px; }
+  .brand-block .l2 { font-size: 12px; font-weight: 600; letter-spacing: 4.2px; color: var(--ink-2); margin-top: 4px; }
+  .brand-block .l3 { font-size: 10px; font-weight: 600; letter-spacing: 3.4px; color: var(--ink-3); margin-top: 3px; }
+  .brand-block .l3 em { font-style: normal; color: var(--signal-deep); }
+  .home-brand .desc { font-size: 12px; color: var(--ink-2); line-height: 1.9; border-left: 1px solid var(--line); padding-left: 22px; }
+
+  .frames { display: flex; gap: 40px; }
+  .frame {
+    width: 244px; height: 320px; cursor: pointer; position: relative;
+    transform: rotate(var(--tilt, 0deg));
+    transition: transform .3s cubic-bezier(.25,.9,.3,1);
+  }
+  .frame:hover { transform: rotate(0deg) translateY(-6px); }
+  .frame.sel { transform: rotate(0deg) translateY(-6px) scale(1.03); }
+  /* 衬在玻璃后的照片页：横向 148:100，微微发雾 */
+  .frame .mount {
+    position: absolute; left: 50%; top: 88px; transform: translateX(-50%);
+    width: 196px; height: 132.5px; background: #fff;
+    box-shadow: 0 2px 6px rgba(28,25,18,.14);
+  }
+  /* 玻璃后的雾感 */
+  .frame .haze { position: absolute; inset: 0; background: linear-gradient(160deg, rgba(250,250,248,.24), rgba(250,250,248,.06) 50%, rgba(250,250,248,.20)); }
+  /* 亚克力板盖在照片上：比照片大一圈；照片保持清晰，只要一点奶雾 */
+  .frame .pane { position: absolute; inset: 0; border-radius: 2px; backdrop-filter: blur(1.2px); }
+  .frame .fcode {
+    position: absolute; left: 0; right: 0; top: 16px; padding: 0 18px;
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 10.5px; letter-spacing: 1.8px; color: var(--ink-2); font-weight: 700;
+  }
+  .frame .fcode b { color: var(--ink); }
+  .frame.sel .fcode b { color: var(--signal-deep); }
+  .frame .fname { position: absolute; left: 0; right: 0; bottom: 46px; text-align: center;
+    font-size: 14px; font-weight: 700; letter-spacing: 1.5px; }
+  .frame .fsub { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center;
+    font-size: 9.5px; letter-spacing: 2px; color: var(--ink-3); font-weight: 600; }
+  .frame .factions {
+    position: absolute; left: 0; right: 0; top: 52px; display: flex; justify-content: center; gap: 8px;
+    opacity: 0; transform: translateY(-6px); transition: all .25s cubic-bezier(.25,.9,.3,1); z-index: 7;
+  }
+  .frame.sel .factions { opacity: 1; transform: translateY(0); }
+  .ovbtn { height: 38px; padding: 0 15px; display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12px; font-weight: 700; letter-spacing: 1.5px; cursor: pointer; transition: all .18s; }
+  .ovbtn.a { background: rgba(255,255,255,.95); color: var(--ink); border: 1px solid var(--ink); }
+  .ovbtn.a:hover { background: var(--ink); color: #f4f1ea; }
+  .ovbtn.b { background: var(--ink); color: #f4f1ea; }
+  .ovbtn.b .tick { width: 6px; height: 6px; background: var(--signal); }
+  .ground { width: 820px; height: 42px; margin-top: -10px; background: radial-gradient(closest-side, rgba(28,25,18,.17), transparent 78%); }
+  .home-foot { font-size: 11.5px; color: var(--ink-3); letter-spacing: 1.5px; }
+  .home-foot b { color: var(--ink-2); }
+
+  /* ===== 编辑页 ===== */
+  .editor { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .bgrow { height: 52px; flex: none; margin: 14px 18px 0; z-index: 6;
+    display: flex; align-items: center; gap: 13px; padding: 0 18px; }
+  .bgrow .lab { font-size: 10.5px; font-weight: 700; letter-spacing: 2.2px; color: var(--ink-3); line-height: 1.5; }
+  .bgrow .lab b { display: block; font-size: 12.5px; color: var(--ink); letter-spacing: 1px; }
+  .seg-s { display: flex; border: 1px solid var(--line); background: rgba(255,255,255,.5); }
+  .seg-s i { font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--ink-2); padding: 6px 14px; cursor: pointer; transition: all .18s; }
+  .seg-s i.on { background: var(--ink); color: #f4f1ea; }
+  .sw { width: 22px; height: 22px; cursor: pointer; border: 1px solid rgba(255,255,255,.8);
+    box-shadow: inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 0 0 1px var(--line), 0 2px 5px rgba(28,25,18,.12);
+    transition: all .18s cubic-bezier(.25,1.2,.4,1); }
+  .sw:hover { transform: translateY(-2px) scale(1.06); }
+  .sw.on { outline: 2px solid var(--signal); outline-offset: 2px; }
+  .rainbow { background: conic-gradient(#c96a5a,#c9a05a,#8fae72,#6a93a8,#8a7aa8,#c96a5a); }
+  .bgrow .hint { margin-left: auto; font-size: 10.5px; letter-spacing: 1.2px; color: var(--ink-3); }
+
+  .workbench { flex: 1; margin: 14px 18px; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(560px 380px at 50% 40%, rgba(255,255,255,.5), transparent 70%), #dcd7cb;
+    border: 1px solid var(--line); box-shadow: inset 0 2px 12px rgba(28,25,18,.10);
+    perspective: 1600px; }
+  .workbench::before { content: ""; position: absolute; inset: 0; transform: rotateX(14deg) scale(1.12); transform-origin: 50% 100%;
+    background: linear-gradient(rgba(28,25,18,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(28,25,18,.04) 1px, transparent 1px);
+    background-size: 38px 38px; }
+  .deskwrap { position: relative; z-index: 2; transform-style: preserve-3d; transform: rotateX(5deg); }
+  .page-tag { position: absolute; left: -2px; top: -36px; display: flex; align-items: center; gap: 8px;
+    font-size: 10px; letter-spacing: 1.8px; color: var(--ink-2); font-weight: 600; transform: translateZ(6px); }
+  .page-tag b { color: var(--ink); }
+  .page-tag .amber { width: 18px; height: 3px; background: var(--signal); }
+  .paper { width: 484px; height: 327px; background: #fff; position: relative; transform-style: preserve-3d;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 2px 4px rgba(28,25,18,.10), 0 24px 48px rgba(28,25,18,.24); }
+  .paper .slot.sel { outline: 2px solid var(--signal); outline-offset: -2px; }
+  .paper .edge-b { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; background: linear-gradient(180deg, #d9d4c8, #b0aa9a); transform-origin: center bottom; transform: rotateX(-90deg); }
+  .paper .edge-r { position: absolute; top: 0; bottom: 0; right: 0; width: 8px; background: linear-gradient(90deg, #efece4, #c6c0b1); transform-origin: left center; transform: rotateY(90deg); }
+  /* 亚克力工具板：浮在纸面上，带螺丝 */
+  .slot-tools { position: absolute; left: 50%; bottom: -18px; transform: translateZ(30px);
+    display: flex; align-items: center; gap: 2px; padding: 4px 5px;
+    box-shadow: 3px 4px 0 -1px var(--acrylic-edge), 4px 5px 0 -1px var(--acrylic-edge-dark), 0 14px 30px rgba(28,25,18,.3); }
+  .slot-tools i { font-style: normal; width: 38px; height: 32px; display: flex; align-items: center; justify-content: center;
+    color: var(--ink); font-size: 14px; cursor: pointer; transition: all .15s; position: relative; z-index: 3; }
+  .slot-tools i:hover { background: var(--signal); color: #fff; }
+  .cropmark { position: absolute; width: 18px; height: 18px; transform: translateZ(4px); }
+  .cropmark::before, .cropmark::after { content: ""; position: absolute; background: rgba(28,25,18,.5); }
+  .cropmark::before { width: 100%; height: 1px; }
+  .cropmark::after { width: 1px; height: 100%; }
+  .cropmark.tl { top: -19px; left: -19px; } .cropmark.tl::before { bottom: 0; } .cropmark.tl::after { right: 0; }
+  .cropmark.tr { top: -19px; right: -19px; } .cropmark.tr::before { bottom: 0; } .cropmark.tr::after { left: 0; }
+  .cropmark.bl { bottom: -19px; left: -19px; } .cropmark.bl::before { top: 0; } .cropmark.bl::after { right: 0; }
+  .cropmark.br { bottom: -19px; right: -19px; } .cropmark.br::before { top: 0; } .cropmark.br::after { left: 0; }
+  .zoom { position: absolute; right: 22px; bottom: 18px; z-index: 5; display: flex; align-items: center; gap: 10px;
+    padding: 7px 14px; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--ink-2); }
+  .zoom .zb { color: var(--ink-3); cursor: pointer; }
+
+  .filmstrip { height: 90px; flex: none; margin: 0 18px 18px; z-index: 6;
+    display: flex; align-items: center; gap: 16px; padding: 0 18px; }
+  .filmstrip .flab { font-size: 10.5px; font-weight: 700; letter-spacing: 2.2px; color: var(--ink-3); line-height: 1.6; }
+  .filmstrip .flab b { display: block; font-size: 12.5px; color: var(--ink); letter-spacing: 1px; }
+  .fpages { display: flex; gap: 14px; align-items: center; flex: 1; overflow: hidden; }
+  .fpage { height: 58px; aspect-ratio: 148 / 100; background: #fff; position: relative; cursor: pointer;
+    border: 1px solid var(--line); transition: all .18s; overflow: hidden;
+    box-shadow: 0 4px 10px rgba(28,25,18,.10); }
+  .fpage:hover { transform: translateY(-3px); }
+  .fpage.on { border-color: transparent; box-shadow: 0 0 0 2px var(--signal), 0 8px 20px rgba(217,142,43,.25); }
+  .fpage.on::after { content: ""; position: absolute; left: -1px; top: -1px; bottom: -1px; width: 3px; background: var(--signal); }
+  .fpage .thumb { position: absolute; inset: 3px; }
+  .fpage .thumb .s { position: absolute; overflow: hidden; }
+  .fpage .thumb .s .ph { position: absolute; inset: 0; }
+  .fpage .code { position: absolute; left: 0; right: 0; bottom: 0; height: 13px; background: rgba(28,25,18,.78); color: #efece4;
+    font-size: 7.5px; letter-spacing: 1.5px; display: flex; align-items: center; justify-content: center; }
+  .fadd { width: 84px; height: 58px; border: 1px dashed rgba(28,25,18,.28); display: flex; align-items: center; justify-content: center;
+    color: var(--ink-3); font-size: 17px; cursor: pointer; transition: all .18s; }
+  .fadd:hover { border-color: var(--signal); color: var(--signal-deep); background: var(--signal-soft); }
+  .fnote { font-size: 10.5px; letter-spacing: 1.2px; color: var(--ink-3); }
+  .toast { position: absolute; right: 26px; bottom: 122px; z-index: 20;
+    display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    font-size: 12px; font-weight: 600; color: var(--ink-2); border-left: 3px solid var(--signal); }
+  .toast b { color: var(--ink); }
+  .toast .ok { width: 16px; height: 16px; border-radius: 50%; background: var(--signal); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; }
+
+  /* 导出弹窗：整块亚克力板，背后磨砂 */
+  .modal-layer { position: absolute; inset: 0; z-index: 30; background: rgba(237,234,228,.38); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; }
+  .modal { width: 470px; padding: 24px 26px 22px; }
+  .modal .mtitle { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .modal .mtitle .cn { font-size: 16px; font-weight: 700; letter-spacing: 2px; }
+  .modal .mtitle .en { font-size: 9.5px; letter-spacing: 2.4px; color: var(--ink-3); font-weight: 600; }
+  .modal .mreadout { font-size: 11px; color: var(--ink-2); letter-spacing: .8px; line-height: 2; margin: 8px 0 4px; }
+  .modal .mreadout b { color: var(--ink); font-weight: 700; }
+  .modal .mrow { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--line-soft); font-size: 12.5px; font-weight: 600; }
+  .modal .mrow .lab2 { color: var(--ink-2); font-size: 11px; letter-spacing: 1.5px; font-weight: 700; }
+  .mprogress { height: 3px; background: rgba(28,25,18,.08); margin: 14px 0 18px; position: relative; }
+  .mprogress i { position: absolute; left: 0; top: 0; bottom: 0; width: 64%; background: var(--signal); }
+  .mactions { display: flex; justify-content: flex-end; gap: 12px; align-items: center; }
+</style>
+</head>
+<body>
+
+<!-- ============ ① 主页：照片装裱在亚克力展示板后 ============ -->
+<div class="artboard">
+  <div class="board-label">① <b>主页</b> — 照片衬在乳白亚克力板后 · 四角螺丝 · 可见板缘厚度（对照你附图的展示框）</div>
+  <div class="app">
+    <div class="topbar acrylic">
+      <div class="sheen"></div><div class="screws"></div>
+      <div class="brand"><span class="zh">留素</span><span class="en">LIUSU IMPRINT</span></div>
+      <div class="nav"><a class="on"><span class="idx">01</span>主页</a><a class="off"><span class="idx">02</span>编辑</a><a><span class="idx">03</span>设置</a></div>
+      <div class="spacer"></div>
+      <div class="readout">PAGE <b>148 × 100 MM</b>&nbsp;&nbsp;·&nbsp;&nbsp;OUTPUT <b>300 PPI</b></div>
+    </div>
+    <div class="home">
+      <div class="home-brand">
+        <div class="brand-block">
+          <div class="l1">留素</div>
+          <div class="l2">LIUSU LAYOUT SYSTEM</div>
+          <div class="l3">IMPRINT <em>OS</em> — VER 0.1</div>
+        </div>
+        <div class="desc">导入照片，选择布局，<br>导出后沿裁切线分割。<br>为 6 英寸相纸打印机而生。</div>
+      </div>
+      <div class="frames">
+        <div class="frame" style="--tilt:-1.2deg">
+          <div class="mount"><div class="ppage geo-full"><div class="slot s1"><div class="ph h1"></div></div></div><div class="haze"></div></div>
+          <div class="pane acrylic"><div class="sheen"></div></div>
+          <div class="pane screws-holder acrylic" style="background:none;box-shadow:none;border:none;backdrop-filter:none"><div class="screws"></div></div>
+          <div class="fcode"><b>LY-01</b>单张全幅 · SINGLE</div>
+          <div class="fname">单张全幅</div><div class="fsub">148 × 100 · 1 SLOT</div>
+        </div>
+        <div class="frame" style="--tilt:.8deg">
+          <div class="mount"><div class="ppage geo-duo"><div class="slot s1"><div class="ph h2"></div></div><div class="slot s2"><div class="ph h5"></div></div></div><div class="haze"></div></div>
+          <div class="pane acrylic"><div class="sheen"></div></div>
+          <div class="pane acrylic" style="background:none;box-shadow:none;border:none;backdrop-filter:none"><div class="screws"></div></div>
+          <div class="fcode"><b>LY-02</b>竖照双联 · DUO</div>
+          <div class="fname">二宫格</div><div class="fsub">60 × 90 · 2 SLOTS</div>
+        </div>
+        <div class="frame sel">
+          <div class="mount"><div class="ppage geo-quad"><div class="slot s1"><div class="ph h1"></div></div><div class="slot s2"><div class="ph h2"></div></div><div class="slot s3"><div class="ph h3"></div></div><div class="slot s4"><div class="ph h4"></div></div></div><div class="haze"></div></div>
+          <div class="pane acrylic"><div class="sheen"></div></div>
+          <div class="pane acrylic" style="background:none;box-shadow:none;border:none;backdrop-filter:none"><div class="screws"></div></div>
+          <div class="fcode"><b>LY-03</b>四宫格 · QUAD</div>
+          <div class="factions">
+            <div class="ovbtn a">手动排版</div>
+            <div class="ovbtn b"><span class="tick"></span>自动填充照片</div>
+          </div>
+          <div class="fname">四宫格</div><div class="fsub">66 × 44 · 4 SLOTS</div>
+        </div>
+        <div class="frame" style="--tilt:1.4deg">
+          <div class="mount"><div class="ppage geo-grid9"><div class="slot p1"><div class="ph h5"></div></div><div class="slot p2"><div class="ph h6"></div></div><div class="slot p3"><div class="ph h7"></div></div><div class="slot p4"><div class="ph h8"></div></div><div class="slot p5"><div class="ph h9"></div></div><div class="slot p6"><div class="ph h1"></div></div><div class="slot p7"><div class="ph h3"></div></div><div class="slot p8"><div class="ph h2"></div></div><div class="slot p9"><div class="ph h4"></div></div></div><div class="haze"></div></div>
+          <div class="pane acrylic"><div class="sheen"></div></div>
+          <div class="pane acrylic" style="background:none;box-shadow:none;border:none;backdrop-filter:none"><div class="screws"></div></div>
+          <div class="fcode"><b>LY-04</b>九宫格 · GRID-9</div>
+          <div class="fname">九宫格</div><div class="fsub">48 × 32 · 9 SLOTS</div>
+        </div>
+      </div>
+      <div class="ground"></div>
+      <div class="home-foot">点击展示板选择布局 — <b>手动排版</b> 逐格放置 / <b>自动填充</b> 批量导入自动分配</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ② 编辑页 + 导出弹窗 ============ -->
+<div class="artboard">
+  <div class="board-label">② <b>编辑页 + 导出弹窗</b> — 面板/工具板/胶片栏全部亚克力器件 · 弹窗背后整层磨砂</div>
+  <div class="app">
+    <div class="topbar acrylic">
+      <div class="sheen"></div><div class="screws"></div>
+      <div class="brand"><span class="zh">留素</span><span class="en">LIUSU IMPRINT</span></div>
+      <div class="nav"><a><span class="idx">01</span>主页</a><a class="on"><span class="idx">02</span>编辑</a><a><span class="idx">03</span>设置</a></div>
+      <div class="spacer"></div>
+      <div class="tbtn">⇪ 批量导入</div>
+      <div class="tbtn">＋ 新建页</div>
+      <div class="tsep"></div>
+      <div class="tbtn hover-demo">↓ 导出本页</div>
+      <div class="tbtn">⇊ 导出全部</div>
+      <div class="tsep"></div>
+      <div class="tbtn danger">🗑</div>
+      <div class="btn-primary"><span class="tick"></span>保存项目</div>
+    </div>
+    <div class="editor">
+      <div class="bgrow acrylic">
+        <div class="sheen"></div><div class="screws"></div>
+        <div class="lab">BACKGROUND<b>背景</b></div>
+        <div class="seg-s"><i class="on">纯色</i><i>纹理</i></div>
+        <div class="sw on" style="background:#ffffff"></div>
+        <div class="sw" style="background:#f5f0e6"></div>
+        <div class="sw" style="background:#efe4d2"></div>
+        <div class="sw" style="background:#dce5dc"></div>
+        <div class="sw" style="background:#dde6f0"></div>
+        <div class="sw" style="background:#eadada"></div>
+        <div class="sw" style="background:#2f3338"></div>
+        <div class="sw rainbow"></div>
+        <span class="hint">SELECT A SLOT → 旋转 / 镜像 / 更换 / 清除</span>
+      </div>
+      <div class="workbench">
+        <div class="deskwrap">
+          <div class="page-tag"><span class="amber"></span><b>PG-001</b>四宫格 · QUAD · 148×100 MM</div>
+          <div class="paper">
+            <div class="cropmark tl"></div><div class="cropmark tr"></div><div class="cropmark bl"></div><div class="cropmark br"></div>
+            <div class="slot geo-quad s1"><div class="ph h1"></div></div>
+            <div class="slot geo-quad s2"><div class="ph h2"></div></div>
+            <div class="slot geo-quad s3 sel"><div class="ph h3"></div>
+              <div class="slot-tools acrylic">
+                <div class="sheen"></div><div class="screws"></div>
+                <i>⟳</i><i>⇋</i><i>▢</i><i>⇪</i><i>✕</i>
+              </div>
+            </div>
+            <div class="slot geo-quad s4"><div class="ph h4"></div></div>
+            <div class="edge-b"></div><div class="edge-r"></div>
+          </div>
+        </div>
+        <div class="zoom acrylic">
+          <div class="sheen"></div><div class="screws"></div>
+          <span class="zb">−</span> 100% <span class="zb">＋</span>
+        </div>
+        <div class="toast acrylic">
+          <div class="sheen"></div><div class="screws"></div>
+          <span class="ok">✓</span><span><b>已保存</b> · 项目写入完成 · 128 KB</span>
+        </div>
+      </div>
+      <div class="filmstrip acrylic">
+        <div class="sheen"></div><div class="screws"></div>
+        <div class="flab">FILMSTRIP<b>页队列</b></div>
+        <div class="fpages">
+          <div class="fpage on">
+            <div class="thumb geo-quad"><div class="s s1"><div class="ph h1"></div></div><div class="s s2"><div class="ph h2"></div></div><div class="s s3"><div class="ph h3"></div></div><div class="s s4"><div class="ph h4"></div></div></div>
+            <div class="code">PG-001</div>
+          </div>
+          <div class="fpage">
+            <div class="thumb geo-quad"><div class="s s1"><div class="ph h2"></div></div><div class="s s2"><div class="ph h1"></div></div><div class="s s3"><div class="ph h4"></div></div><div class="s s4"><div class="ph h3"></div></div></div>
+            <div class="code">PG-002</div>
+          </div>
+          <div class="fpage">
+            <div class="thumb geo-quad"><div class="s s1"><div class="ph h3"></div></div><div class="s s2"><div class="ph h4"></div></div><div class="s s3"><div class="ph h1"></div></div><div class="s s4"><div class="ph h2"></div></div></div>
+            <div class="code">PG-003</div>
+          </div>
+          <div class="fadd">＋</div>
+          <span class="fnote">连续排多页 · 整队导出</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-layer">
+      <div class="modal acrylic">
+        <div class="sheen"></div><div class="screws"></div>
+        <div class="mtitle"><span class="cn">导出当前页</span><span class="en">EXPORT · PG-001</span></div>
+        <div class="mreadout">目标 <b>PG-001 · 四宫格 QUAD</b><br>画布 <b>148 × 100 MM</b> · 输出 <b>1752 × 1181 PX</b> · <b>300 PPI</b></div>
+        <div class="mrow"><span class="lab2">FORMAT 格式</span><div class="seg-s"><i class="on">JPEG</i><i>PNG</i></div></div>
+        <div class="mrow"><span class="lab2">ESTIMATE 预计</span><span>约 3.2 MB · 1 张</span></div>
+        <div class="mprogress"><i></i></div>
+        <div class="mactions">
+          <div class="ovbtn a">取消</div>
+          <div class="btn-primary"><span class="tick"></span>导出</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

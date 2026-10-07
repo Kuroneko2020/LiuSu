@@ -33,6 +33,18 @@ bool isValidColorHex(const QString& hex)
     return colorHexPattern().match(hex).hasMatch();
 }
 
+QJsonObject serializeLayout(const LayoutModel& layout)
+{
+    QJsonArray slotRectArray;
+    for (const NormalizedRect& rect : layout.slotRects) {
+        slotRectArray.append(QJsonObject{ { QStringLiteral("x"), rect.x },
+                                          { QStringLiteral("y"), rect.y },
+                                          { QStringLiteral("width"), rect.width },
+                                          { QStringLiteral("height"), rect.height } });
+    }
+    return QJsonObject{ { QStringLiteral("slots"), slotRectArray } };
+}
+
 QJsonObject serializeSlot(const SlotImageState& state)
 {
     QJsonObject obj;
@@ -89,12 +101,9 @@ std::optional<SlotImageState> parseSlot(const QJsonObject& obj, QString* error)
     return state;
 }
 
-std::optional<LayoutModel> parseLayout(const QJsonObject& root, QString* error)
+std::optional<LayoutModel> parseLayout(const QJsonObject& layoutObj, QString* error)
 {
-    const QJsonValue layoutValue = root.value(QStringLiteral("layout"));
-    if (!layoutValue.isObject())
-        return std::nullopt;
-    const QJsonArray slotRects = layoutValue.toObject().value(QStringLiteral("slots")).toArray();
+    const QJsonArray slotRects = layoutObj.value(QStringLiteral("slots")).toArray();
     if (slotRects.isEmpty()) {
         *error = QStringLiteral("布局至少需要一个槽位");
         return std::nullopt;
@@ -125,6 +134,35 @@ std::optional<LayoutModel> parseLayout(const QJsonObject& root, QString* error)
     return model;
 }
 
+std::optional<ProjectPage> parsePage(const QJsonObject& pageObj, QString* error)
+{
+    const QJsonValue layoutValue = pageObj.value(QStringLiteral("layout"));
+    if (!layoutValue.isObject())
+        return std::nullopt;
+
+    ProjectPage page;
+    const std::optional<LayoutModel> layout = parseLayout(layoutValue.toObject(), error);
+    if (!layout)
+        return std::nullopt;
+    page.layout = *layout;
+
+    const QJsonArray slotStates = pageObj.value(QStringLiteral("slotStates")).toArray();
+    if (slotStates.size() != page.layout.slotRects.size()) {
+        *error = QStringLiteral("槽位图片状态数量(%1)与布局槽位数量(%2)不一致")
+                     .arg(slotStates.size()).arg(page.layout.slotRects.size());
+        return std::nullopt;
+    }
+    for (const QJsonValue& value : slotStates) {
+        if (!value.isObject())
+            return std::nullopt;
+        const std::optional<SlotImageState> state = parseSlot(value.toObject(), error);
+        if (!state)
+            return std::nullopt;
+        page.slotStates.append(*state);
+    }
+    return page;
+}
+
 } // namespace
 
 bool ExportSettings::operator==(const ExportSettings& other) const
@@ -133,15 +171,7 @@ bool ExportSettings::operator==(const ExportSettings& other) const
         && jpegQuality == other.jpegQuality && originalMode == other.originalMode;
 }
 
-ProjectDocument ProjectDocument::createDefault()
-{
-    ProjectDocument doc;
-    doc.layout = LayoutPresets::create(QStringLiteral("single"));
-    doc.slotStates = QList<SlotImageState>{ SlotImageState{} };
-    return doc;
-}
-
-bool ProjectDocument::isValid() const
+bool ProjectPage::isValid() const
 {
     if (!layout.isValid())
         return false;
@@ -151,6 +181,32 @@ bool ProjectDocument::isValid() const
         if (!isValidRotation(state.rotationDegrees))
             return false;
         if (!isValidCropOffset(state.cropOffsetX) || !isValidCropOffset(state.cropOffsetY))
+            return false;
+    }
+    return true;
+}
+
+bool ProjectPage::operator==(const ProjectPage& other) const
+{
+    return layout == other.layout && slotStates == other.slotStates;
+}
+
+ProjectDocument ProjectDocument::createDefault()
+{
+    ProjectDocument doc;
+    ProjectPage page;
+    page.layout = LayoutPresets::create(QStringLiteral("single"));
+    page.slotStates = QList<SlotImageState>{ SlotImageState{} };
+    doc.pages = QList<ProjectPage>{ page };
+    return doc;
+}
+
+bool ProjectDocument::isValid() const
+{
+    if (pages.isEmpty())
+        return false;
+    for (const ProjectPage& page : pages) {
+        if (!page.isValid())
             return false;
     }
     if (!isValidColorHex(background.colorHex))
@@ -165,24 +221,22 @@ bool ProjectDocument::isValid() const
 bool ProjectDocument::operator==(const ProjectDocument& other) const
 {
     return version == other.version && pageProfileId == other.pageProfileId
-        && printerProfileId == other.printerProfileId && layout == other.layout
-        && slotStates == other.slotStates && background == other.background
-        && exportSettings == other.exportSettings;
+        && printerProfileId == other.printerProfileId && pages == other.pages
+        && background == other.background && exportSettings == other.exportSettings;
 }
 
 QByteArray serializeProject(const ProjectDocument& document)
 {
-    QJsonArray slotRectArray;
-    for (const NormalizedRect& rect : document.layout.slotRects) {
-        slotRectArray.append(QJsonObject{ { QStringLiteral("x"), rect.x },
-                                          { QStringLiteral("y"), rect.y },
-                                          { QStringLiteral("width"), rect.width },
-                                          { QStringLiteral("height"), rect.height } });
+    QJsonArray pagesArray;
+    for (const ProjectPage& page : document.pages) {
+        QJsonArray slotStateArray;
+        for (const SlotImageState& state : page.slotStates)
+            slotStateArray.append(serializeSlot(state));
+        QJsonObject pageObj;
+        pageObj.insert(QStringLiteral("layout"), serializeLayout(page.layout));
+        pageObj.insert(QStringLiteral("slotStates"), slotStateArray);
+        pagesArray.append(pageObj);
     }
-
-    QJsonArray slotStateArray;
-    for (const SlotImageState& state : document.slotStates)
-        slotStateArray.append(serializeSlot(state));
 
     QJsonObject exportObj;
     exportObj.insert(QStringLiteral("ppi"), document.exportSettings.ppi);
@@ -197,9 +251,7 @@ QByteArray serializeProject(const ProjectDocument& document)
     root.insert(QStringLiteral("version"), document.version);
     root.insert(QStringLiteral("page"), document.pageProfileId);
     root.insert(QStringLiteral("printer"), document.printerProfileId);
-    root.insert(QStringLiteral("layout"),
-                QJsonObject{ { QStringLiteral("slots"), slotRectArray } });
-    root.insert(QStringLiteral("slotStates"), slotStateArray);
+    root.insert(QStringLiteral("pages"), pagesArray);
     root.insert(QStringLiteral("background"), document.background.colorHex);
     root.insert(QStringLiteral("export"), exportObj);
 
@@ -239,25 +291,21 @@ ProjectParseResult parseProject(const QByteArray& json)
     if (document.pageProfileId.isEmpty() || document.printerProfileId.isEmpty())
         return { {}, QStringLiteral("缺少页面或打印机档案 id"), false };
 
-    QString error;
-    const std::optional<LayoutModel> layout = parseLayout(root, &error);
-    if (!layout)
-        return { {}, error.isEmpty() ? QStringLiteral("布局字段缺失或类型错误") : error, false };
-    document.layout = *layout;
+    const QJsonValue pagesValue = root.value(QStringLiteral("pages"));
+    if (!pagesValue.isArray())
+        return { {}, QStringLiteral("缺少页队列"), false };
+    const QJsonArray pages = pagesValue.toArray();
+    if (pages.isEmpty())
+        return { {}, QStringLiteral("页队列至少需要一页"), false };
 
-    const QJsonArray slotStates = root.value(QStringLiteral("slotStates")).toArray();
-    if (slotStates.size() != document.layout.slotRects.size())
-        return { {},
-                 QStringLiteral("槽位图片状态数量(%1)与布局槽位数量(%2)不一致")
-                     .arg(slotStates.size()).arg(document.layout.slotRects.size()),
-                 false };
-    for (const QJsonValue& value : slotStates) {
+    for (const QJsonValue& value : pages) {
         if (!value.isObject())
-            return { {}, QStringLiteral("槽位图片状态必须是对象"), false };
-        const std::optional<SlotImageState> state = parseSlot(value.toObject(), &error);
-        if (!state)
-            return { {}, error.isEmpty() ? QStringLiteral("槽位图片状态字段非法") : error, false };
-        document.slotStates.append(*state);
+            return { {}, QStringLiteral("页必须是对象"), false };
+        QString error;
+        const std::optional<ProjectPage> page = parsePage(value.toObject(), &error);
+        if (!page)
+            return { {}, error.isEmpty() ? QStringLiteral("页字段非法") : error, false };
+        document.pages.append(*page);
     }
 
     const QString background = root.value(QStringLiteral("background")).toString();

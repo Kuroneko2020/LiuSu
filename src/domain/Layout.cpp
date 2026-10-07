@@ -44,25 +44,11 @@ bool isBuiltin(const QString& presetId)
 
 namespace {
 
-LayoutModel singleLayout()
+// 旧版验证过的几何（ADR-0010）：页面 148×100mm 横向，
+// 归一化 = mm / 148 或 mm / 100。数值来自 references 旧版 TemplateLayout.cpp。
+NormalizedRect mmRect(qreal xMm, qreal yMm, qreal wMm, qreal hMm)
 {
-    // 单张全幅：整页一个槽位。配合"铺满裁切"即整页无边距照片。
-    return { { NormalizedRect{ 0.0, 0.0, 1.0, 1.0 } } };
-}
-
-// rows x cols 等分网格，行优先排列。
-LayoutModel gridLayout(int rows, int cols)
-{
-    Q_ASSERT(rows > 0 && cols > 0);
-    LayoutModel model;
-    const qreal w = 1.0 / static_cast<qreal>(cols);
-    const qreal h = 1.0 / static_cast<qreal>(rows);
-    for (int row = 0; row < rows; ++row) {
-        for (int col = 0; col < cols; ++col) {
-            model.slotRects.append(NormalizedRect{ col * w, row * h, w, h });
-        }
-    }
-    return model;
+    return NormalizedRect{ xMm / 148.0, yMm / 100.0, wMm / 148.0, hMm / 100.0 };
 }
 
 } // namespace
@@ -72,15 +58,33 @@ LayoutModel create(const QString& presetId, bool* ok)
     if (ok)
         *ok = true;
 
-    // 二宫格为竖向双拼：每张约 100x74mm，即 6 寸纸最常用的 3 寸双拼裁法。
-    if (presetId == QStringLiteral("single"))
-        return singleLayout();
-    if (presetId == QStringLiteral("two"))
-        return gridLayout(2, 1);
-    if (presetId == QStringLiteral("four"))
-        return gridLayout(2, 2);
-    if (presetId == QStringLiteral("nine"))
-        return gridLayout(3, 3);
+    if (presetId == QStringLiteral("single")) {
+        // 单张全幅：整页一张，配合"铺满裁切"即整页无边距照片。
+        return { { mmRect(0.0, 0.0, 148.0, 100.0) } };
+    }
+    if (presetId == QStringLiteral("two")) {
+        // 二宫格：竖照双联——两张 60×90（证件照式），边距 L/R 7、T/B 5，中缝 14。
+        return { { mmRect(7.0, 5.0, 60.0, 90.0), mmRect(81.0, 5.0, 60.0, 90.0) } };
+    }
+    if (presetId == QStringLiteral("four")) {
+        // 四宫格：66×44（3:2 横照）2×2，边距 L/R 4、T/B 3。
+        return { { mmRect(4.0, 3.0, 66.0, 44.0),
+                  mmRect(78.0, 3.0, 66.0, 44.0),
+                  mmRect(4.0, 53.0, 66.0, 44.0),
+                  mmRect(78.0, 53.0, 66.0, 44.0) } };
+    }
+    if (presetId == QStringLiteral("nine")) {
+        // 九宫格：48×32（3:2 横照）3×3，起点 0.667/50/99.333 × 0.667/34/67.333。
+        return { { mmRect(0.667, 0.667, 48.0, 32.0),
+                  mmRect(50.0, 0.667, 48.0, 32.0),
+                  mmRect(99.333, 0.667, 48.0, 32.0),
+                  mmRect(0.667, 34.0, 48.0, 32.0),
+                  mmRect(50.0, 34.0, 48.0, 32.0),
+                  mmRect(99.333, 34.0, 48.0, 32.0),
+                  mmRect(0.667, 67.333, 48.0, 32.0),
+                  mmRect(50.0, 67.333, 48.0, 32.0),
+                  mmRect(99.333, 67.333, 48.0, 32.0) } };
+    }
 
     if (ok)
         *ok = false;

@@ -38,8 +38,9 @@ bool isBuiltin(const QString& presetId);
 
 // 未知 presetId 时返回空布局（isValid() 为 false）。
 // ok 非空时接收成功与否；为 nullptr 表示调用方不关心，不参与断言。
-// 首批预设（ADR-0006/0008）几何约定：槽位之间零间距、铺满页面，
-// 因为 6 寸拼版打印后需要裁切，间距只会产生浪费相纸的空白条。
+// 预设几何沿用旧版 TemplateLayout 的验证值（ADR-0010，横版 148×100 页面）：
+// 二宫格为 60×90 竖照双联（证件照式，边距 7/5mm、中缝 14mm）；
+// 四宫格 66×44、九宫格 48×32 均为 3:2 横照。归一化 = mm/148 或 mm/100。
 LayoutModel create(const QString& presetId, bool* ok = nullptr);
 
 } // namespace LayoutPresets
