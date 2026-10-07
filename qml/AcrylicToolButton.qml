@@ -1,4 +1,5 @@
 import QtQuick
+import LiuSu
 
 // 亚克力工具按钮（g3 次级材质）：比 AcrylicPanel 轻，不带螺丝。
 // 悬停浮起 1–2px、按压回缩，动效参数见界面设计基准·第七节。

@@ -1,4 +1,5 @@
 import QtQuick
+import LiuSu
 import QtQuick.Controls
 import QtQuick.Dialogs
 
@@ -501,9 +502,12 @@ Item {
             }
 
             // 渲染结果（唯一真相 = PageRenderer 输出）
+            // sourceSize 让图像提供器按显示尺寸推导 PPI 渲染，避免过采样。
             Image {
                 anchors.fill: paper
                 source: app.previewUrl
+                sourceSize.width: paper.width
+                sourceSize.height: paper.height
                 cache: false
                 fillMode: Image.Stretch
             }
@@ -676,7 +680,10 @@ Item {
                         Image {
                             anchors.fill: parent
                             anchors.margins: 3
-                            source: "image://liusu/page/" + index + "?rev=" + app.revision
+                            // 逐页修订 URL：编辑其它页不会让本页缩略图重渲染。
+                            source: app.pageThumbnailUrl(index)
+                            sourceSize.width: 172
+                            sourceSize.height: 116
                             cache: false
                             fillMode: Image.PreserveAspectFit
                         }

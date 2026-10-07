@@ -2,11 +2,14 @@
 
 #include "domain/ProjectDocument.h"
 
+#include <QCache>
+#include <QImage>
 #include <QObject>
 #include <QSize>
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
+#include <QVector>
 
 // 应用控制器：QML 与领域/渲染层之间的薄路由（UI规则：UI 不承载几何真相）。
 // 所有槽位几何、变换顺序、导出像素计算都在 domain / services 层完成；
@@ -15,7 +18,8 @@ class AppController final : public QObject
 {
     Q_OBJECT
 
-    // 版本号：任何影响页面像素的变化都递增，驱动 QML 预览失效重取。
+    // 当前页修订号：编辑当前页时递增，驱动当前页预览失效重取。
+    // 与逐页修订分离，避免一次编辑触发全页缩略图重渲染（性能底线）。
     Q_PROPERTY(int revision READ revision NOTIFY changed)
     Q_PROPERTY(QString previewUrl READ previewUrl NOTIFY changed)
     Q_PROPERTY(int currentPageIndex READ currentPageIndex NOTIFY currentPageChanged)
@@ -30,8 +34,10 @@ class AppController final : public QObject
 public:
     explicit AppController(QObject* parent = nullptr);
 
-    int revision() const { return m_revision; }
+    int revision() const { return m_pageRevisions.value(m_currentPageIndex, 0) + m_globalRevision; }
     QString previewUrl() const;
+    // 胶片栏缩略图 URL：只含该页修订号，编辑其它页不会令本页失效。
+    Q_INVOKABLE QString pageThumbnailUrl(int pageIndex) const;
     int currentPageIndex() const { return m_currentPageIndex; }
     int pageCount() const { return m_document.pages.size(); }
     QString pageLabel() const;
@@ -85,14 +91,20 @@ signals:
 private:
     liusu::domain::ProjectPage* currentPage();
     const liusu::domain::ProjectPage* currentPage() const;
-    void bumpRevision();
+    // 影响当前页像素的编辑：递增当前页修订并清理该页缓存。
+    void bumpCurrentPageRevision();
+    // 影响所有页像素的变化（背景等）：递增全局修订并清理全部缓存。
+    void bumpGlobalRevision();
+    void rebuildPageRevisions();
     void setStatus(const QString& message);
-    QString profileWidthHeight(int* outWidthMm, int* outHeightMm) const;
+    bool profileWidthHeight(int* outWidthMm, int* outHeightMm) const;
     QImage renderPageAt(int pageIndex, int ppi) const;
 
     liusu::domain::ProjectDocument m_document;
     int m_currentPageIndex = 0;
     int m_selectedSlot = -1;
-    int m_revision = 0;
+    QVector<int> m_pageRevisions;      // 与 pages 对齐的逐页修订号
+    int m_globalRevision = 0;          // 背景 / 档案级变化
+    mutable QCache<QString, QImage> m_pageCache; // 页面预览缓存（key: page|ppi|rev）
     QString m_statusMessage;
 };

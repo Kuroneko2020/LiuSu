@@ -1,4 +1,5 @@
 import QtQuick
+import LiuSu
 import QtQuick.Dialogs
 
 // 主页（J 稿）：选布局 → 进入编辑。
@@ -100,7 +101,8 @@ Item {
     // ---- 品牌区块 ----
     Column {
         id: brandBlock
-        anchors { left: parent.left; top: parent.top; leftMargin: parent.width / 2 - 420; topMargin: 128 }
+        // 纵向位置按窗口高度比例，矮窗口下不裁切（自适应屏幕）。
+        anchors { left: parent.left; top: parent.top; leftMargin: parent.width / 2 - 420; topMargin: Math.max(72, parent.height * 0.16) }
         Text {
             text: qsTr("留素")
             color: AppTheme.ink
@@ -146,9 +148,14 @@ Item {
     // ---- 布局展示板 ----
     Row {
         id: boardsRow
-        anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: 296 }
+        anchors { horizontalCenter: parent.horizontalCenter; top: parent.top;
+                  topMargin: Math.max(232, parent.height * 0.36) }
         spacing: 40
         property int selectedIndex: -1
+        // 自适应：窗口窄时整行等比缩小，保证四块展示板始终完整可见。
+        readonly property real fitScale: Math.min(1.0, (home.width - 72) / implicitWidth)
+        scale: fitScale
+        transformOrigin: Item.Top
 
         Repeater {
             model: app.layoutPresets()

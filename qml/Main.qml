@@ -1,4 +1,5 @@
 import QtQuick
+import LiuSu
 import QtQuick.Controls
 
 // 应用主窗口：亚克力展示板体系（J 稿）。
@@ -6,10 +7,16 @@ import QtQuick.Controls
 ApplicationWindow {
     id: window
 
-    width: 1280
-    height: 800
-    minimumWidth: 1080
-    minimumHeight: 700
+    // 自适应屏幕可用区域：高 DPI 缩放下逻辑分辨率可能远小于物理分辨率，
+    // 固定尺寸会导致窗口超出屏幕（本机 2560×1440 @175% → 逻辑约 1463×775）。
+    // 留 24px 边距余量给任务栏与窗口边框。
+    readonly property real availableWidth: Math.max(960, Screen.desktopAvailableWidth - 24)
+    readonly property real availableHeight: Math.max(600, Screen.desktopAvailableHeight - 24)
+
+    width: Math.min(1440, availableWidth)
+    height: Math.min(900, availableHeight)
+    minimumWidth: Math.min(1080, availableWidth)
+    minimumHeight: Math.min(680, availableHeight)
     visible: true
     title: qsTr("留素")
     color: AppTheme.bgHi

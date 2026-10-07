@@ -22,19 +22,32 @@ namespace {
 constexpr int kPreviewFallbackPpi = 96;
 constexpr int kPreviewMinPpi = 48;
 constexpr int kPreviewMaxPpi = 300;
+// 页面预览缓存上限：约容纳十余张整页位图；超出按 LRU 淘汰。
+constexpr int kPageCacheCostBytes = 64 * 1024 * 1024;
 } // namespace
 
 AppController::AppController(QObject* parent)
     : QObject(parent)
 {
     m_document = ProjectDocument::createDefault();
+    m_pageCache.setMaxCost(kPageCacheCostBytes);
+    rebuildPageRevisions();
 }
 
 QString AppController::previewUrl() const
 {
     return QStringLiteral("image://liusu/page/%1?rev=%2")
         .arg(m_currentPageIndex)
-        .arg(m_revision);
+        .arg(revision());
+}
+
+QString AppController::pageThumbnailUrl(int pageIndex) const
+{
+    // 每页仅携带自己的修订号 + 全局修订（背景变化影响所有页）。
+    const int pageRev = m_pageRevisions.value(pageIndex, 0);
+    return QStringLiteral("image://liusu/page/%1?rev=%2")
+        .arg(pageIndex)
+        .arg(pageRev + m_globalRevision);
 }
 
 QString AppController::pageLabel() const
@@ -126,7 +139,7 @@ void AppController::startManual(const QString& presetId)
     m_selectedSlot = -1;
     emit selectionChanged();
     emit currentPageChanged();
-    bumpRevision();
+    bumpGlobalRevision();
     setStatus(QStringLiteral("已建立 %1 · 手动排版").arg(presetId));
 }
 
@@ -161,7 +174,7 @@ void AppController::startAutoFill(const QString& presetId, const QVariantList& f
     m_selectedSlot = -1;
     emit selectionChanged();
     emit currentPageChanged();
-    bumpRevision();
+    bumpGlobalRevision();
     setStatus(QStringLiteral("已自动填充 %1 张照片").arg(qMin(fileUrls.size(), layout.slotRects.size())));
 }
 
@@ -183,7 +196,7 @@ void AppController::assignFilesToEmptySlots(const QVariantList& fileUrls)
         ++fileIndex;
         ++assigned;
     }
-    bumpRevision();
+    bumpCurrentPageRevision();
     setStatus(assigned > 0 ? QStringLiteral("已填充 %1 个空槽位").arg(assigned)
                            : QStringLiteral("没有可用空槽位"));
 }
@@ -195,7 +208,7 @@ void AppController::assignFileToSlot(int slotIndex, const QUrl& fileUrl)
         return;
     page->slotStates[slotIndex].imagePath = fileUrl.toLocalFile();
     page->slotStates[slotIndex].fillMode = FillMode::Fill;
-    bumpRevision();
+    bumpCurrentPageRevision();
     setStatus(QStringLiteral("已替换槽位 %1 的照片").arg(slotIndex + 1));
 }
 
@@ -206,7 +219,7 @@ void AppController::rotateSlot(int slotIndex)
         return;
     SlotImageState& state = page->slotStates[slotIndex];
     state.rotationDegrees = (state.rotationDegrees + 90) % 360;
-    bumpRevision();
+    bumpCurrentPageRevision();
 }
 
 void AppController::mirrorSlot(int slotIndex)
@@ -215,7 +228,7 @@ void AppController::mirrorSlot(int slotIndex)
     if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size())
         return;
     page->slotStates[slotIndex].mirrored = !page->slotStates[slotIndex].mirrored;
-    bumpRevision();
+    bumpCurrentPageRevision();
 }
 
 void AppController::toggleFillMode(int slotIndex)
@@ -225,7 +238,7 @@ void AppController::toggleFillMode(int slotIndex)
         return;
     SlotImageState& state = page->slotStates[slotIndex];
     state.fillMode = state.fillMode == FillMode::Fill ? FillMode::Fit : FillMode::Fill;
-    bumpRevision();
+    bumpCurrentPageRevision();
 }
 
 void AppController::clearSlot(int slotIndex)
@@ -234,7 +247,7 @@ void AppController::clearSlot(int slotIndex)
     if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size())
         return;
     page->slotStates[slotIndex] = SlotImageState{};
-    bumpRevision();
+    bumpCurrentPageRevision();
 }
 
 void AppController::selectSlotAt(qreal normalizedX, qreal normalizedY)
@@ -291,7 +304,8 @@ void AppController::addPage()
     m_selectedSlot = -1;
     emit selectionChanged();
     emit currentPageChanged();
-    bumpRevision();
+    rebuildPageRevisions();
+    emit changed();
     setStatus(QStringLiteral("已新建 %1").arg(pageLabel()));
 }
 
@@ -306,7 +320,8 @@ void AppController::deleteCurrentPage()
     m_selectedSlot = -1;
     emit selectionChanged();
     emit currentPageChanged();
-    bumpRevision();
+    m_pageCache.clear();
+    emit changed();
     setStatus(QStringLiteral("已删除页"));
 }
 
@@ -318,7 +333,7 @@ void AppController::setCurrentPage(int index)
     m_selectedSlot = -1;
     emit selectionChanged();
     emit currentPageChanged();
-    bumpRevision();
+    emit changed();   // 预览 URL 指向当前页，导航即失效；不动修订号与缓存
 }
 
 void AppController::setBackground(const QString& colorHex)
@@ -326,7 +341,7 @@ void AppController::setBackground(const QString& colorHex)
     if (m_document.background.colorHex == colorHex)
         return;
     m_document.background.colorHex = colorHex;
-    bumpRevision();
+    bumpGlobalRevision();
 }
 
 bool AppController::exportCurrentPage(const QUrl& fileUrl, int ppi, bool jpeg, int quality)
@@ -410,7 +425,7 @@ bool AppController::openProject(const QUrl& fileUrl)
     m_selectedSlot = -1;
     emit selectionChanged();
     emit currentPageChanged();
-    bumpRevision();
+    bumpGlobalRevision();
     setStatus(QStringLiteral("已打开 %1").arg(QFileInfo(fileUrl.toLocalFile()).fileName()));
     return true;
 }
@@ -429,10 +444,36 @@ const ProjectPage* AppController::currentPage() const
     return &m_document.pages[m_currentPageIndex];
 }
 
-void AppController::bumpRevision()
+void AppController::bumpCurrentPageRevision()
 {
-    ++m_revision;
+    if (m_currentPageIndex >= 0 && m_currentPageIndex < m_pageRevisions.size())
+        ++m_pageRevisions[m_currentPageIndex];
+    // 只清当前页旧缓存；其它页缓存保留（一次编辑不触发全页重渲染）。
+    const QString prefix = QStringLiteral("%1|").arg(m_currentPageIndex);
+    const auto keys = m_pageCache.keys();
+    for (const QString& key : keys) {
+        if (key.startsWith(prefix))
+            m_pageCache.remove(key);
+    }
     emit changed();
+}
+
+void AppController::bumpGlobalRevision()
+{
+    ++m_globalRevision;
+    rebuildPageRevisions();
+    m_pageCache.clear();
+    emit changed();
+}
+
+void AppController::rebuildPageRevisions()
+{
+    // 页数变化时对齐修订号数量；已有页的修订号保持不变。
+    const int count = m_document.pages.size();
+    if (m_pageRevisions.size() > count)
+        m_pageRevisions.resize(count);
+    while (m_pageRevisions.size() < count)
+        m_pageRevisions.append(0);
 }
 
 void AppController::setStatus(const QString& message)
@@ -443,16 +484,22 @@ void AppController::setStatus(const QString& message)
     emit statusMessageChanged();
 }
 
-QString AppController::profileWidthHeight(int* outWidthMm, int* outHeightMm) const
+bool AppController::profileWidthHeight(int* outWidthMm, int* outHeightMm) const
 {
     const auto profile = Profiles::findPageProfile(m_document.pageProfileId);
-    if (!profile)
-        return {};
+    if (!profile) {
+        // 档案缺失属于编程/数据错误：回退 6 寸横版，保证界面仍可用。
+        if (outWidthMm)
+            *outWidthMm = 148;
+        if (outHeightMm)
+            *outHeightMm = 100;
+        return false;
+    }
     if (outWidthMm)
         *outWidthMm = qRound(profile->widthMm);
     if (outHeightMm)
         *outHeightMm = qRound(profile->heightMm);
-    return profile->id;
+    return true;
 }
 
 QImage AppController::renderPageAt(int pageIndex, int ppi) const
@@ -466,6 +513,21 @@ QImage AppController::renderPageAt(int pageIndex, int ppi) const
     if (widthMm <= 0 || heightMm <= 0)
         return {};
 
-    return PageRenderer::renderPage(m_document.pages.at(pageIndex), m_document.background,
-                                    widthMm, heightMm, ppi);
+    // 页面预览缓存（图片与缓存规则·缓存分层）：key = 页号 | ppi | 逐页修订+全局修订。
+    // 主预览与缩略图在同一 (页, 尺寸, 修订) 内只渲染一次；
+    // 修订号变化时旧 key 自然失配，配合上面的定点清理避免全量重渲染。
+    const int rev = m_pageRevisions.value(pageIndex, 0) + m_globalRevision;
+    const QString key = QStringLiteral("%1|%2|%3").arg(pageIndex).arg(ppi).arg(rev);
+    if (const QImage* hit = m_pageCache.object(key))
+        return *hit;
+
+    const QImage rendered = PageRenderer::renderPage(m_document.pages.at(pageIndex),
+                                                     m_document.background,
+                                                     widthMm, heightMm, ppi);
+    if (!rendered.isNull()) {
+        const qint64 cost = rendered.sizeInBytes();
+        m_pageCache.insert(key, new QImage(rendered),
+                           static_cast<int>(qMin<qint64>(cost, kPageCacheCostBytes)));
+    }
+    return rendered;
 }
