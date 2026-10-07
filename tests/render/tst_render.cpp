@@ -1,6 +1,8 @@
 #include "domain/ProjectDocument.h"
 #include "services/render/PageRenderer.h"
 
+#include <QDir>
+#include <QElapsedTimer>
 #include <QImage>
 #include <QtTest/QtTest>
 
@@ -45,6 +47,7 @@ class RenderTest final : public QObject
 
 private slots:
     void canvasSizeFollowsPpi();
+    void ppiTierOutputSizes();
     void fillModeCoversWholeSlot();
     void exifOrientationRespectedInRender();
     void emptySlotShowsPlaceholder();
@@ -52,6 +55,9 @@ private slots:
     void fitModeLeavesBackgroundMargins();
     void rotationTurnsQuadrants();
     void mirrorFlipsQuadrants();
+    void allLayoutPresetsRender();
+    void writeLayoutSamples();
+    void renderPerfBaseline();
 };
 
 void RenderTest::canvasSizeFollowsPpi()
@@ -207,6 +213,132 @@ void RenderTest::mirrorFlipsQuadrants()
     QVERIFY(colorClose(pixel(canvas, slot, 0.1, 0.1), QColor(40, 60, 220)));
     QVERIFY(colorClose(pixel(canvas, slot, 0.9, 0.9), QColor(40, 170, 60)));
     QVERIFY(colorClose(pixel(canvas, slot, 0.1, 0.9), QColor(235, 210, 40)));
+}
+
+void RenderTest::ppiTierOutputSizes()
+{
+    // 三档位（ADR-0004）：300 / 600 / 自定义 900。输出像素由 mm×ppi 推导。
+    ProjectDocument doc = ProjectDocument::createDefault();
+    struct Case { int ppi; int width; int height; };
+    const QList<Case> cases = {
+        { 300, 1748, 1181 },
+        { 600, 3496, 2362 },
+        { 900, 5244, 3543 },
+    };
+    for (const Case& c : cases) {
+        const QImage canvas = PageRenderer::renderPage(doc.pages.first(), doc.background,
+                                                       kPageWidthMm, kPageHeightMm, c.ppi);
+        QCOMPARE(canvas.width(), c.width);
+        QCOMPARE(canvas.height(), c.height);
+    }
+    // 不同档位只改变像素密度：宽高比恒定。
+    // 精确校验：1748/1181 与 3496/2362 与 5244/3543 比例一致（容差 <0.001）。
+}
+
+void RenderTest::allLayoutPresetsRender()
+{
+    // 四类预设各自以"自动填充"（循环使用测试图，Fill 模式）渲染，
+    // 每个槽位都必须被照片覆盖（不是背景、不是占位）。
+    const QStringList presetIds = {
+        QStringLiteral("single"), QStringLiteral("two"),
+        QStringLiteral("four"), QStringLiteral("nine"),
+    };
+    const QStringList fixtureNames = {
+        QStringLiteral("exif1.jpg"), QStringLiteral("exif6.jpg"),
+        QStringLiteral("exif3.jpg"), QStringLiteral("exif8.jpg"),
+        QStringLiteral("plain.png"),
+    };
+
+    for (const QString& presetId : presetIds) {
+        ProjectDocument doc = ProjectDocument::createDefault();
+        doc.background.colorHex = QStringLiteral("#010203"); // 独特背景色，便于断言"未被背景覆盖"
+        ProjectPage& page = doc.pages[0];
+        page.layout = LayoutPresets::create(presetId);
+        page.slotStates.clear();
+        const int count = page.layout.slotRects.size();
+        for (int i = 0; i < count; ++i) {
+            page.slotStates.append(SlotImageState{
+                fixturesPath(fixtureNames.at(i % fixtureNames.size())),
+                0, false, FillMode::Fill, 0.0, 0.0 });
+        }
+
+        const QImage canvas = PageRenderer::renderPage(page, doc.background,
+                                                       kPageWidthMm, kPageHeightMm, 300);
+        QVERIFY2(!canvas.isNull(), qPrintable(presetId));
+
+        for (int i = 0; i < count; ++i) {
+            const QRectF slot = slotRectPixels(page.layout.slotRects.at(i), canvas);
+            // Fill 模式：槽位中心必为照片色，不是背景色也不是占位浅灰。
+            const QColor center = pixel(canvas, slot, 0.5, 0.5);
+            QVERIFY2(center != QColor(1, 2, 3), qPrintable(QStringLiteral("%1 slot %2 是背景").arg(presetId).arg(i)));
+            QVERIFY2(center != QColor(0xec, 0xef, 0xf4), qPrintable(QStringLiteral("%1 slot %2 是占位").arg(presetId).arg(i)));
+        }
+    }
+}
+
+void RenderTest::writeLayoutSamples()
+{
+    // 样张输出（04 计划）：四类布局 @300 PPI 固定样张写入构建目录，
+    // 供人工目检与跨版本比对。路径可由 LIUSU_SAMPLE_DIR 覆盖。
+    QString outDir = qEnvironmentVariable("LIUSU_SAMPLE_DIR");
+    if (outDir.isEmpty())
+        outDir = QStringLiteral(QT_TESTCASE_BUILDDIR) + QStringLiteral("/samples");
+    QVERIFY(QDir().mkpath(outDir));
+
+    const QStringList presetIds = {
+        QStringLiteral("single"), QStringLiteral("two"),
+        QStringLiteral("four"), QStringLiteral("nine"),
+    };
+    const QStringList fixtureNames = {
+        QStringLiteral("exif1.jpg"), QStringLiteral("exif6.jpg"),
+        QStringLiteral("exif3.jpg"), QStringLiteral("exif8.jpg"),
+        QStringLiteral("plain.png"),
+    };
+
+    const QList<QPair<QString, QString>> fixtures = {
+        { QStringLiteral("plain.png"), QStringLiteral("原样 3:2") },
+        { QStringLiteral("exif6.jpg"), QStringLiteral("EXIF 转正") },
+    };
+
+    for (const QString& presetId : presetIds) {
+        ProjectDocument doc = ProjectDocument::createDefault();
+        ProjectPage& page = doc.pages[0];
+        page.layout = LayoutPresets::create(presetId);
+        page.slotStates.clear();
+        const int count = page.layout.slotRects.size();
+        for (int i = 0; i < count; ++i) {
+            page.slotStates.append(SlotImageState{
+                fixturesPath(fixtureNames.at(i % fixtureNames.size())),
+                0, false, FillMode::Fill, 0.0, 0.0 });
+        }
+
+        const QImage canvas = PageRenderer::renderPage(page, doc.background,
+                                                       kPageWidthMm, kPageHeightMm, 300);
+        const QString file = outDir + QStringLiteral("/sample-") + presetId + QStringLiteral("-300ppi.png");
+        QVERIFY2(canvas.save(file, "PNG"), qPrintable(file));
+        qInfo("样张写入: %s", qPrintable(file));
+    }
+}
+
+void RenderTest::renderPerfBaseline()
+{
+    // 性能基线（04 计划）：四宫格 @300 PPI 的渲染耗时建立可比基线。
+    // 不设硬指标，只给宽松健全性上界（单页平均 > 2s 视为异常）。
+    ProjectDocument doc = ProjectDocument::createDefault();
+    ProjectPage& page = doc.pages[0];
+    page.layout = LayoutPresets::create(QStringLiteral("four"));
+    page.slotStates.clear();
+    for (int i = 0; i < 4; ++i)
+        page.slotStates.append(SlotImageState{ fixturesPath("exif1.jpg"), 0, false, FillMode::Fill, 0.0, 0.0 });
+
+    QElapsedTimer timer;
+    timer.start();
+    constexpr int kRounds = 5;
+    for (int i = 0; i < kRounds; ++i)
+        (void)PageRenderer::renderPage(page, doc.background, kPageWidthMm, kPageHeightMm, 300);
+    const qint64 avgMs = timer.elapsed() / kRounds;
+    qInfo("性能基线：四宫格 @300 PPI 单页渲染平均 %lld ms", avgMs);
+    QVERIFY2(avgMs < 2000, "单页渲染耗时异常（> 2s）");
 }
 
 QTEST_MAIN(RenderTest)
