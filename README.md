@@ -54,6 +54,14 @@
 - 打印机档案扩展：更多机型与相纸尺寸。
 - 边框系统：胶片尺孔、白边、拍立得边等（架构见 [ADR-0001](docs/决策/ADR-0001-模板与边框分层.md)）。
 
+## 开发与构建
+
+- 技术栈：Qt 6（QML）+ C++17 + CMake + Ninja（[ADR-0007](docs/决策/ADR-0007-技术栈与界面方向.md)）。
+- 需要 Qt 6.5+ 桌面套件（含编译工具链、CMake、Ninja）。
+- 配置：`cmake --preset windows-dev`；预设通过环境变量 `LIUSU_QT_DIR` 指向本机 Qt 目录（形如 `<Qt根>/6.x.y/<套件>`），或在本机 `CMakeUserPresets.json`（已被 Git 忽略）写入绝对路径，不入库。
+- 构建：`cmake --build --preset windows-dev`；测试：`ctest --preset windows-dev`。
+- 构建产物在 `build/`，不进入仓库。
+
 ## 项目文档
 
 - 文档入口与路由：[docs/README.md](docs/README.md)。
