@@ -24,5 +24,8 @@ qt_add_qml_module(LiuSu
 
 target_link_libraries(LiuSu PRIVATE Qt6::Quick Qt6::QuickControls2)
 
+# 领域层独立于应用壳构建，供应用与测试共同链接。
+add_subdirectory(src/domain)
+
 enable_testing()
 add_subdirectory(tests)
