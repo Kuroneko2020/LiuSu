@@ -1,4 +1,5 @@
-#include "PreviewController.h"
+#include "AppController.h"
+#include "PagePreviewProvider.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -8,14 +9,16 @@
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+    QCoreApplication::setOrganizationName(QStringLiteral("LiuSu"));
+    QCoreApplication::setApplicationName(QStringLiteral("LiuSu"));
 
-    // 界面风格稿选定前先用 Basic 风格占位；后续在 05 子方案按选定风格调整。
     QQuickStyle::setStyle(QStringLiteral("Basic"));
 
-    PreviewController preview;
+    AppController controller;
 
     QQmlApplicationEngine engine;
-    engine.rootContext()->setContextProperty(QStringLiteral("preview"), &preview);
+    engine.addImageProvider(QStringLiteral("liusu"), new PagePreviewProvider(&controller));
+    engine.rootContext()->setContextProperty(QStringLiteral("app"), &controller);
     // QML 加载失败直接退出非零码，避免半启动状态被误判为可用。
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

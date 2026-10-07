@@ -13,15 +13,26 @@ qt_standard_project_setup(REQUIRES 6.5)
 # 随子方案 02/03 落地时各自建立 CMake 目标，业务代码不得回填进 app 壳。
 qt_add_executable(LiuSu
     src/app/main.cpp
-    src/app/PreviewController.h
-    src/app/PreviewController.cpp
+    src/app/AppController.h
+    src/app/AppController.cpp
+    src/app/PagePreviewProvider.h
+    src/app/PagePreviewProvider.cpp
 )
+
+# 单例属性必须在 qt_add_qml_module 之前设置，否则 AppTheme 不会被注册为单例。
+set_source_files_properties(qml/AppTheme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_qml_module(LiuSu
     URI LiuSu
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/AppTheme.qml
+        qml/AcrylicPanel.qml
+        qml/AcrylicToolButton.qml
+        qml/LayoutBoard.qml
+        qml/HomePage.qml
+        qml/EditorPage.qml
 )
 
 # 预览演示图：EXIF 方向测试图集嵌入资源，供渲染管线可视化验证。

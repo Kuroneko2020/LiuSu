@@ -1,34 +1,46 @@
 import QtQuick
 import QtQuick.Controls
 
-// 应用主窗口：渲染管线可视化预览。
-// 只显示渲染结果，不承载任何页面几何；正式界面按 J 稿在 05 子方案实现。
+// 应用主窗口：亚克力展示板体系（J 稿）。
+// 导航：主页 ⇄ 编辑；页面切换用克制的交叉过渡（界面设计基准·第七节）。
 ApplicationWindow {
-    id: root
+    id: window
 
-    width: 1080
-    height: 720
+    width: 1280
+    height: 800
+    minimumWidth: 1080
+    minimumHeight: 700
     visible: true
-    title: qsTr("留素 · 渲染预览")
-    color: "#edeae4"
+    title: qsTr("留素")
+    color: AppTheme.bgHi
 
-    Image {
-        anchors.centerIn: parent
-        source: preview.previewUrl
-        fillMode: Image.PreserveAspectFit
-        // 观感上给"相纸"一点厚度
-        Rectangle {
-            z: -1
-            anchors.fill: parent
-            anchors.topMargin: 6
-            color: "#d9d4c8"
+    StackView {
+        id: stack
+        anchors.fill: parent
+
+        initialItem: HomePage {
+            onRequestEditor: stack.push(editorComponent)
         }
-    }
 
-    Label {
-        anchors { top: parent.top; topMargin: 18; horizontalCenter: parent.horizontalCenter }
-        text: qsTr("PG-001 · 四宫格 · 148 × 100 MM · 预览 144 PPI")
-        font.pixelSize: 12
-        color: "#6f6a60"
+        Component {
+            id: editorComponent
+            EditorPage {
+                onRequestHome: stack.pop()
+            }
+        }
+
+        pushEnter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: AppTheme.durSlow; easing.type: AppTheme.easingType }
+            NumberAnimation { property: "scale"; from: 0.985; to: 1; duration: AppTheme.durSlow; easing.type: AppTheme.easingType }
+        }
+        pushExit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: AppTheme.durBase; easing.type: AppTheme.easingType }
+        }
+        popEnter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: AppTheme.durSlow; easing.type: AppTheme.easingType }
+        }
+        popExit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: AppTheme.durBase; easing.type: AppTheme.easingType }
+        }
     }
 }
