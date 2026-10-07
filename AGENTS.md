@@ -21,7 +21,7 @@ Agent 必须明确区分：已确认事实、推断、建议、待所有者决�
 新会话、上下文不完整或任务交接时，在写入前按顺序读取：
 
 1. [docs/README.md](docs/README.md)；
-2. 动态任务状态：仓库 Issues（Issue 体系建立前，以 docs/README.md 顶部当前状态段为准）；
+2. 动态任务状态：[留素：第一阶段总跟踪](https://github.com/Kuroneko2020/LiuSu/issues/1)；
 3. 当前任务路由要求的规范与 ADR。
 
 聊天记忆、聊天摘要和本地 handoff 不是权威事实源。仓库文档互相冲突时，停止写入并并列报告冲突，不得自行裁决。
