@@ -1,9 +1,15 @@
 import QtQuick
+import QtQuick.Shapes
 import LiuSu
 
 // 主页布局展示板（J 稿 LY-01..04）：照片页衬在亚克力板后。
 // 展示板内含：档案编号行 / 页面预览（真实预设几何） / 名称行；
 // 选中时浮出操作按钮（手动排版 / 自动填充照片）。
+//
+// 渲染要点：
+// - 槽位预览用 QtQuick.Shapes 的 ShapePath + 对角 LinearGradient 填充，
+//   Shape 自带抗锯齿（此前的"内层放大旋转矩形 + 父级 clip"会产生硬裁剪锯齿）；
+// - 每块板携带独立柔影（多层扩散圆角矩形叠加），随板抬起时留在地面并变淡。
 Item {
     id: board
 
@@ -23,8 +29,11 @@ Item {
     implicitWidth: 232
     implicitHeight: 312
 
+    readonly property bool lifted: selected || hoverArea.containsMouse
+    // 板抬起量；柔影据其反向补偿，让影子"留在地面"并随抬起变淡。
+    readonly property real lift: lifted ? 6 : 0
+
     // J 稿演示色（h1..h9 对角渐变三停靠点）：仅用于布局预览示意，非真实照片。
-    // 与设计稿保持一致：每个槽位是一段均匀的斜向渐变，而不是平涂色块。
     function demoStop(index, stop) {
         const palette = [
             ["#e8c896", "#cf9455", "#a96a3d"],
@@ -41,14 +50,49 @@ Item {
     }
 
     // 悬浮感：选中或悬停时整板抬升
-    y: (selected || hoverArea.containsMouse) ? -6 : 0
+    y: -lift
     Behavior on y {
         NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
     }
     // J 稿：展示板带轻微倾斜的"摆件感"，悬停或选中时回正。
-    rotation: (selected || hoverArea.containsMouse) ? 0 : tilt
+    rotation: lifted ? 0 : tilt
     Behavior on rotation {
         NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
+    }
+
+    // ---- 独立柔影（每板一份，替代原先整排共用的一条投影）----
+    // 多层圆角矩形向外扩散、逐层变淡，近似 J 稿的 box-shadow: 0 16px 38px rgba(28,25,18,.15)。
+    // 用 y 补偿板抬升量，使影子留在"地面"；抬起时整体变淡。
+    Item {
+        id: shadowLayer
+        anchors.fill: parent
+        anchors.margins: -16
+        z: -10
+        opacity: board.lifted ? 0.72 : 1.0
+        Behavior on opacity {
+            NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
+        }
+        // y 补偿：板抬高 6，影相对下移 6，屏幕上保持原位
+        y: board.lift
+
+        Repeater {
+            // { 垂直偏移, 外扩, 透明度 } 由密到疏叠加成柔和过渡
+            model: [
+                { yo: 5,  ex: 1,  a: 0.055 },
+                { yo: 8,  ex: 4,  a: 0.045 },
+                { yo: 11, ex: 8,  a: 0.035 },
+                { yo: 14, ex: 13, a: 0.022 }
+            ]
+            delegate: Rectangle {
+                required property var modelData
+                x: -modelData.ex + 16
+                y: modelData.yo + 16
+                width: board.width + modelData.ex * 2
+                height: board.height + modelData.ex * 2
+                radius: 4 + modelData.ex
+                color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, modelData.a)
+            }
+        }
     }
 
     AcrylicPanel {
@@ -106,28 +150,37 @@ Item {
             border.width: 1
             border.color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.10)
         }
+        // 槽位：ShapePath + 对角线性渐变（抗锯齿，无硬裁剪）
         Repeater {
             model: board.slotRects
-            Rectangle {
+            delegate: Shape {
+                id: slotShape
                 required property var modelData
                 required property int index
                 x: modelData.x * pagePreview.width
                 y: modelData.y * pagePreview.height
                 width: modelData.width * pagePreview.width
                 height: modelData.height * pagePreview.height
-                clip: true
-                // 对角均匀渐变（J 稿 h1..h9）：内层放大并旋转，父级裁剪保持槽位形状。
-                Rectangle {
-                    width: parent.width * 1.9
-                    height: parent.height * 1.9
-                    x: -parent.width * 0.45
-                    y: -parent.height * 0.45
-                    rotation: 25
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: board.demoStop(index, 0) }
-                        GradientStop { position: 0.58; color: board.demoStop(index, 1) }
-                        GradientStop { position: 1.0; color: board.demoStop(index, 2) }
+                antialiasing: true
+                preferredRendererType: Shape.CurveRenderer
+
+                ShapePath {
+                    strokeWidth: 0
+                    fillGradient: LinearGradient {
+                        x1: 0
+                        y1: 0
+                        x2: slotShape.width
+                        y2: slotShape.height
+                        GradientStop { position: 0.0; color: board.demoStop(slotShape.index, 0) }
+                        GradientStop { position: 0.58; color: board.demoStop(slotShape.index, 1) }
+                        GradientStop { position: 1.0; color: board.demoStop(slotShape.index, 2) }
                     }
+                    startX: 0
+                    startY: 0
+                    PathLine { x: slotShape.width; y: 0 }
+                    PathLine { x: slotShape.width; y: slotShape.height }
+                    PathLine { x: 0; y: slotShape.height }
+                    PathLine { x: 0; y: 0 }
                 }
             }
         }
@@ -195,7 +248,7 @@ Item {
                 text: qsTr("手动排版")
                 color: manualArea.containsMouse ? "#f4f1ea" : AppTheme.ink
                 font.family: AppTheme.fontFamily
-                font.pixelSize: 12
+                font.pixelSize: 11
                 font.bold: true
             }
             MouseArea {
@@ -218,7 +271,7 @@ Item {
                     text: qsTr("自动填充照片")
                     color: "#f4f1ea"
                     font.family: AppTheme.fontFamily
-                    font.pixelSize: 12
+                    font.pixelSize: 11
                     font.bold: true
                 }
             }

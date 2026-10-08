@@ -179,21 +179,6 @@ Item {
             topPadding: 5
         }
     }
-    Rectangle {
-        anchors { left: brandBlock.right; leftMargin: 26; top: brandBlock.top; topMargin: 10 }
-        width: 1
-        height: 74
-        color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.12)
-    }
-    Text {
-        anchors { left: brandBlock.right; leftMargin: 49; top: brandBlock.top; topMargin: 14 }
-        text: qsTr("导入照片，选择布局，\n导出后沿裁切线分割。\n为 6 英寸相纸打印机而生。")
-        color: AppTheme.ink2
-        font.family: AppTheme.fontFamily
-        font.pixelSize: 12
-        lineHeight: 1.65
-    }
-
     // ---- 布局展示板 ----
     Row {
         id: boardsRow
@@ -253,41 +238,4 @@ Item {
         }
     }
 
-    // 地面投影：J 稿为径向弥散椭圆（不是横条），置于展示板下方。
-    // Canvas 绘制真正的径向渐变；仅尺寸变化时重绘（静态元素，无逐帧成本）。
-    Canvas {
-        id: ground
-        anchors { horizontalCenter: parent.horizontalCenter; top: boardsRow.bottom; topMargin: -6 }
-        width: boardsRow.width * 0.78
-        height: 44
-        onPaint: {
-            const ctx = getContext("2d");
-            ctx.reset();
-            ctx.save();
-            ctx.translate(width / 2, height / 2);
-            ctx.scale(1, height / width);
-            const radius = width / 2;
-            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
-            grad.addColorStop(0.0, "rgba(28,25,18,0.16)");
-            grad.addColorStop(0.55, "rgba(28,25,18,0.07)");
-            grad.addColorStop(1.0, "rgba(28,25,18,0)");
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
-        onWidthChanged: requestPaint()
-        onHeightChanged: requestPaint()
-    }
-
-    // ---- 底部提示 ----
-    Text {
-        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 26 }
-        text: qsTr("点击展示板选择布局 — 手动排版 逐格放置 / 自动填充 批量导入自动分配")
-        color: AppTheme.ink3
-        font.family: AppTheme.fontFamily
-        font.pixelSize: 12
-        font.letterSpacing: 1.5
-    }
 }
