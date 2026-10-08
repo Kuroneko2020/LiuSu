@@ -1,16 +1,18 @@
 import QtQuick
 import QtQuick.Shapes
+import QtQuick.Effects
 import LiuSu
 
 // 主页布局展示板（J 稿 LY-01..04）：照片页衬在亚克力板后。
 // 展示板内含：档案编号行 / 页面预览（真实预设几何） / 操作按钮 / 名称行。
-// 操作按钮挂在预览下方，鼠标悬停展示板即浮出（无需先点选）；
-// 鼠标移入按钮时按钮自身有放大与投影动效。
+// 操作按钮挂在预览下方留白区，鼠标悬停展示板即浮出（无需先点选）。
 //
 // 渲染要点：
 // - 槽位预览用 QtQuick.Shapes 的 ShapePath + 对角 LinearGradient 填充，
 //   Shape 自带抗锯齿（此前的"内层放大旋转矩形 + 父级 clip"会产生硬裁剪锯齿）；
-// - 每块板携带独立柔影（多层扩散圆角矩形叠加），随板抬起时留在地面并变淡。
+// - 每块板携带独立柔影（多层扩散圆角矩形叠加），随板抬起时留在地面并变淡；
+// - 操作按钮为毛玻璃器件：半透明填充 + MultiEffect 柔化 + 顶缘高光 + 柔影；
+//   悬停只上浮/放大与加深落影，不变色。
 Item {
     id: board
 
@@ -33,8 +35,8 @@ Item {
     // 悬停状态汇总：悬停板体或任一按钮都算"正在交互"，避免鼠标移到按钮上时
     // 板体 hover 丢失导致按钮闪没（hoverArea 与按钮 MouseArea 是并列热区）。
     readonly property bool showActions: hoverArea.containsMouse
-                                        || manualArea.containsMouse
-                                        || autoArea.containsMouse
+                                        || manualBtn.hovered
+                                        || autoBtn.hovered
     readonly property bool lifted: selected || showActions
     // 板抬起量；柔影据其反向补偿，让影子"留在地面"并随抬起变淡。
     readonly property real lift: lifted ? 6 : 0
@@ -78,7 +80,6 @@ Item {
         Behavior on opacity {
             NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
         }
-        // y 补偿：板抬高 6，影相对下移 6，屏幕上保持原位
         y: board.lift
 
         Repeater {
@@ -101,254 +102,278 @@ Item {
         }
     }
 
-    AcrylicPanel {
-        anchors.fill: parent
-        hoverLift: false
-        // 选中：琥珀信号描边
-        Rectangle {
-            anchors.fill: parent
-            anchors.margins: -2
-            radius: 3
-            color: "transparent"
-            border.width: 2
-            border.color: AppTheme.signal
-            visible: board.selected
-        }
-    }
-
-    // 档案编号行
-    Text {
-        id: codeText
-        anchors { left: parent.left; top: parent.top; leftMargin: 16; topMargin: 14 }
-        text: board.code
-        color: board.selected ? AppTheme.signalDeep : AppTheme.ink
-        font.family: AppTheme.fontFamily
-        font.pixelSize: 11
-        font.bold: true
-        font.letterSpacing: 1.8
-    }
-    Text {
-        anchors { left: codeText.right; leftMargin: 8; baseline: codeText.baseline }
-        text: board.name + (board.nameEn.length > 0 ? " · " + board.nameEn : "")
-        color: AppTheme.ink2
-        font.family: AppTheme.fontFamily
-        font.pixelSize: 11
-        font.letterSpacing: 1.2
-    }
-
-    // 页面预览：按真实预设几何绘制槽位；照片衬在玻璃后（奶雾 + 反光）
+    // ---- 板内容层：按钮的毛玻璃采样源（不含按钮自身，避免纹理递归）----
     Item {
-        id: pagePreview
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: 50
-        width: parent.width * 0.76
-        height: width / 1.48
+        id: boardContent
+        anchors.fill: parent
 
-        // 相纸落影（预览下方偏移块，模拟纸张浮起）
-        Rectangle {
-            anchors { fill: parent; topMargin: 5; leftMargin: 2; rightMargin: -2; bottomMargin: -3 }
-            z: -1
-            color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.13)
-        }
-        Rectangle {
+        AcrylicPanel {
             anchors.fill: parent
-            color: "#ffffff"
-            border.width: 1
-            border.color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.10)
+            hoverLift: false
+            // 选中：琥珀信号描边
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: -2
+                radius: 3
+                color: "transparent"
+                border.width: 2
+                border.color: AppTheme.signal
+                visible: board.selected
+            }
         }
-        // 槽位：ShapePath + 对角线性渐变（抗锯齿，无硬裁剪）
-        Repeater {
-            model: board.slotRects
-            delegate: Shape {
-                id: slotShape
-                required property var modelData
-                required property int index
-                x: modelData.x * pagePreview.width
-                y: modelData.y * pagePreview.height
-                width: modelData.width * pagePreview.width
-                height: modelData.height * pagePreview.height
-                antialiasing: true
-                preferredRendererType: Shape.CurveRenderer
 
-                ShapePath {
-                    strokeWidth: 0
-                    fillGradient: LinearGradient {
-                        x1: 0
-                        y1: 0
-                        x2: slotShape.width
-                        y2: slotShape.height
-                        GradientStop { position: 0.0; color: board.demoStop(slotShape.index, 0) }
-                        GradientStop { position: 0.58; color: board.demoStop(slotShape.index, 1) }
-                        GradientStop { position: 1.0; color: board.demoStop(slotShape.index, 2) }
+        // 档案编号行
+        Text {
+            id: codeText
+            anchors { left: parent.left; top: parent.top; leftMargin: 16; topMargin: 14 }
+            text: board.code
+            color: board.selected ? AppTheme.signalDeep : AppTheme.ink
+            font.family: AppTheme.fontFamily
+            font.pixelSize: 11
+            font.bold: true
+            font.letterSpacing: 1.8
+        }
+        Text {
+            anchors { left: codeText.right; leftMargin: 8; baseline: codeText.baseline }
+            text: board.name + (board.nameEn.length > 0 ? " · " + board.nameEn : "")
+            color: AppTheme.ink2
+            font.family: AppTheme.fontFamily
+            font.pixelSize: 11
+            font.letterSpacing: 1.2
+        }
+
+        // 页面预览：按真实预设几何绘制槽位；照片衬在玻璃后（奶雾 + 反光）
+        Item {
+            id: pagePreview
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 50
+            width: parent.width * 0.76
+            height: width / 1.48
+
+            // 相纸落影（预览下方偏移块，模拟纸张浮起）
+            Rectangle {
+                anchors { fill: parent; topMargin: 5; leftMargin: 2; rightMargin: -2; bottomMargin: -3 }
+                z: -1
+                color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.13)
+            }
+            Rectangle {
+                anchors.fill: parent
+                color: "#ffffff"
+                border.width: 1
+                border.color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.10)
+            }
+            // 槽位：ShapePath + 对角线性渐变（抗锯齿，无硬裁剪）
+            Repeater {
+                model: board.slotRects
+                delegate: Shape {
+                    id: slotShape
+                    required property var modelData
+                    required property int index
+                    x: modelData.x * pagePreview.width
+                    y: modelData.y * pagePreview.height
+                    width: modelData.width * pagePreview.width
+                    height: modelData.height * pagePreview.height
+                    antialiasing: true
+                    preferredRendererType: Shape.CurveRenderer
+
+                    ShapePath {
+                        strokeWidth: 0
+                        fillGradient: LinearGradient {
+                            x1: 0
+                            y1: 0
+                            x2: slotShape.width
+                            y2: slotShape.height
+                            GradientStop { position: 0.0; color: board.demoStop(slotShape.index, 0) }
+                            GradientStop { position: 0.58; color: board.demoStop(slotShape.index, 1) }
+                            GradientStop { position: 1.0; color: board.demoStop(slotShape.index, 2) }
+                        }
+                        startX: 0
+                        startY: 0
+                        PathLine { x: slotShape.width; y: 0 }
+                        PathLine { x: slotShape.width; y: slotShape.height }
+                        PathLine { x: 0; y: slotShape.height }
+                        PathLine { x: 0; y: 0 }
                     }
-                    startX: 0
-                    startY: 0
-                    PathLine { x: slotShape.width; y: 0 }
-                    PathLine { x: slotShape.width; y: slotShape.height }
-                    PathLine { x: 0; y: slotShape.height }
-                    PathLine { x: 0; y: 0 }
+                }
+            }
+            // 玻璃后奶雾：照片隔着一层亚克力看的柔和感（J 稿 .haze）
+            Rectangle {
+                anchors.fill: parent
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.26) }
+                    GradientStop { position: 0.5; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.10) }
+                    GradientStop { position: 1.0; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.22) }
+                }
+            }
+            // 玻璃反光扫带（J 稿 .pane 的斜向高光）
+            Rectangle {
+                anchors.fill: parent
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0) }
+                    GradientStop { position: 0.50; color: Qt.rgba(1, 1, 1, 0) }
+                    GradientStop { position: 0.63; color: Qt.rgba(1, 1, 1, 0.26) }
+                    GradientStop { position: 0.76; color: Qt.rgba(1, 1, 1, 0.04) }
+                    GradientStop { position: 0.90; color: Qt.rgba(1, 1, 1, 0) }
                 }
             }
         }
-        // 玻璃后奶雾：照片隔着一层亚克力看的柔和感（J 稿 .haze）
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.26) }
-                GradientStop { position: 0.5; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.10) }
-                GradientStop { position: 1.0; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.22) }
-            }
+
+        // 名称行
+        Text {
+            id: nameRow
+            anchors { horizontalCenter: parent.horizontalCenter; bottom: subtitleText.top; bottomMargin: 3 }
+            text: board.name
+            color: AppTheme.ink
+            font.family: AppTheme.fontFamily
+            font.pixelSize: 14
+            font.bold: true
+            font.letterSpacing: 1.2
         }
-        // 玻璃反光扫带（J 稿 .pane 的斜向高光）
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0) }
-                GradientStop { position: 0.50; color: Qt.rgba(1, 1, 1, 0) }
-                GradientStop { position: 0.63; color: Qt.rgba(1, 1, 1, 0.26) }
-                GradientStop { position: 0.76; color: Qt.rgba(1, 1, 1, 0.04) }
-                GradientStop { position: 0.90; color: Qt.rgba(1, 1, 1, 0) }
-            }
+        Text {
+            id: subtitleText
+            anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 16 }
+            text: board.subtitle
+            color: AppTheme.ink3
+            font.family: AppTheme.fontFamily
+            font.pixelSize: 10
+            font.letterSpacing: 1.6
         }
     }
 
-    // 名称行
-    Text {
-        id: nameRow
-        anchors { horizontalCenter: parent.horizontalCenter; bottom: subtitleText.top; bottomMargin: 3 }
-        text: board.name
-        color: AppTheme.ink
-        font.family: AppTheme.fontFamily
-        font.pixelSize: 14
-        font.bold: true
-        font.letterSpacing: 1.2
-    }
-    Text {
-        id: subtitleText
-        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 16 }
-        text: board.subtitle
-        color: AppTheme.ink3
-        font.family: AppTheme.fontFamily
-        font.pixelSize: 10
-        font.letterSpacing: 1.6
+    // ---- 毛玻璃操作按钮（内联组件）----
+    // 毛玻璃呈现方式（不抓取背后内容——在本次布局中实测不可靠，且成本高）：
+    //   半透明奶白/墨黑填充（背后内容透出并被轻微柔化）
+    //   + MultiEffect 对按钮本体做 blur（软化边缘与内部，产生"玻璃介质"感）
+    //   + 顶缘高光（板材厚度）+ 多层柔影（悬停加深）。
+    // 悬停仅上浮 + 轻微放大，不变色（按所有者要求）。
+    component GlassActionButton: Item {
+        id: gbtn
+
+        property string label: ""
+        property bool dark: false
+        readonly property bool hovered: gbtnHover.containsMouse
+        signal clicked()
+
+        width: 92
+        height: 36
+        scale: gbtnHover.containsMouse ? 1.05 : 1.0
+        Behavior on scale {
+            NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
+        }
+        y: gbtnHover.containsMouse ? -2 : 0
+        Behavior on y {
+            NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
+        }
+
+        // 柔影（多层扩散，悬停加深）
+        Item {
+            anchors.fill: parent
+            z: -2
+            Repeater {
+                model: [
+                    { yo: 2, ex: 1, a: 0.07 },
+                    { yo: 4, ex: 3, a: 0.05 },
+                    { yo: 6, ex: 6, a: 0.03 }
+                ]
+                delegate: Rectangle {
+                    required property var modelData
+                    x: -modelData.ex
+                    y: modelData.yo
+                    width: gbtn.width + modelData.ex * 2
+                    height: gbtn.height + modelData.ex * 2
+                    radius: 2 + modelData.ex
+                    color: Qt.rgba(28 / 255, 25 / 255, 18 / 255,
+                                   modelData.a * (gbtn.hovered ? 1.45 : 1.0))
+                    Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
+                }
+            }
+        }
+
+        // 玻璃主体：MultiEffect 做柔化（毛玻璃介质感）
+        Rectangle {
+            id: glassBody
+            anchors.fill: parent
+            radius: 2
+            // 半透明填充：背后板面内容会隐约透出（毛玻璃的关键观感）
+            color: gbtn.dark ? Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.78)
+                             : Qt.rgba(1, 1, 1, 0.70)
+            border.width: 1
+            border.color: gbtn.dark ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(1, 1, 1, 0.95)
+            // 顶缘高光（板材厚度）
+            Rectangle {
+                anchors { left: parent.left; right: parent.right; top: parent.top; margins: 1 }
+                height: 1
+                color: gbtn.dark ? Qt.rgba(1, 1, 1, 0.24) : Qt.rgba(1, 1, 1, 1.0)
+            }
+            // 内部斜向微光（玻璃内反光）
+            Rectangle {
+                anchors.fill: parent
+                radius: 2
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: gbtn.dark ? Qt.rgba(1, 1, 1, 0.07) : Qt.rgba(1, 1, 1, 0.30) }
+                    GradientStop { position: 0.55; color: Qt.rgba(1, 1, 1, 0.0) }
+                    GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, gbtn.dark ? 0.10 : 0.03) }
+                }
+            }
+            Text {
+                anchors.centerIn: parent
+                text: gbtn.label
+                color: gbtn.dark ? "#f4f1ea" : AppTheme.ink
+                font.family: AppTheme.fontFamily
+                font.pixelSize: 11
+                font.bold: true
+            }
+        }
+
+        // 对玻璃主体做轻度模糊：软化材质，强化"隔一层玻璃"的观感
+        MultiEffect {
+            source: glassBody
+            anchors.fill: glassBody
+            blurEnabled: true
+            blur: 0.35
+            blurMax: 16
+            z: -1
+        }
+
+        MouseArea {
+            id: gbtnHover
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: gbtn.clicked()
+        }
     }
 
-    // 操作按钮：位于预览与名称行之间的留白区（大致下方空白处），悬停展示板即浮出。
-    // 垂直位置取"预览底 → 名称顶"的中点略偏上，视觉上落在留白中央而不是贴边。
-    // 鼠标移入按钮时：按钮放大、下投影加重、底色加深（悬停动效）。
+    // ---- 操作按钮行：位于预览与名称行之间的留白区，悬停展示板即浮出 ----
+    // 垂直位置取"预览底 → 名称顶"的中点，视觉上落在留白中央而不是贴边。
     Row {
         id: actionRow
+        // 展示板尺寸固定（232×312）：预览底 y≈169、名称行顶 y≈264，
+        // 按钮高 36 → 居中于留白带取 y=199。固定值避免跨层级绑定的求值时机问题。
         anchors {
             horizontalCenter: parent.horizontalCenter
-            top: pagePreview.bottom
-            // 留白区高度 = 名称行顶端 - 预览底端；取其中点作为按钮中心。
-            topMargin: Math.max(18, (nameRow.y - pagePreview.y - pagePreview.height) / 2 - height / 2)
+            top: parent.top
+            topMargin: 199
         }
         spacing: 10
-        // 悬停板时淡入上浮；鼠标从板移到按钮途中不闪断（showActions 覆盖两处热区）。
+        z: 10
         opacity: board.showActions ? 1 : 0
         visible: opacity > 0
-        transform: Translate {
-            y: board.showActions ? 0 : 6
-        }
         Behavior on opacity {
             NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
         }
 
-        // 「手动排版」：白底描边按钮
-        Item {
+        GlassActionButton {
             id: manualBtn
-            width: 92
-            height: 36
-
-            scale: manualArea.containsMouse ? 1.06 : 1.0
-            Behavior on scale {
-                NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
-            }
-            // 悬停时按钮浮起
-            y: manualArea.containsMouse ? -1 : 0
-            Behavior on y {
-                NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
-            }
-
-            // 悬停投影
-            Rectangle {
-                anchors { fill: parent; topMargin: 4 }
-                radius: 3
-                color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, manualArea.containsMouse ? 0.22 : 0)
-                z: -1
-                Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
-            }
-            Rectangle {
-                anchors.fill: parent
-                radius: 2
-                color: manualArea.containsMouse ? AppTheme.ink : Qt.rgba(1, 1, 1, 0.96)
-                border.width: 1
-                border.color: AppTheme.ink
-                Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
-                Text {
-                    anchors.centerIn: parent
-                    text: qsTr("手动排版")
-                    color: manualArea.containsMouse ? "#f4f1ea" : AppTheme.ink
-                    font.family: AppTheme.fontFamily
-                    font.pixelSize: 11
-                    font.bold: true
-                    Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
-                }
-            }
-            MouseArea {
-                id: manualArea
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: board.manualRequested()
-            }
+            label: qsTr("手动排版")
+            onClicked: board.manualRequested()
         }
-
-        // 「自动填充」：近黑实底按钮（无橙色小块，保持极简）
-        Item {
+        GlassActionButton {
             id: autoBtn
-            width: 92
-            height: 36
-
-            scale: autoArea.containsMouse ? 1.06 : 1.0
-            Behavior on scale {
-                NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
-            }
-            y: autoArea.containsMouse ? -1 : 0
-            Behavior on y {
-                NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
-            }
-
-            Rectangle {
-                anchors { fill: parent; topMargin: 4 }
-                radius: 3
-                color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, autoArea.containsMouse ? 0.28 : 0)
-                z: -1
-                Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
-            }
-            Rectangle {
-                anchors.fill: parent
-                radius: 2
-                color: autoArea.containsMouse ? "#000000" : AppTheme.ink
-                Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
-                Text {
-                    anchors.centerIn: parent
-                    text: qsTr("自动填充")
-                    color: "#f4f1ea"
-                    font.family: AppTheme.fontFamily
-                    font.pixelSize: 11
-                    font.bold: true
-                }
-            }
-            MouseArea {
-                id: autoArea
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: board.autoRequested()
-            }
+            label: qsTr("自动填充")
+            dark: true
+            onClicked: board.autoRequested()
         }
     }
 

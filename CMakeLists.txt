@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # QuickControls2：QML 控件与界面风格（QQuickStyle）的依赖；05 子方案定风格时在此管理。
-find_package(Qt6 6.5 REQUIRED COMPONENTS Quick QuickControls2 QuickShapes)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Quick QuickControls2 QuickShapes QuickEffects)
 qt_standard_project_setup(REQUIRES 6.5)
 
 # 应用壳：QML 界面入口。领域模型（src/domain）、服务层（src/services）
@@ -48,7 +48,7 @@ qt_add_resources(LiuSu "preview_images"
     FILES ${LIUSU_PREVIEW_IMAGES}
 )
 
-target_link_libraries(LiuSu PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::QuickShapes)
+target_link_libraries(LiuSu PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::QuickShapes Qt6::QuickEffects)
 target_link_libraries(LiuSu PRIVATE liusu_services)
 
 # 领域层独立于应用壳构建，供应用与测试共同链接。
