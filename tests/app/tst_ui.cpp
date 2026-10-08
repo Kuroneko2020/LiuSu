@@ -214,6 +214,25 @@ private slots:
         QTest::mouseRelease(window,Qt::LeftButton,Qt::NoModifier,origin);
         QCOMPARE(controller.selectedSlotState().value("cropX").toDouble(),0.0);
     }
+    void pageChangesKeepEditingCoordinatesStable()
+    {
+        window->setProperty("editing",true);
+        controller.startManual("four");
+        controller.addPages("two",1);
+        auto* paper=window->findChild<QQuickItem*>("pagePaper");
+        auto* canvas=window->findChild<QQuickItem*>("pageCanvas");
+        QVERIFY(paper && canvas);
+        for(int page : {0,1}) {
+            controller.setCurrentPage(page);
+            for(int delay : {40,60,120}) {
+                QTest::qWait(delay);
+                const auto topLeft=paper->mapToItem(canvas,QPointF(0,0));
+                const auto bottomRight=paper->mapToItem(canvas,QPointF(paper->width(),paper->height()));
+                QVERIFY(QLineF(topLeft,QPointF(paper->x(),paper->y())).length()<0.01);
+                QVERIFY(QLineF(bottomRight,QPointF(paper->x()+paper->width(),paper->y()+paper->height())).length()<0.01);
+            }
+        }
+    }
     void catalogSearchAndGeneratedExportControls()
     {
         QJsonArray entries;

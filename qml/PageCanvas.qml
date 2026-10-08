@@ -27,17 +27,12 @@ Item {
         x: (canvas.width-width)/2
         y: 66 + (canvas.height - 150-height)/2
         property real arrival: 1
-        // 换页只变换预览实体；编辑时保持正视，指针移动不扰动取景坐标。
+        // 编辑面始终正视、位置固定；换页仅轻微更新图像明度，不变换命中区域。
         function arrive() { landing.restart() }
         Connections { target: app; function onCurrentPageChanged() { paper.arrive() } }
         Connections { target: canvas; function onVisibleChanged() { if(canvas.visible) paper.arrive() } }
-        NumberAnimation { id: landing; target: paper; property: "arrival"; from: 0; to: 1; duration: 420; easing.type: Easing.OutCubic }
-        transform: [
-            Rotation { origin.x: paper.width/2; origin.y: paper.height/2; axis.x: 1; axis.y: 0; axis.z: 0; angle: (1-paper.arrival)*22 },
-            Rotation { origin.x: paper.width/2; origin.y: paper.height/2; axis.x: 0; axis.y: 1; axis.z: 0; angle: (1-paper.arrival)*-12 },
-            Translate { y: (1-paper.arrival)*48 }
-        ]
-        GradientShadow { anchors.fill: parent; strength: 0.22; spread: 18; offsetY: 20; cornerRadius: 0; scale: 1+(1-paper.arrival)*0.07 }
+        NumberAnimation { id: landing; target: paper; property: "arrival"; from: 0; to: 1; duration: 140; easing.type: Easing.OutCubic }
+        GradientShadow { anchors.fill: parent; strength: 0.09; spread: 8; offsetY: 8; cornerRadius: 0 }
         Rectangle { x: 1; y: parent.height; width: parent.width-2; height: 2; color: "#c6cbbf" }
         Image {
             anchors.fill: parent
@@ -46,6 +41,7 @@ Item {
             sourceSize.height: Math.ceil(paper.height * Screen.devicePixelRatio)
             fillMode: Image.Stretch
             cache: false
+            opacity: 0.96+paper.arrival*0.04
         }
         readonly property var selectedRect: app.selectedSlotRect
         Rectangle {
@@ -68,7 +64,7 @@ Item {
             property bool dragged: false
             onPressed: (mouse) => {
                 app.selectSlotAt(mouse.x/paper.width, mouse.y/paper.height)
-                // 捕获台面坐标后落定；不能把尚未结束的透视动画算进裁切增量。
+                // 台面坐标始终稳定；开始取景时结束轻微换页明度反馈。
                 startPoint = photoMouse.mapToItem(canvas,mouse.x,mouse.y)
                 landing.stop()
                 paper.arrival = 1
