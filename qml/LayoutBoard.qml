@@ -14,6 +14,7 @@ Item {
     property string presetId: ""
     property var slotRects: []           // [{x,y,w,h}] 归一化，来自 AppController
     property bool selected: false
+    property real tilt: 0                // 静态倾斜角（J 稿 --tilt），悬停/选中回正
 
     signal activated()
     signal manualRequested()
@@ -22,9 +23,31 @@ Item {
     implicitWidth: 232
     implicitHeight: 312
 
+    // J 稿演示色（h1..h9 对角渐变三停靠点）：仅用于布局预览示意，非真实照片。
+    // 与设计稿保持一致：每个槽位是一段均匀的斜向渐变，而不是平涂色块。
+    function demoStop(index, stop) {
+        const palette = [
+            ["#e8c896", "#cf9455", "#a96a3d"],
+            ["#b7c9b0", "#7f9a7d", "#546b56"],
+            ["#aeb6c2", "#79839a", "#4d5670"],
+            ["#d6b5a4", "#b07d63", "#7c4f3b"],
+            ["#d9cfa8", "#b3a267", "#7d7040"],
+            ["#c2cfc4", "#8ba391", "#59725f"],
+            ["#c5cdd8", "#95a0b4", "#95a0b4"],
+            ["#d8c2b6", "#ab8874", "#ab8874"],
+            ["#cfc9b4", "#a29c7e", "#a29c7e"]
+        ]
+        return palette[index % 9][stop]
+    }
+
     // 悬浮感：选中或悬停时整板抬升
     y: (selected || hoverArea.containsMouse) ? -6 : 0
     Behavior on y {
+        NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
+    }
+    // J 稿：展示板带轻微倾斜的"摆件感"，悬停或选中时回正。
+    rotation: (selected || hoverArea.containsMouse) ? 0 : tilt
+    Behavior on rotation {
         NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
     }
 
@@ -92,9 +115,20 @@ Item {
                 y: modelData.y * pagePreview.height
                 width: modelData.width * pagePreview.width
                 height: modelData.height * pagePreview.height
-                // 演示色轮换（仅为区分槽位，非真实照片）
-                color: ["#cf9455", "#7f9a7d", "#79839a", "#b07d63",
-                        "#b3a267", "#8ba391", "#95a0b4", "#ab8874", "#a29c7e"][index % 9]
+                clip: true
+                // 对角均匀渐变（J 稿 h1..h9）：内层放大并旋转，父级裁剪保持槽位形状。
+                Rectangle {
+                    width: parent.width * 1.9
+                    height: parent.height * 1.9
+                    x: -parent.width * 0.45
+                    y: -parent.height * 0.45
+                    rotation: 25
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: board.demoStop(index, 0) }
+                        GradientStop { position: 0.58; color: board.demoStop(index, 1) }
+                        GradientStop { position: 1.0; color: board.demoStop(index, 2) }
+                    }
+                }
             }
         }
         // 玻璃后奶雾：照片隔着一层亚克力看的柔和感（J 稿 .haze）

@@ -31,14 +31,47 @@ Item {
             GradientStop { position: 1.0; color: "#dcd7cb" }
         }
     }
-    Rectangle {
-        width: 640; height: 420; x: -80; y: -120; radius: 320
-        color: Qt.rgba(1, 1, 1, 0.55)
-        opacity: 0.8
+    // 环境柔光（J 稿 radial-gradient 光斑）：中心亮、边缘透明，
+    // 不得用实心圆角矩形（会产生可见硬边）。
+    Canvas {
+        id: glowLeft
+        x: -80
+        y: -120
+        width: 640
+        height: 420
+        onPaint: {
+            const ctx = getContext("2d");
+            ctx.reset();
+            const grad = ctx.createRadialGradient(width / 2, height / 2, 0,
+                                                  width / 2, height / 2, width / 2);
+            grad.addColorStop(0.0, "rgba(255,255,255,0.55)");
+            grad.addColorStop(0.6, "rgba(255,255,255,0.20)");
+            grad.addColorStop(1.0, "rgba(255,255,255,0)");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+        }
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
     }
-    Rectangle {
-        width: 520; height: 380; x: parent.width - 440; y: -60; radius: 260
-        color: Qt.rgba(217 / 255, 142 / 255, 43 / 255, 0.09)
+    Canvas {
+        id: glowRight
+        x: parent.width - 440
+        y: -60
+        width: 520
+        height: 380
+        onPaint: {
+            const ctx = getContext("2d");
+            ctx.reset();
+            const grad = ctx.createRadialGradient(width / 2, height / 2, 0,
+                                                  width / 2, height / 2, width / 2);
+            grad.addColorStop(0.0, "rgba(217,142,43,0.10)");
+            grad.addColorStop(0.6, "rgba(217,142,43,0.045)");
+            grad.addColorStop(1.0, "rgba(217,142,43,0)");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+        }
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
     }
 
     // ---- 顶栏（亚克力板，与 J 稿一致：含四角螺丝与右侧读数）----
@@ -188,6 +221,8 @@ Item {
                 presetId: modelData.id
                 slotRects: app.presetSlots(modelData.id)
                 selected: boardsRow.selectedIndex === index
+                // J 稿：四块展示板各自轻微倾斜，像随手摆开的一组装裱件。
+                tilt: [-1.2, 0.8, 0, 1.4][index % 4]
 
                 function layoutNameEn(id) {
                     if (id === "single") return "SINGLE"
@@ -218,19 +253,32 @@ Item {
         }
     }
 
-    // 地面投影
-    Rectangle {
+    // 地面投影：J 稿为径向弥散椭圆（不是横条），置于展示板下方。
+    // Canvas 绘制真正的径向渐变；仅尺寸变化时重绘（静态元素，无逐帧成本）。
+    Canvas {
         id: ground
-        anchors { horizontalCenter: parent.horizontalCenter; top: boardsRow.bottom; topMargin: 8 }
-        width: boardsRow.width * 0.8
-        height: 34
-        radius: 17
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: "transparent" }
-            GradientStop { position: 0.5; color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.16) }
-            GradientStop { position: 1.0; color: "transparent" }
+        anchors { horizontalCenter: parent.horizontalCenter; top: boardsRow.bottom; topMargin: -6 }
+        width: boardsRow.width * 0.78
+        height: 44
+        onPaint: {
+            const ctx = getContext("2d");
+            ctx.reset();
+            ctx.save();
+            ctx.translate(width / 2, height / 2);
+            ctx.scale(1, height / width);
+            const radius = width / 2;
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+            grad.addColorStop(0.0, "rgba(28,25,18,0.16)");
+            grad.addColorStop(0.55, "rgba(28,25,18,0.07)");
+            grad.addColorStop(1.0, "rgba(28,25,18,0)");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
         }
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
     }
 
     // ---- 底部提示 ----
