@@ -32,6 +32,29 @@ AppController::AppController(QObject* parent)
     m_document = ProjectDocument::createDefault();
     m_pageCache.setMaxCost(kPageCacheCostBytes);
     rebuildPageRevisions();
+
+    // 开发预览：构建演示工程（四宫格 + 测试图集），供启动直达编辑页的目检。
+    const QString presetId = demoPreset();
+    if (!presetId.isEmpty()) {
+        startManual(presetId);
+        ProjectPage* page = currentPage();
+        if (page) {
+            const QStringList demoImages = {
+                QStringLiteral(":/images/exif1.jpg"), QStringLiteral(":/images/exif6.jpg"),
+                QStringLiteral(":/images/exif3.jpg"), QStringLiteral(":/images/exif8.jpg"),
+            };
+            for (int i = 0; i < page->slotStates.size() && i < demoImages.size(); ++i) {
+                page->slotStates[i].imagePath = demoImages.at(i);
+                page->slotStates[i].fillMode = FillMode::Fill;
+            }
+            bumpCurrentPageRevision();
+        }
+    }
+}
+
+QString AppController::demoPreset() const
+{
+    return qEnvironmentVariable("LIUSU_DEMO_PRESET");
 }
 
 QString AppController::previewUrl() const

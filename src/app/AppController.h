@@ -46,6 +46,10 @@ public:
     QString backgroundHex() const { return m_document.background.colorHex; }
     QString statusMessage() const { return m_statusMessage; }
     int currentSlotCount() const;
+    // 开发预览开关：LIUSU_DEMO_PRESET=four 时启动即建该预设工程并直接进编辑页。
+    // 仅用于开发期截图与目检，不作为产品功能；未设置时为空串。
+    Q_PROPERTY(QString demoPreset READ demoPreset CONSTANT)
+    QString demoPreset() const;
 
     // 供 PagePreviewProvider 使用：按请求像素宽度推导 PPI 渲染指定页。
     // requestedSize 无效时用回退 PPI。索引越界返回空图。

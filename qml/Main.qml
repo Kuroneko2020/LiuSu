@@ -29,6 +29,12 @@ ApplicationWindow {
             onRequestEditor: stack.push(editorComponent)
         }
 
+        // 开发预览：LIUSU_DEMO_PRESET 设置时启动直达编辑页（仅开发期使用）。
+        Component.onCompleted: {
+            if (app.demoPreset.length > 0)
+                stack.push(editorComponent)
+        }
+
         Component {
             id: editorComponent
             EditorPage {

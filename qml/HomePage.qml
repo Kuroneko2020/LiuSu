@@ -41,60 +41,76 @@ Item {
         color: Qt.rgba(217 / 255, 142 / 255, 43 / 255, 0.09)
     }
 
-    // ---- 顶栏 ----
-    Row {
+    // ---- 顶栏（亚克力板，与 J 稿一致：含四角螺丝与右侧读数）----
+    AcrylicPanel {
         id: topbar
-        anchors { left: parent.left; top: parent.top; leftMargin: 26; topMargin: 18 }
-        spacing: 14
-        Text {
-            text: qsTr("留素")
-            color: AppTheme.ink
-            font.family: AppTheme.fontFamily
-            font.pixelSize: 20
-            font.bold: true
-            font.letterSpacing: 4
-            anchors.verticalCenter: parent.verticalCenter
+        anchors { left: parent.left; right: parent.right; top: parent.top;
+                  leftMargin: 18; rightMargin: 18; topMargin: 14 }
+        height: 58
+
+        Row {
+            anchors { left: parent.left; leftMargin: 22; verticalCenter: parent.verticalCenter }
+            spacing: 12
+            Text {
+                text: qsTr("留素")
+                color: AppTheme.ink
+                font.family: AppTheme.fontFamily
+                font.pixelSize: 17
+                font.bold: true
+                font.letterSpacing: 3.5
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Text {
+                text: qsTr("LIUSU IMPRINT")
+                color: AppTheme.ink3
+                font.family: AppTheme.fontFamily
+                font.pixelSize: 9
+                font.letterSpacing: 2.2
+                font.bold: true
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Item { width: 10; height: 1 }
+            // 导航（编辑/设置在无任务时不可用）
+            Repeater {
+                model: [
+                    { label: qsTr("01 主页"), enabled: true },
+                    { label: qsTr("02 编辑"), enabled: false },
+                    { label: qsTr("03 设置"), enabled: false }
+                ]
+                delegate: Item {
+                    required property var modelData
+                    width: navLabel.width
+                    height: 26
+                    anchors.verticalCenter: parent.verticalCenter
+                    Text {
+                        id: navLabel
+                        anchors.centerIn: parent
+                        text: modelData.label
+                        color: modelData.enabled ? AppTheme.ink : AppTheme.ink3
+                        opacity: modelData.enabled ? 1 : 0.55
+                        font.family: AppTheme.fontFamily
+                        font.pixelSize: 13
+                        font.bold: true
+                    }
+                    Rectangle {
+                        visible: modelData.enabled
+                        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom }
+                        width: parent.width
+                        height: 2
+                        color: AppTheme.signal
+                    }
+                }
+            }
         }
+
         Text {
-            text: qsTr("LIUSU IMPRINT")
+            anchors { right: parent.right; rightMargin: 22; verticalCenter: parent.verticalCenter }
+            text: qsTr("PAGE 148 × 100 MM") + "   ·   " + qsTr("OUTPUT 300 PPI")
             color: AppTheme.ink3
             font.family: AppTheme.fontFamily
             font.pixelSize: 10
-            font.letterSpacing: 2.6
             font.bold: true
-            anchors.verticalCenter: parent.verticalCenter
-        }
-        Item { width: 12; height: 1 }
-        // 导航（编辑/设置在无任务时不可用）
-        Repeater {
-            model: [
-                { label: qsTr("01 主页"), enabled: true },
-                { label: qsTr("02 编辑"), enabled: false },
-                { label: qsTr("03 设置"), enabled: false }
-            ]
-            delegate: Item {
-                required property var modelData
-                width: navLabel.width
-                height: 26
-                anchors.verticalCenter: parent.verticalCenter
-                Text {
-                    id: navLabel
-                    anchors.centerIn: parent
-                    text: modelData.label
-                    color: modelData.enabled ? AppTheme.ink : AppTheme.ink3
-                    opacity: modelData.enabled ? 1 : 0.55
-                    font.family: AppTheme.fontFamily
-                    font.pixelSize: 13
-                    font.bold: true
-                }
-                Rectangle {
-                    visible: modelData.enabled
-                    anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom }
-                    width: parent.width
-                    height: 2
-                    color: AppTheme.signal
-                }
-            }
+            font.letterSpacing: 1.6
         }
     }
 
@@ -167,10 +183,19 @@ Item {
                 height: 312
                 code: "LY-0" + (index + 1)
                 name: modelData.name
+                nameEn: layoutNameEn(modelData.id)
                 subtitle: layoutSubtitle(modelData.id, modelData.slotCount)
                 presetId: modelData.id
                 slotRects: app.presetSlots(modelData.id)
                 selected: boardsRow.selectedIndex === index
+
+                function layoutNameEn(id) {
+                    if (id === "single") return "SINGLE"
+                    if (id === "two") return "DUO"
+                    if (id === "four") return "QUAD"
+                    if (id === "nine") return "GRID-9"
+                    return ""
+                }
 
                 function layoutSubtitle(id, count) {
                     if (id === "single") return "148 × 100 · 1 SLOT"

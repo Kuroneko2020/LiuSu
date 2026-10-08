@@ -9,6 +9,7 @@ Item {
 
     property string code: ""
     property string name: ""
+    property string nameEn: ""          // 英文副名（SINGLE / DUO / QUAD / GRID-9）
     property string subtitle: ""
     property string presetId: ""
     property var slotRects: []           // [{x,y,w,h}] 归一化，来自 AppController
@@ -55,25 +56,32 @@ Item {
     }
     Text {
         anchors { left: codeText.right; leftMargin: 8; baseline: codeText.baseline }
-        text: board.name
+        text: board.name + (board.nameEn.length > 0 ? " · " + board.nameEn : "")
         color: AppTheme.ink2
         font.family: AppTheme.fontFamily
         font.pixelSize: 11
         font.letterSpacing: 1.2
     }
 
-    // 页面预览：按真实预设几何绘制槽位
+    // 页面预览：按真实预设几何绘制槽位；照片衬在玻璃后（奶雾 + 反光）
     Item {
         id: pagePreview
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 46
-        width: parent.width * 0.62
+        y: 50
+        width: parent.width * 0.76
         height: width / 1.48
+
+        // 相纸落影（预览下方偏移块，模拟纸张浮起）
+        Rectangle {
+            anchors { fill: parent; topMargin: 5; leftMargin: 2; rightMargin: -2; bottomMargin: -3 }
+            z: -1
+            color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.13)
+        }
         Rectangle {
             anchors.fill: parent
             color: "#ffffff"
             border.width: 1
-            border.color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.12)
+            border.color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, 0.10)
         }
         Repeater {
             model: board.slotRects
@@ -87,15 +95,27 @@ Item {
                 // 演示色轮换（仅为区分槽位，非真实照片）
                 color: ["#cf9455", "#7f9a7d", "#79839a", "#b07d63",
                         "#b3a267", "#8ba391", "#95a0b4", "#ab8874", "#a29c7e"][index % 9]
-                opacity: 0.85
             }
         }
-        // 玻璃后奶雾
+        // 玻璃后奶雾：照片隔着一层亚克力看的柔和感（J 稿 .haze）
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.10) }
-                GradientStop { position: 1.0; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.16) }
+                GradientStop { position: 0.0; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.26) }
+                GradientStop { position: 0.5; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.10) }
+                GradientStop { position: 1.0; color: Qt.rgba(250 / 255, 250 / 255, 248 / 255, 0.22) }
+            }
+        }
+        // 玻璃反光扫带（J 稿 .pane 的斜向高光）
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0) }
+                GradientStop { position: 0.50; color: Qt.rgba(1, 1, 1, 0) }
+                GradientStop { position: 0.63; color: Qt.rgba(1, 1, 1, 0.26) }
+                GradientStop { position: 0.76; color: Qt.rgba(1, 1, 1, 0.04) }
+                GradientStop { position: 0.90; color: Qt.rgba(1, 1, 1, 0) }
             }
         }
     }
