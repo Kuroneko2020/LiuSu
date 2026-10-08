@@ -66,4 +66,7 @@
 
 - 文档入口与路由：[docs/README.md](docs/README.md)。
 - AI 协作入口：[AGENTS.md](AGENTS.md)。
-- 当前状态：第一阶段实施计划已建立（[docs/计划/第一版基础拼版](docs/计划/第一版基础拼版/00-基准.md)），尚无源码；动态状态查[总跟踪 Issue](https://github.com/Kuroneko2020/LiuSu/issues/1)。
+- 当前状态（2026-10-08）：可运行的桌面应用。主页（亚克力展示板选布局）已按所有者验收定稿；
+  编辑页（真实渲染 / 槽位编辑 / 页队列 / 导出）已实现待细节打磨。技术栈与测试见下节，
+  领域模型与渲染管线有测试锁定（`ctest` 4 套全通过）。动态状态查[总跟踪 Issue](https://github.com/Kuroneko2020/LiuSu/issues/1)。
+- 界面观感规范与实现现状：[界面设计基准](docs/设计/界面设计基准.md)（含 J 稿与已实现截图对照）。
