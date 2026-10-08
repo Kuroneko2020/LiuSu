@@ -2,6 +2,7 @@
 
 #include "domain/Layout.h"
 #include "domain/Page.h"
+#include "domain/Units.h"
 #include "services/render/PageRenderer.h"
 
 #include <QDir>
@@ -98,11 +99,11 @@ QImage AppController::renderPageForProvider(int pageIndex, const QSize& requeste
         return {};
 
     int ppi = kPreviewFallbackPpi;
-    int widthMm = 0;
-    int heightMm = 0;
+    qreal widthMm = 0.0;
+    qreal heightMm = 0.0;
     profileWidthHeight(&widthMm, &heightMm);
-    if (requestedSize.isValid() && requestedSize.width() > 0 && widthMm > 0) {
-        const int derived = qRound(static_cast<qreal>(requestedSize.width()) * 25.4 / widthMm);
+    if (requestedSize.isValid() && requestedSize.width() > 0 && widthMm > 0.0) {
+        const int derived = liusu::domain::ppiForPixelWidth(requestedSize.width(), widthMm);
         ppi = qBound(kPreviewMinPpi, derived, kPreviewMaxPpi);
     }
     return renderPageAt(pageIndex, ppi);
@@ -312,6 +313,34 @@ int AppController::currentSlotCount() const
     return page ? page->layout.slotRects.size() : 0;
 }
 
+qreal AppController::pageWidthMm() const
+{
+    qreal w = 148.0;
+    profileWidthHeight(&w, nullptr);
+    return w;
+}
+
+qreal AppController::pageHeightMm() const
+{
+    qreal h = 100.0;
+    profileWidthHeight(nullptr, &h);
+    return h;
+}
+
+int AppController::pagePixelWidth(int ppi) const
+{
+    qreal w = 148.0;
+    profileWidthHeight(&w, nullptr);
+    return static_cast<int>(liusu::domain::mmToPixels(w, ppi));
+}
+
+int AppController::pagePixelHeight(int ppi) const
+{
+    qreal h = 100.0;
+    profileWidthHeight(nullptr, &h);
+    return static_cast<int>(liusu::domain::mmToPixels(h, ppi));
+}
+
 void AppController::addPage()
 {
     ProjectPage page;
@@ -507,21 +536,21 @@ void AppController::setStatus(const QString& message)
     emit statusMessageChanged();
 }
 
-bool AppController::profileWidthHeight(int* outWidthMm, int* outHeightMm) const
+bool AppController::profileWidthHeight(qreal* outWidthMm, qreal* outHeightMm) const
 {
     const auto profile = Profiles::findPageProfile(m_document.pageProfileId);
     if (!profile) {
         // 档案缺失属于编程/数据错误：回退 6 寸横版，保证界面仍可用。
         if (outWidthMm)
-            *outWidthMm = 148;
+            *outWidthMm = 148.0;
         if (outHeightMm)
-            *outHeightMm = 100;
+            *outHeightMm = 100.0;
         return false;
     }
     if (outWidthMm)
-        *outWidthMm = qRound(profile->widthMm);
+        *outWidthMm = profile->widthMm;
     if (outHeightMm)
-        *outHeightMm = qRound(profile->heightMm);
+        *outHeightMm = profile->heightMm;
     return true;
 }
 
@@ -530,10 +559,10 @@ QImage AppController::renderPageAt(int pageIndex, int ppi) const
     if (pageIndex < 0 || pageIndex >= m_document.pages.size())
         return {};
 
-    int widthMm = 0;
-    int heightMm = 0;
+    qreal widthMm = 0.0;
+    qreal heightMm = 0.0;
     profileWidthHeight(&widthMm, &heightMm);
-    if (widthMm <= 0 || heightMm <= 0)
+    if (widthMm <= 0.0 || heightMm <= 0.0)
         return {};
 
     // 页面预览缓存（图片与缓存规则·缓存分层）：key = 页号 | ppi | 逐页修订+全局修订。

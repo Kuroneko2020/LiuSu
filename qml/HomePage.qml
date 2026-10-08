@@ -138,7 +138,7 @@ Item {
 
         Text {
             anchors { right: parent.right; rightMargin: 22; verticalCenter: parent.verticalCenter }
-            text: qsTr("PAGE 148 × 100 MM") + "   ·   " + qsTr("OUTPUT 300 PPI")
+            text: qsTr("PAGE %1 × %2 MM").arg(app.pageWidthMm).arg(app.pageHeightMm) + "   ·   " + qsTr("OUTPUT 300 PPI")
             color: AppTheme.ink3
             font.family: AppTheme.fontFamily
             font.pixelSize: 10

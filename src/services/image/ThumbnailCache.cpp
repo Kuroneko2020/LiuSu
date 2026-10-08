@@ -103,7 +103,7 @@ QImage ThumbnailCache::thumbnail(const ImageSourceIdentity& source, int previewM
         img = img.transformed(transform, Qt::SmoothTransformation);
     }
     if (mirrored)
-        img = img.mirrored(true, false);
+        img = img.flipped(Qt::Horizontal);
 
     // 只缩小不放大；最长边约束 previewMaxEdge。
     const int maxEdge = qMax(img.width(), img.height());

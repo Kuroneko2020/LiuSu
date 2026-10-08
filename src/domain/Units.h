@@ -26,4 +26,8 @@ qint64 mmToPixels(qreal mm, int ppi);
 // px -> mm 的唯一换算点。与 mmToPixels 互为逆运算（含四舍五入误差）。
 qreal pixelsToMm(qint64 px, int ppi);
 
+// 由目标像素宽度与已知毫米宽度反推 PPI（预览尺寸推导用）。
+// 换算仍走 25.4，调用方不得自行乘除 25.4。
+int ppiForPixelWidth(qint64 pixelWidth, qreal mmWidth);
+
 } // namespace liusu::domain

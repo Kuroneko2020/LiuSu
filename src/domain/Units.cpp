@@ -39,4 +39,10 @@ qreal pixelsToMm(qint64 px, int ppi)
     return static_cast<qreal>(px) * 25.4 / static_cast<qreal>(ppi);
 }
 
+int ppiForPixelWidth(qint64 pixelWidth, qreal mmWidth)
+{
+    Q_ASSERT(mmWidth > 0.0);
+    return qRound(static_cast<qreal>(pixelWidth) * 25.4 / mmWidth);
+}
+
 } // namespace liusu::domain

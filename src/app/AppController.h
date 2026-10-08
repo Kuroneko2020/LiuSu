@@ -30,6 +30,9 @@ class AppController final : public QObject
     Q_PROPERTY(QString backgroundHex READ backgroundHex NOTIFY changed)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
     Q_PROPERTY(int currentSlotCount READ currentSlotCount NOTIFY changed)
+    // 页面物理尺寸（mm），来自页面档案；QML 显示用，几何真相仍在 domain。
+    Q_PROPERTY(qreal pageWidthMm READ pageWidthMm CONSTANT)
+    Q_PROPERTY(qreal pageHeightMm READ pageHeightMm CONSTANT)
 
 public:
     explicit AppController(QObject* parent = nullptr);
@@ -46,6 +49,11 @@ public:
     QString backgroundHex() const { return m_document.background.colorHex; }
     QString statusMessage() const { return m_statusMessage; }
     int currentSlotCount() const;
+    qreal pageWidthMm() const;
+    qreal pageHeightMm() const;
+    // 按 PPI 推导页面像素尺寸（mmToPixels 经由 domain::Units，QML 不自行换算）。
+    Q_INVOKABLE int pagePixelWidth(int ppi) const;
+    Q_INVOKABLE int pagePixelHeight(int ppi) const;
     // 开发预览开关：LIUSU_DEMO_PRESET=four 时启动即建该预设工程并直接进编辑页。
     // 仅用于开发期截图与目检，不作为产品功能；未设置时为空串。
     Q_PROPERTY(QString demoPreset READ demoPreset CONSTANT)
@@ -101,7 +109,7 @@ private:
     void bumpGlobalRevision();
     void rebuildPageRevisions();
     void setStatus(const QString& message);
-    bool profileWidthHeight(int* outWidthMm, int* outHeightMm) const;
+    bool profileWidthHeight(qreal* outWidthMm, qreal* outHeightMm) const;
     QImage renderPageAt(int pageIndex, int ppi) const;
 
     liusu::domain::ProjectDocument m_document;
