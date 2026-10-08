@@ -3,8 +3,9 @@ import QtQuick.Shapes
 import LiuSu
 
 // 主页布局展示板（J 稿 LY-01..04）：照片页衬在亚克力板后。
-// 展示板内含：档案编号行 / 页面预览（真实预设几何） / 名称行；
-// 选中时浮出操作按钮（手动排版 / 自动填充照片）。
+// 展示板内含：档案编号行 / 页面预览（真实预设几何） / 操作按钮 / 名称行。
+// 操作按钮挂在预览下方，鼠标悬停展示板即浮出（无需先点选）；
+// 鼠标移入按钮时按钮自身有放大与投影动效。
 //
 // 渲染要点：
 // - 槽位预览用 QtQuick.Shapes 的 ShapePath + 对角 LinearGradient 填充，
@@ -29,7 +30,12 @@ Item {
     implicitWidth: 232
     implicitHeight: 312
 
-    readonly property bool lifted: selected || hoverArea.containsMouse
+    // 悬停状态汇总：悬停板体或任一按钮都算"正在交互"，避免鼠标移到按钮上时
+    // 板体 hover 丢失导致按钮闪没（hoverArea 与按钮 MouseArea 是并列热区）。
+    readonly property bool showActions: hoverArea.containsMouse
+                                        || manualArea.containsMouse
+                                        || autoArea.containsMouse
+    readonly property bool lifted: selected || showActions
     // 板抬起量；柔影据其反向补偿，让影子"留在地面"并随抬起变淡。
     readonly property real lift: lifted ? 6 : 0
 
@@ -227,29 +233,62 @@ Item {
         font.letterSpacing: 1.6
     }
 
-    // 选中态行动按钮（浮在板前）
+    // 操作按钮：位于页面预览下方（J 稿位置），悬停展示板即浮出。
+    // 鼠标移入按钮时：按钮放大、下投影加重、底色加深（悬停动效）。
     Row {
-        anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: 62 }
-        spacing: 8
-        opacity: board.selected ? 1 : 0
+        id: actionRow
+        anchors { horizontalCenter: parent.horizontalCenter; top: pagePreview.bottom; topMargin: 14 }
+        spacing: 10
+        // 悬停板时淡入上浮；鼠标从板移到按钮途中不闪断（showActions 覆盖两处热区）。
+        opacity: board.showActions ? 1 : 0
         visible: opacity > 0
+        transform: Translate {
+            y: board.showActions ? 0 : 6
+        }
         Behavior on opacity {
             NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
         }
 
-        Rectangle {
-            width: 88
+        // 「手动排版」：白底描边按钮
+        Item {
+            id: manualBtn
+            width: 92
             height: 36
-            color: manualArea.containsMouse ? AppTheme.ink : Qt.rgba(1, 1, 1, 0.95)
-            border.width: 1
-            border.color: AppTheme.ink
-            Text {
-                anchors.centerIn: parent
-                text: qsTr("手动排版")
-                color: manualArea.containsMouse ? "#f4f1ea" : AppTheme.ink
-                font.family: AppTheme.fontFamily
-                font.pixelSize: 11
-                font.bold: true
+
+            scale: manualArea.containsMouse ? 1.06 : 1.0
+            Behavior on scale {
+                NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
+            }
+            // 悬停时按钮浮起
+            y: manualArea.containsMouse ? -1 : 0
+            Behavior on y {
+                NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
+            }
+
+            // 悬停投影
+            Rectangle {
+                anchors { fill: parent; topMargin: 4 }
+                radius: 3
+                color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, manualArea.containsMouse ? 0.22 : 0)
+                z: -1
+                Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
+            }
+            Rectangle {
+                anchors.fill: parent
+                radius: 2
+                color: manualArea.containsMouse ? AppTheme.ink : Qt.rgba(1, 1, 1, 0.96)
+                border.width: 1
+                border.color: AppTheme.ink
+                Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
+                Text {
+                    anchors.centerIn: parent
+                    text: qsTr("手动排版")
+                    color: manualArea.containsMouse ? "#f4f1ea" : AppTheme.ink
+                    font.family: AppTheme.fontFamily
+                    font.pixelSize: 11
+                    font.bold: true
+                    Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
+                }
             }
             MouseArea {
                 id: manualArea
@@ -259,16 +298,37 @@ Item {
                 onClicked: board.manualRequested()
             }
         }
-        Rectangle {
-            width: 118
+
+        // 「自动填充」：近黑实底按钮（无橙色小块，保持极简）
+        Item {
+            id: autoBtn
+            width: 92
             height: 36
-            color: autoArea.containsMouse ? Qt.darker(AppTheme.ink, 1.15) : AppTheme.ink
-            Row {
-                anchors.centerIn: parent
-                spacing: 7
-                Rectangle { width: 6; height: 6; color: AppTheme.signal; anchors.verticalCenter: parent.verticalCenter }
+
+            scale: autoArea.containsMouse ? 1.06 : 1.0
+            Behavior on scale {
+                NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
+            }
+            y: autoArea.containsMouse ? -1 : 0
+            Behavior on y {
+                NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
+            }
+
+            Rectangle {
+                anchors { fill: parent; topMargin: 4 }
+                radius: 3
+                color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, autoArea.containsMouse ? 0.28 : 0)
+                z: -1
+                Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
+            }
+            Rectangle {
+                anchors.fill: parent
+                radius: 2
+                color: autoArea.containsMouse ? "#000000" : AppTheme.ink
+                Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
                 Text {
-                    text: qsTr("自动填充照片")
+                    anchors.centerIn: parent
+                    text: qsTr("自动填充")
                     color: "#f4f1ea"
                     font.family: AppTheme.fontFamily
                     font.pixelSize: 11
