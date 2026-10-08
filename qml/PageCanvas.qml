@@ -26,7 +26,18 @@ Item {
         height: width / canvas.pageRatio
         x: (canvas.width-width)/2
         y: 66 + (canvas.height - 150-height)/2
-        GradientShadow { anchors.fill: parent; strength: 0.11; spread: 12; offsetY: 15; cornerRadius: 0 }
+        property real arrival: 1
+        // 换页只变换预览实体；编辑时保持正视，指针移动不扰动取景坐标。
+        function arrive() { landing.restart() }
+        Connections { target: app; function onCurrentPageChanged() { paper.arrive() } }
+        Connections { target: canvas; function onVisibleChanged() { if(canvas.visible) paper.arrive() } }
+        NumberAnimation { id: landing; target: paper; property: "arrival"; from: 0; to: 1; duration: 420; easing.type: Easing.OutCubic }
+        transform: [
+            Rotation { origin.x: paper.width/2; origin.y: paper.height/2; axis.x: 1; axis.y: 0; axis.z: 0; angle: (1-paper.arrival)*22 },
+            Rotation { origin.x: paper.width/2; origin.y: paper.height/2; axis.x: 0; axis.y: 1; axis.z: 0; angle: (1-paper.arrival)*-12 },
+            Translate { y: (1-paper.arrival)*48 }
+        ]
+        GradientShadow { anchors.fill: parent; strength: 0.22; spread: 18; offsetY: 20; cornerRadius: 0; scale: 1+(1-paper.arrival)*0.07 }
         Rectangle { x: 1; y: parent.height; width: parent.width-2; height: 2; color: "#c6cbbf" }
         Image {
             anchors.fill: parent
@@ -57,17 +68,21 @@ Item {
             property bool dragged: false
             onPressed: (mouse) => {
                 app.selectSlotAt(mouse.x/paper.width, mouse.y/paper.height)
-                startPoint = Qt.point(mouse.x,mouse.y)
+                // 捕获台面坐标后落定；不能把尚未结束的透视动画算进裁切增量。
+                startPoint = photoMouse.mapToItem(canvas,mouse.x,mouse.y)
+                landing.stop()
+                paper.arrival = 1
                 cropX = app.selectedSlotState.cropX || 0
                 cropY = app.selectedSlotState.cropY || 0
                 dragged = false
             }
             onPositionChanged: (mouse) => {
                 if (!pressed || !app.selectedSlotState.hasImage || !app.selectedSlotState.fill) return
-                if (!dragged && Math.abs(mouse.x-startPoint.x)+Math.abs(mouse.y-startPoint.y) < 4) return
+                const point = photoMouse.mapToItem(canvas,mouse.x,mouse.y)
+                if (!dragged && Math.abs(point.x-startPoint.x)+Math.abs(point.y-startPoint.y) < 4) return
                 dragged = true
-                pendingX = cropX - (mouse.x-startPoint.x)/Math.max(1,paper.selectedRect.width*paper.width)*2
-                pendingY = cropY - (mouse.y-startPoint.y)/Math.max(1,paper.selectedRect.height*paper.height)*2
+                pendingX = cropX - (point.x-startPoint.x)/Math.max(1,paper.selectedRect.width*paper.width)*2
+                pendingY = cropY - (point.y-startPoint.y)/Math.max(1,paper.selectedRect.height*paper.height)*2
                 if (!cropTimer.running) cropTimer.start()
             }
             onReleased: {

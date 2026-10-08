@@ -10,6 +10,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QVector>
+#include "services/templates/TemplateLibrary.h"
 
 // 应用控制器：QML 与领域/渲染层之间的薄路由（UI规则：UI 不承载几何真相）。
 // 所有槽位几何、变换顺序、导出像素计算都在 domain / services 层完成；
@@ -38,12 +39,15 @@ class AppController final : public QObject
     Q_PROPERTY(int exportPpi READ exportPpi NOTIFY exportSettingsChanged)
     Q_PROPERTY(bool exportJpeg READ exportJpeg NOTIFY exportSettingsChanged)
     Q_PROPERTY(int exportQuality READ exportQuality NOTIFY exportSettingsChanged)
+    Q_PROPERTY(QVariantList templateCatalog READ layoutPresets NOTIFY templatesChanged)
+    Q_PROPERTY(QVariantList exportOptionDefinitions READ exportOptionDefinitions CONSTANT)
+    Q_PROPERTY(QVariantMap exportOptionValues READ exportOptionValues NOTIFY exportSettingsChanged)
     // 页面物理尺寸（mm），来自页面档案；QML 显示用，几何真相仍在 domain。
     Q_PROPERTY(qreal pageWidthMm READ pageWidthMm CONSTANT)
     Q_PROPERTY(qreal pageHeightMm READ pageHeightMm CONSTANT)
 
 public:
-    explicit AppController(QObject* parent = nullptr);
+    explicit AppController(QObject* parent = nullptr,const QString& templateDirectory = QString());
 
     int revision() const { return m_pageRevisions.value(m_currentPageIndex, 0) + m_globalRevision; }
     QString previewUrl() const;
@@ -67,6 +71,10 @@ public:
     int exportQuality() const { return m_document.exportSettings.jpegQuality; }
     Q_INVOKABLE QVariantMap pageInfo(int pageIndex) const;
     Q_INVOKABLE bool slotHasImage(int slotIndex) const;
+    Q_INVOKABLE bool importTemplateCatalog(const QUrl& fileUrl);
+    QVariantList exportOptionDefinitions() const;
+    QVariantMap exportOptionValues() const;
+    Q_INVOKABLE bool setExportOption(const QString& id,const QVariant& value);
     qreal pageWidthMm() const;
     qreal pageHeightMm() const;
     // 按 PPI 推导页面像素尺寸（mmToPixels 经由 domain::Units，QML 不自行换算）。
@@ -124,6 +132,7 @@ signals:
     void statusMessageChanged();
     void slotStateChanged();
     void exportSettingsChanged();
+    void templatesChanged();
 
 private:
     liusu::domain::ProjectPage* currentPage();
@@ -136,6 +145,7 @@ private:
     void setStatus(const QString& message);
     bool profileWidthHeight(qreal* outWidthMm, qreal* outHeightMm) const;
     QImage renderPageAt(int pageIndex, int ppi) const;
+    liusu::domain::LayoutModel layoutForPreset(const QString& id,bool* ok = nullptr) const;
 
     liusu::domain::ProjectDocument m_document;
     int m_currentPageIndex = 0;
@@ -145,4 +155,5 @@ private:
     mutable QCache<QString, QImage> m_pageCache; // 页面预览缓存（key: page|ppi|rev）
     bool m_projectStarted = false; // 用户建立/打开过项目，空页和设置也需要替换保护。
     QString m_statusMessage;
+    liusu::services::TemplateLibrary m_templates;
 };

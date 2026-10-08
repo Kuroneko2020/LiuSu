@@ -9,24 +9,26 @@ Button {
     property string nameEn: ""
     property string subtitle: ""
     property string presetId: ""
+    property real restingY: 0
+    property real restingZ: 0
     implicitWidth: 260
     implicitHeight: 326
     hoverEnabled: true
     Accessible.name: name + qsTr("模板")
+    ToolTip.visible: hovered && name.length>12
+    ToolTip.text: name
+    ToolTip.delay: 650
     padding: 0
-    background: Item {
-        GradientShadow { anchors.fill: parent; strength: board.hovered ? 0.13 : 0.08; spread: 10; offsetY: 12; cornerRadius: 2 }
-        Rectangle {
-            anchors.fill: parent; color: "#f7f8f3"; radius: 2; border.width: 1
-            border.color: board.visualFocus ? AppTheme.signal : board.hovered ? "#a6b2a3" : "#d4d9cf"
-        }
-        Rectangle { x: 2; y: parent.height; width: parent.width - 4; height: 3; color: "#d0d5ca" }
-    }
-    transform: Translate {
-        y: board.hovered ? -5 : 0
-        Behavior on y { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-    }
-    contentItem: Item {
+    HoverHandler { id: pointer }
+    background: Item {}
+    contentItem: SpatialSurface {
+        objectName: "cardSurface"
+        active: board.hovered || board.visualFocus
+        pressed: board.down
+        pointerX: board.hovered ? Math.max(-1,Math.min(1,pointer.point.position.x/board.width*2-1)) : 0
+        pointerY: board.hovered ? Math.max(-1,Math.min(1,pointer.point.position.y/board.height*2-1)) : 0
+        restingY: board.restingY
+        restingZ: board.restingZ
         Row {
             x: 18; y: 18; spacing: 9
             Text { text: board.code; color: AppTheme.ink; font.family: AppTheme.fontFamily; font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 1 }
@@ -34,12 +36,12 @@ Button {
         }
         Rectangle { x: parent.width-24; y: 22; width: 5; height: 5; color: board.hovered ? AppTheme.signal : "#bec6ba" }
         TemplateMini {
-            x: (parent.width-width)/2; y: 49
-            width: Math.min(parent.width-36,Math.max(40,parent.height-157)*app.pageWidthMm/app.pageHeightMm)
+            x: (parent.width-width)/2; y: 51
+            width: Math.min(parent.width-38,Math.max(30,parent.height-157)*app.pageWidthMm/app.pageHeightMm)
             height: width * app.pageHeightMm / app.pageWidthMm
             presetId: board.presetId; photographs: true
         }
-        Text { objectName: "templateCardTitle"; x: 18; y: parent.height - 87; text: board.name; color: AppTheme.ink; font.family: AppTheme.fontFamily; font.pixelSize: 20; font.weight: Font.Medium }
+        Text { objectName: "templateCardTitle"; x: 18; y: parent.height - 87; width: parent.width-36; elide: Text.ElideRight; text: board.name; color: AppTheme.ink; font.family: AppTheme.fontFamily; font.pixelSize: 20; font.weight: Font.Medium }
         Text { x: 18; y: parent.height - 57; text: board.subtitle; color: AppTheme.ink2; font.family: AppTheme.fontFamily; font.pixelSize: 11 }
         Rectangle { x: 18; y: parent.height - 31; width: parent.width - 36; height: 1; color: "#dce0d6" }
         Text { x: 18; y: parent.height-23; text: qsTr("选择模板"); color: AppTheme.ink; font.family: AppTheme.fontFamily; font.pixelSize: 10; font.weight: Font.Medium }

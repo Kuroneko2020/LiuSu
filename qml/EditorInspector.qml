@@ -8,7 +8,6 @@ Rectangle {
     signal exportPageRequested()
     signal exportAllRequested()
     signal backgroundRequested()
-    property bool advancedExport: false
     color: "#f6f7f1"
     border.width: 1; border.color: "#d7dccf"; radius: 3
     readonly property var selection: app.selectedSlotState
@@ -96,32 +95,8 @@ Rectangle {
                 objectName: "outputSection"
                 width: parent.width; spacing: 10
                 SectionLabel { text: "OUTPUT / 导出"; color: AppTheme.ink }
-                Row {
-                    spacing: 6
-                    Repeater {
-                        model: [300,600]
-                        delegate: StudioButton {
-                            required property int modelData
-                            text: modelData + " PPI"; primary: app.exportPpi===modelData
-                            onClicked: app.setExportSettings(modelData,app.exportJpeg,app.exportQuality)
-                        }
-                    }
-                }
-                Row {
-                    spacing: 6
-                    StudioButton { text: "JPEG"; primary: app.exportJpeg; onClicked: app.setExportSettings(app.exportPpi,true,app.exportQuality) }
-                    StudioButton { text: "PNG"; primary: !app.exportJpeg; onClicked: app.setExportSettings(app.exportPpi,false,app.exportQuality) }
-                }
+                ExportSettingsPanel { objectName: "exportSettingsPanel"; width: parent.width }
                 Text { text: app.pagePixelWidth(app.exportPpi) + " × " + app.pagePixelHeight(app.exportPpi) + qsTr(" 像素"); color: AppTheme.ink2; font.family: AppTheme.fontFamily; font.pixelSize: 11 }
-                StudioButton { text: inspector.advancedExport ? qsTr("收起详细设置") : qsTr("更多导出设置"); quiet: true; height: 28; onClicked: inspector.advancedExport = !inspector.advancedExport }
-                Column {
-                    width: parent.width; spacing: 6
-                    visible: inspector.advancedExport || (app.exportPpi !== 300 && app.exportPpi !== 600)
-                    Text { text: qsTr("自定义 PPI · 72–1200"); color: AppTheme.ink2; font.family: AppTheme.fontFamily; font.pixelSize: 11 }
-                    SpinBox { objectName: "customPpiInput"; width: parent.width; from: 72; to: 1200; editable: true; value: app.exportPpi; onValueModified: app.setExportSettings(value,app.exportJpeg,app.exportQuality); Accessible.name: qsTr("自定义 PPI") }
-                    Text { visible: app.exportJpeg; text: qsTr("JPEG 质量 · %1").arg(app.exportQuality); color: AppTheme.ink2; font.family: AppTheme.fontFamily; font.pixelSize: 11 }
-                    Slider { visible: app.exportJpeg; width: parent.width; from: 1; to: 100; stepSize: 1; value: app.exportQuality; onMoved: app.setExportSettings(app.exportPpi,true,Math.round(value)); Accessible.name: qsTr("JPEG 质量") }
-                }
                 StudioButton { width: parent.width; text: qsTr("导出当前页"); iconName: "download"; primary: true; onClicked: inspector.exportPageRequested() }
                 StudioButton { width: parent.width; text: qsTr("导出全部 %1 页").arg(app.pageCount); onClicked: inspector.exportAllRequested() }
             }

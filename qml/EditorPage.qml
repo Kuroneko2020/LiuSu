@@ -6,7 +6,7 @@ import LiuSu
 Item {
     id: editor
     function showExport() { inspector.showExport() }
-    function addPages() { addDialog.presetId = app.currentLayoutId || "four"; pageCountInput.value = 1; addDialog.open() }
+    function addPages() { addDialog.presetId = app.templateCatalog.some(t => t.id===app.currentLayoutId) ? app.currentLayoutId : app.templateCatalog[0].id; pageCountInput.value = 1; addDialog.open() }
     function replacePhoto(slotIndex) { replaceDialog.slotIndex = slotIndex; replaceDialog.open() }
 
     PageCanvas {

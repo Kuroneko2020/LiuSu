@@ -29,6 +29,9 @@ private slots:
     void invalidFileUrlsAndExportSettingsAreRejected();
     void emptyProjectEditsStillNeedReplacementProtection();
     void templateEditsKeepOtherPagePreviews();
+    void importedTemplatesPersistAndWorkPerPage();
+    void exportOptionsDrivePersistentSettings();
+    void templateIdentitySurvivesMissingCatalog();
 };
 
 void AppTest::tenPagesHaveIndependentTemplates()
@@ -226,6 +229,65 @@ void AppTest::templateEditsKeepOtherPagePreviews()
     app.changeCurrentLayout("nine");
     QCOMPARE(app.pageThumbnailUrl(1),other);
     QVERIFY(app.previewUrl()!=current);
+}
+
+void AppTest::importedTemplatesPersistAndWorkPerPage()
+{
+    QTemporaryDir storage;
+    QTemporaryDir input;
+    QFile file(input.filePath("pack.json"));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    const QByteArray pack=R"({"templates":[{"id":"triptych","name":"三联","category":"留存","caption":"TRIPTYCH","slots":[{"x":0,"y":0,"width":0.3,"height":1},{"x":0.35,"y":0,"width":0.3,"height":1},{"x":0.7,"y":0,"width":0.3,"height":1}]}]})";
+    file.write(pack); file.close();
+    AppController app(nullptr,storage.path());
+    QVERIFY(app.importTemplateCatalog(QUrl::fromLocalFile(file.fileName())));
+    app.startManual("triptych");
+    QCOMPARE(app.currentSlotCount(),3);
+    QCOMPARE(app.currentLayoutId(),QString("triptych"));
+    app.addPages("nine",9);
+    app.changeCurrentLayout("triptych");
+    QCOMPARE(app.pageCount(),10);
+    AppController reopened(nullptr,storage.path());
+    reopened.startManual("triptych");
+    QCOMPARE(reopened.currentSlotCount(),3);
+    QVERIFY(!reopened.importTemplateCatalog(QUrl::fromLocalFile(file.fileName())));
+    QCOMPARE(reopened.layoutPresets().size(),5);
+}
+
+void AppTest::exportOptionsDrivePersistentSettings()
+{
+    AppController app;
+    app.startManual("four");
+    QVERIFY(app.setExportOption("ppi",450));
+    QVERIFY(app.setExportOption("format",QString("png")));
+    QVERIFY(!app.setExportOption("future-unsupported",42));
+    QCOMPARE(app.exportOptionValues().value("ppi").toInt(),450);
+    QTemporaryDir dir;
+    saved(app,dir.filePath("options.liusu"));
+    AppController reopened;
+    QVERIFY(reopened.openProject(QUrl::fromLocalFile(dir.filePath("options.liusu"))));
+    QCOMPARE(reopened.exportOptionValues().value("format").toString(),QString("png"));
+    QCOMPARE(reopened.exportOptionValues().value("ppi").toInt(),450);
+}
+
+void AppTest::templateIdentitySurvivesMissingCatalog()
+{
+    QTemporaryDir storage, absent, input;
+    QFile pack(input.filePath("identity.json"));
+    QVERIFY(pack.open(QIODevice::WriteOnly));
+    pack.write(R"({"templates":[{"id":"alternate","name":"另一张整幅","slots":[{"x":0,"y":0,"width":1,"height":1}]}]})"); pack.close();
+    AppController app(nullptr,storage.path());
+    QVERIFY(app.importTemplateCatalog(QUrl::fromLocalFile(pack.fileName())));
+    app.startManual("single");
+    app.changeCurrentLayout("alternate");
+    QCOMPARE(app.currentLayoutId(),QString("alternate"));
+    const auto document=saved(app,input.filePath("identity.liusu"));
+    QCOMPARE(document.pages.first().templateId,QString("alternate"));
+    AppController reopened(nullptr,absent.path());
+    QVERIFY(reopened.openProject(QUrl::fromLocalFile(input.filePath("identity.liusu"))));
+    QCOMPARE(reopened.currentLayoutId(),QString("alternate"));
+    QCOMPARE(reopened.currentSlotCount(),1);
+    QVERIFY(reopened.exportCurrentPage(QUrl::fromLocalFile(input.filePath("missing-catalog.png")),72,false,90));
 }
 
 QTEST_MAIN(AppTest)

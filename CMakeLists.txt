@@ -26,6 +26,9 @@ qt_add_qml_module(LiuSu
     QML_FILES
         qml/Main.qml
         qml/GradientShadow.qml
+        qml/SpatialSurface.qml
+        qml/ExportOptionControl.qml
+        qml/ExportSettingsPanel.qml
         qml/LayoutBoard.qml
         qml/HomePage.qml
         qml/EditorPage.qml

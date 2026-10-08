@@ -18,6 +18,7 @@ Button {
     ToolTip.text: hint
     ToolTip.delay: 650
     opacity: enabled ? 1 : 0.38
+    transform: Translate { y: control.down ? 2 : control.hovered ? -2 : 0; Behavior on y { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } } }
     background: Rectangle {
         radius: 3
         color: control.primary ? (control.down ? "#080a09" : control.hovered ? "#343a34" : AppTheme.ink)

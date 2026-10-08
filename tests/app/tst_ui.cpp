@@ -7,12 +7,16 @@
 #include <QQuickWindow>
 #include <QQuickStyle>
 #include <QDir>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QtTest/QtTest>
 
 class UiTest final : public QObject
 {
     Q_OBJECT
-    AppController controller;
+    QTemporaryDir templateStorage;
+    AppController controller{nullptr,templateStorage.path()};
     AppTheme theme;
     QQmlApplicationEngine engine;
     QQuickWindow* window = nullptr;
@@ -38,6 +42,25 @@ private slots:
         QVERIFY2(!engine.rootObjects().isEmpty(),qPrintable(warnings.join('\n')));
         window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
         QVERIFY(window);
+        QTest::qWait(100);
+    }
+    void spatialCardsRespondWithoutChangingTheProject()
+    {
+        window->resize(1440,900);
+        window->setProperty("editing",false);
+        QTest::qWait(100);
+        auto* card=findItem(window->contentItem(),"homeTemplate-two");
+        QVERIFY(card);
+        auto* surface=findItem(card,"cardSurface");
+        QVERIFY(surface);
+        const auto preview=controller.previewUrl();
+        QTest::mouseMove(window,card->mapToScene(QPointF(card->width()*0.8,card->height()*0.25)).toPoint());
+        QTRY_VERIFY_WITH_TIMEOUT(surface->property("altitude").toDouble()>12,2000);
+        QTRY_VERIFY_WITH_TIMEOUT(qAbs(surface->property("angleY").toDouble())>4,2000);
+        QCOMPARE(controller.previewUrl(),preview);
+        QTest::mouseMove(window,QPoint(20,20));
+        QTest::qWait(600);
+        QVERIFY(qAbs(surface->property("altitude").toDouble())<0.5);
     }
     void homeTemplatesNavigateToEditor()
     {
@@ -139,8 +162,22 @@ private slots:
         window->resize(1440,900);
         window->setProperty("editing",false);
         controller.clearStatus();
+        QTest::mouseMove(window,QPoint(20,20));
         QTest::qWait(300);
         QVERIFY(window->grabWindow().save(directory+"/home.png"));
+        auto* card=findItem(window->contentItem(),"homeTemplate-two");
+        QVERIFY(card);
+        QTest::mouseMove(window,card->mapToScene(QPointF(card->width()*0.9,card->height()*0.2)).toPoint());
+        for(int frame=0;frame<14;++frame) {
+            QTest::qWait(40);
+            QVERIFY(window->grabWindow().save(directory+QString("/motion-%1.png").arg(frame,2,10,QLatin1Char('0'))));
+        }
+        QVERIFY(window->grabWindow().save(directory+"/home-hover.png"));
+        QTest::mouseMove(window,QPoint(20,20));
+        for(int frame=14;frame<28;++frame) {
+            QTest::qWait(40);
+            QVERIFY(window->grabWindow().save(directory+QString("/motion-%1.png").arg(frame,2,10,QLatin1Char('0'))));
+        }
         window->resize(1440,640);
         QTest::qWait(200);
         QVERIFY(window->grabWindow().save(directory+"/home-short.png"));
@@ -154,6 +191,7 @@ private slots:
         window->setProperty("editing",true);
         controller.clearStatus();
         QTest::qWait(300);
+        QTRY_COMPARE(window->findChild<QQuickItem*>("pagePaper")->property("arrival").toDouble(),1.0);
         QVERIFY(window->grabWindow().save(directory+"/editor.png"));
         window->resize(960,640);
         QTest::qWait(300);
@@ -175,6 +213,62 @@ private slots:
         QTest::mouseMove(window,origin);
         QTest::mouseRelease(window,Qt::LeftButton,Qt::NoModifier,origin);
         QCOMPARE(controller.selectedSlotState().value("cropX").toDouble(),0.0);
+    }
+    void catalogSearchAndGeneratedExportControls()
+    {
+        QJsonArray entries;
+        const QJsonArray rectangles{QJsonObject{{"x",0},{"y",0},{"width",1},{"height",1}}};
+        for(int i=0;i<40;++i)
+            entries.append(QJsonObject{{"id",QString("extra-%1").arg(i)},
+                {"name",QString("扩展模板 %1").arg(i)},{"category","测试目录"},{"slots",rectangles}});
+        QTemporaryDir input;
+        QFile file(input.filePath("many.json"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(QJsonDocument(QJsonObject{{"templates",entries}}).toJson()); file.close();
+        QVERIFY(controller.importTemplateCatalog(QUrl::fromLocalFile(file.fileName())));
+        window->setProperty("editing",false);
+        auto* search=findItem(window->contentItem(),"templateSearch");
+        QVERIFY(search);
+        search->setProperty("text","extra-39");
+        QTest::qWait(100);
+        auto* card=findItem(window->contentItem(),"homeTemplate-extra-39");
+        QVERIFY(card);
+        QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,card->mapToScene(QPointF(card->width()/2,card->height()/2)).toPoint());
+        QCOMPARE(controller.currentLayoutId(),QString("extra-39"));
+        auto* ppi=findItem(window->contentItem(),"exportOption-ppi");
+        QVERIFY(ppi);
+        ppi->setProperty("value",450);
+        QVERIFY(QMetaObject::invokeMethod(ppi,"valueModified"));
+        QCOMPARE(controller.exportPpi(),450);
+        auto* panel=window->findChild<QObject*>("exportSettingsPanel");
+        QVERIFY(panel);
+        panel->setProperty("expanded",true);
+        QVERIFY(controller.setExportOption("format",QString("png")));
+        QTest::qWait(50);
+        auto* quality=findItem(window->contentItem(),"exportOption-jpegQuality");
+        QVERIFY(quality && !quality->isVisible());
+        QVERIFY(controller.setExportOption("format",QString("jpeg")));
+        QTest::qWait(50);
+        QVERIFY(quality->isVisible());
+        search->setProperty("text","");
+        QVERIFY2(warnings.isEmpty(),qPrintable(warnings.join('\n')));
+    }
+    void templatePopupEscapePreservesAddDialog()
+    {
+        auto* editor=window->findChild<QObject*>("editorPage");
+        QVERIFY(QMetaObject::invokeMethod(editor,"addPages"));
+        QTest::qWait(200);
+        auto* add=window->findChild<QObject*>("addPagesDialog");
+        QVERIFY(add && add->property("visible").toBool());
+        auto* popup=add->findChild<QObject*>("templateLibraryPopup");
+        QVERIFY(popup);
+        QVERIFY(QMetaObject::invokeMethod(popup,"open"));
+        QTest::qWait(350);
+        QTest::keyClick(window,Qt::Key_Escape);
+        QTRY_VERIFY(!popup->property("visible").toBool());
+        QVERIFY(add->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(add,"close"));
+        QVERIFY2(warnings.isEmpty(),qPrintable(warnings.join('\n')));
     }
     void cleanupTestCase() { if(window) window->close(); }
 };

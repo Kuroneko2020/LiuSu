@@ -9,6 +9,10 @@ add_subdirectory(domain)
 add_subdirectory(image)
 add_subdirectory(render)
 
+qt_add_executable(tst_catalog domain/tst_catalog.cpp)
+target_link_libraries(tst_catalog PRIVATE Qt6::Test liusu_domain)
+add_test(NAME catalog COMMAND tst_catalog)
+
 qt_add_executable(tst_app app/tst_app.cpp ../src/app/AppController.cpp ../src/app/AppController.h)
 target_link_libraries(tst_app PRIVATE Qt6::Gui Qt6::Test liusu_services)
 add_test(NAME app COMMAND tst_app)

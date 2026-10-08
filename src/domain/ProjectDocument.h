@@ -28,6 +28,7 @@ struct ExportSettings {
 struct ProjectPage {
     LayoutModel layout;
     QList<SlotImageState> slotStates;
+    QString templateId; // 可选身份提示；几何随项目保存，不要求目录仍存在。
 
     bool isValid() const;
     bool operator==(const ProjectPage& other) const;

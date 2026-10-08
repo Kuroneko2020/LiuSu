@@ -1,6 +1,7 @@
 # 服务层：图片读取、EXIF、变换、缓存。
 # 允许依赖 Qt6::Gui（QImage）与领域层；不得依赖 QtQuick / UI。
 qt_add_library(liusu_services STATIC
+    templates/TemplateLibrary.cpp
     image/ImageLoader.cpp
     image/SlotImageCacheKey.cpp
     image/ThumbnailCache.cpp

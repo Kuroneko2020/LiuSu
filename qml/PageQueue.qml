@@ -31,11 +31,18 @@ Item {
             id: pageCard
             required property int index
             property var info: { queue.modelRevision; return app.pageInfo(index) }
-            width: 105; height: 79; padding: 0
+            width: 105; height: 79; padding: 0; hoverEnabled: true
             Accessible.name: qsTr("第 %1 页，%2").arg(index+1).arg(info.name)
             onClicked: app.setCurrentPage(index)
-            background: Rectangle { color: "transparent"; border.width: app.currentPageIndex === pageCard.index ? 2 : 1; border.color: app.currentPageIndex === pageCard.index ? AppTheme.signal : "#d3d7cd"; radius: 2 }
-            contentItem: Item {
+            background: Item {}
+            HoverHandler { id: cardPointer }
+            contentItem: SpatialSurface {
+                active: pageCard.hovered || pageCard.visualFocus
+                pressed: pageCard.down; tilt: 8; lift: 7
+                pointerX: pageCard.hovered ? cardPointer.point.position.x/pageCard.width*2-1 : 0
+                pointerY: pageCard.hovered ? cardPointer.point.position.y/pageCard.height*2-1 : 0
+                faceColor: app.currentPageIndex === pageCard.index ? "#e1eacb" : "#f7f8f3"
+                edgeColor: app.currentPageIndex === pageCard.index ? AppTheme.signal : "#c6cec0"
                 Image {
                     x: 6; y: 5; width: parent.width-12; height: 48
                     source: { queue.modelRevision; return app.pageThumbnailUrl(pageCard.index) }

@@ -3,6 +3,7 @@
 #include "domain/Layout.h"
 #include "domain/Page.h"
 #include "domain/PageOperations.h"
+#include "domain/ExportOptions.h"
 #include "domain/Units.h"
 #include "services/render/PageRenderer.h"
 
@@ -41,14 +42,15 @@ bool saveImage(const QImage& image, const QString& path, bool jpeg, int quality)
 }
 } // namespace
 
-AppController::AppController(QObject* parent)
-    : QObject(parent)
+AppController::AppController(QObject* parent,const QString& templateDirectory)
+    : QObject(parent),m_templates(templateDirectory)
 {
     m_document = ProjectDocument::createDefault();
     m_pageCache.setMaxCost(kPageCacheCostBytes);
     rebuildPageRevisions();
     connect(this, &AppController::changed, this, &AppController::slotStateChanged);
     connect(this, &AppController::selectionChanged, this, &AppController::slotStateChanged);
+    if(!m_templates.loadError().isEmpty()) setStatus(m_templates.loadError());
 
     // 开发预览：构建演示工程（四宫格 + 测试图集），供启动直达编辑页的目检。
     const QString presetId = demoPreset();
@@ -128,14 +130,13 @@ QImage AppController::renderPageForProvider(int pageIndex, const QSize& requeste
 QVariantList AppController::layoutPresets() const
 {
     QVariantList result;
-    const auto presets = LayoutPresets::builtinPresets();
-    for (const auto& info : presets) {
-        bool ok = false;
-        const auto layout = LayoutPresets::create(info.id, &ok);
+    for (const auto& info : m_templates.catalog().entries()) {
         QVariantMap map;
         map.insert(QStringLiteral("id"), info.id);
-        map.insert(QStringLiteral("name"), info.displayName);
-        map.insert(QStringLiteral("slotCount"), ok ? layout.slotRects.size() : 0);
+        map.insert(QStringLiteral("name"), info.name);
+        map.insert(QStringLiteral("category"), info.category);
+        map.insert(QStringLiteral("caption"), info.caption);
+        map.insert(QStringLiteral("slotCount"), info.layout.slotRects.size());
         result.append(map);
     }
     return result;
@@ -145,7 +146,7 @@ QVariantList AppController::presetSlots(const QString& presetId) const
 {
     QVariantList result;
     bool ok = false;
-    const auto layout = LayoutPresets::create(presetId, &ok);
+    const auto layout = layoutForPreset(presetId, &ok);
     if (!ok)
         return result;
     for (const auto& rect : layout.slotRects) {
@@ -159,10 +160,39 @@ QVariantList AppController::presetSlots(const QString& presetId) const
     return result;
 }
 
+liusu::domain::LayoutModel AppController::layoutForPreset(const QString& id,bool* ok) const
+{
+    const auto* definition=m_templates.catalog().find(id);
+    if(ok) *ok=definition!=nullptr;
+    return definition ? definition->layout : liusu::domain::LayoutModel{};
+}
+
+bool AppController::importTemplateCatalog(const QUrl& fileUrl)
+{
+    QString error;
+    if(!m_templates.importCatalog(fileUrl,&error)) { setStatus(error); return false; }
+    emit templatesChanged();
+    emit changed(); // 元数据更新不改变已有页面像素，也不清预览缓存。
+    setStatus(QStringLiteral("模板目录已导入 · 共 %1 个模板").arg(m_templates.catalog().entries().size()));
+    return true;
+}
+QVariantList AppController::exportOptionDefinitions() const { return liusu::domain::exportOptionDefinitions(); }
+QVariantMap AppController::exportOptionValues() const { return liusu::domain::exportOptionValues(m_document.exportSettings); }
+bool AppController::setExportOption(const QString& id,const QVariant& value)
+{
+    auto candidate=m_document.exportSettings;
+    QString error;
+    if(!liusu::domain::setExportOption(candidate,id,value,&error)) { setStatus(error); return false; }
+    if(candidate==m_document.exportSettings) return true;
+    m_document.exportSettings=candidate;
+    emit exportSettingsChanged();
+    return true;
+}
+
 void AppController::startManual(const QString& presetId)
 {
     bool ok = false;
-    const auto layout = LayoutPresets::create(presetId, &ok);
+    const auto layout = layoutForPreset(presetId, &ok);
     if (!ok) {
         setStatus(QStringLiteral("未知布局预设"));
         return;
@@ -171,6 +201,7 @@ void AppController::startManual(const QString& presetId)
     ProjectDocument doc = ProjectDocument::createDefault();
     ProjectPage page;
     page.layout = layout;
+    page.templateId = presetId;
     for (int i = 0; i < layout.slotRects.size(); ++i)
         page.slotStates.append(SlotImageState{});
     doc.pages = { page };
@@ -187,7 +218,7 @@ void AppController::startManual(const QString& presetId)
 
 void AppController::startAutoFill(const QString& presetId, const QVariantList& fileUrls)
 {
-    if (!LayoutPresets::isBuiltin(presetId)) return;
+    if (!m_templates.catalog().find(presetId)) return;
     startManual(presetId);
     importPhotos(fileUrls);
 }
@@ -202,12 +233,13 @@ void AppController::importPhotos(const QVariantList& fileUrls)
     }
     if (paths.isEmpty()) return;
     const auto newLayout = currentPage()->layout;
+    const auto newTemplateId = currentPage()->templateId;
     int next = 0;
     QList<int> touched;
     // 从当前页往后填空位，尊重每页独立布局；满了再增加同当前模板的新页。
     // 导入顺序不改已有照片，不把超量照片静默截掉。
     for (int i = m_currentPageIndex; next < paths.size(); ++i) {
-        if (i >= m_document.pages.size()) m_document.pages.append(liusu::domain::emptyPage(newLayout));
+        if (i >= m_document.pages.size()) m_document.pages.append(liusu::domain::emptyPage(newLayout,newTemplateId));
         auto& page = m_document.pages[i];
         bool modified = false;
         for (auto& state : page.slotStates) {
@@ -335,9 +367,11 @@ QVariantMap AppController::pageInfo(int pageIndex) const
 {
     if (pageIndex < 0 || pageIndex >= pageCount()) return {};
     const auto& page = m_document.pages[pageIndex];
-    QString id, name = QStringLiteral("自定义");
-    for (const auto& info : LayoutPresets::builtinPresets()) {
-        if (LayoutPresets::create(info.id) == page.layout) { id = info.id; name = info.displayName; break; }
+    QString id=page.templateId, name = QStringLiteral("自定义模板");
+    if(!id.isEmpty()) {
+        if(const auto* definition=m_templates.catalog().find(id)) name=definition->name;
+    } else for (const auto& info : m_templates.catalog().entries()) {
+        if (info.layout == page.layout) { id = info.id; name = info.name; break; }
     }
     int filled = 0;
     for (const auto& state : page.slotStates) if (!state.imagePath.isEmpty()) ++filled;
@@ -431,10 +465,10 @@ void AppController::addPage()
 void AppController::addPages(const QString& presetId, int count)
 {
     bool ok = false;
-    const auto layout = LayoutPresets::create(presetId, &ok);
+    const auto layout = layoutForPreset(presetId, &ok);
     if (!ok || count < 1 || count > 100) { setStatus(QStringLiteral("请选择有效模板，页数为 1–100")); return; }
     const int first = pageCount();
-    for (int i = 0; i < count; ++i) m_document.pages.append(liusu::domain::emptyPage(layout));
+    for (int i = 0; i < count; ++i) m_document.pages.append(liusu::domain::emptyPage(layout,presetId));
     m_currentPageIndex = first;
     m_selectedSlot = -1;
     emit selectionChanged();
@@ -447,10 +481,10 @@ void AppController::addPages(const QString& presetId, int count)
 void AppController::changeCurrentLayout(const QString& presetId)
 {
     bool ok = false;
-    const auto layout = LayoutPresets::create(presetId, &ok);
+    const auto layout = layoutForPreset(presetId, &ok);
     auto* page = currentPage();
-    if (!ok || !page || page->layout == layout) return;
-    const auto replacements = liusu::domain::retemplatePage(*page, layout);
+    if (!ok || !page || (page->layout == layout && page->templateId == presetId)) return;
+    const auto replacements = liusu::domain::retemplatePage(*page, layout,presetId);
     m_document.pages[m_currentPageIndex] = replacements.first();
     for (int i = 1; i < replacements.size(); ++i) m_document.pages.insert(m_currentPageIndex + i, replacements[i]);
     m_selectedSlot = -1;

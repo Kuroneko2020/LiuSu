@@ -146,6 +146,13 @@ std::optional<ProjectPage> parsePage(const QJsonObject& pageObj, QString* error)
         return std::nullopt;
     page.layout = *layout;
 
+    const auto identity=pageObj.value(QStringLiteral("templateId"));
+    if(!identity.isUndefined() && !identity.isString()) {
+        *error=QStringLiteral("模板身份必须是字符串");
+        return std::nullopt;
+    }
+    page.templateId=identity.toString();
+
     const QJsonArray slotStates = pageObj.value(QStringLiteral("slotStates")).toArray();
     if (slotStates.size() != page.layout.slotRects.size()) {
         *error = QStringLiteral("槽位图片状态数量(%1)与布局槽位数量(%2)不一致")
@@ -188,7 +195,7 @@ bool ProjectPage::isValid() const
 
 bool ProjectPage::operator==(const ProjectPage& other) const
 {
-    return layout == other.layout && slotStates == other.slotStates;
+    return layout == other.layout && slotStates == other.slotStates && templateId == other.templateId;
 }
 
 ProjectDocument ProjectDocument::createDefault()
@@ -233,6 +240,7 @@ QByteArray serializeProject(const ProjectDocument& document)
         for (const SlotImageState& state : page.slotStates)
             slotStateArray.append(serializeSlot(state));
         QJsonObject pageObj;
+        if(!page.templateId.isEmpty()) pageObj.insert(QStringLiteral("templateId"),page.templateId);
         pageObj.insert(QStringLiteral("layout"), serializeLayout(page.layout));
         pageObj.insert(QStringLiteral("slotStates"), slotStateArray);
         pagesArray.append(pageObj);

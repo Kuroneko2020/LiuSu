@@ -41,15 +41,14 @@ class AppTheme : public QObject
     Q_PROPERTY(qreal edgeOffsetX READ edgeOffsetX CONSTANT)
     Q_PROPERTY(qreal edgeOffsetY READ edgeOffsetY CONSTANT)
 
-    // ---- 动效（精密仪器手感，禁止弹跳）----
+    // ---- 旧组件兼容时长；空间展示主体使用 SpatialSurface 的阻尼运动 ----
     Q_PROPERTY(int durFast READ durFast CONSTANT)
     Q_PROPERTY(int durBase READ durBase CONSTANT)
     Q_PROPERTY(int durSlow READ durSlow CONSTANT)
     Q_PROPERTY(int easingType READ easingType CONSTANT)
 
     // ---- 按键形态控件的统一互动口径 ----
-    // 旧亚克力组件（工具按钮 / 玻璃按钮 / 色板 / 页卡 / 分段选择）
-    // 共用同一套悬停与按压动效，禁止各自另定时长、位移与缓动。
+    // 旧亚克力组件的悬停与按压兼容参数，不约束新空间展示主体。
     Q_PROPERTY(qreal hoverLift READ hoverLift CONSTANT)
     Q_PROPERTY(qreal pressScale READ pressScale CONSTANT)
 
@@ -90,7 +89,7 @@ public:
     // 统一互动口径（界面设计基准·第七节）：
     //   悬停 → 上浮 hoverLift px，时长 durBase，缓动 easingType；
     //   按压 → 回缩到 pressScale，时长 durFast，缓动 easingType。
-    // 悬停不做缩放、不做变色（对照 RhineLabUI：浮起只走竖直位移）。
+    // 新界面以 ADR-0014 和界面设计基准为准，此处不作为空间动效限制。
     qreal hoverLift() const { return 2.0; }
     qreal pressScale() const { return 0.96; }
 
