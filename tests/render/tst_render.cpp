@@ -127,11 +127,16 @@ void RenderTest::emptySlotShowsPlaceholder()
     const QImage canvas = PageRenderer::renderPage(page, doc.background,
                                                    kPageWidthMm, kPageHeightMm, 144);
     const QRectF slot = slotRectPixels(page.layout.slotRects.at(0), canvas);
-    // 采样点避开居中的“空槽位”文字笔画；占位底色是 #eceff4。
-    const QColor fill = pixel(canvas, slot, 0.2, 0.2);
-    QVERIFY(colorClose(fill, QColor(0xec, 0xef, 0xf4), 12));
-    // 中心区域不是页面背景白（占位确实画在槽位上）。
-    QVERIFY(pixel(canvas, slot, 0.5, 0.5) != QColor(Qt::white));
+
+    // 占位是「3D 底座 + 玻璃态大加号」：左侧采样点避开加号横臂与四边内斜面。
+    const QColor base = pixel(canvas, slot, 0.12, 0.5);
+    QVERIFY(base != QColor(Qt::white));
+    QVERIFY(base.red() > 180 && base.red() >= base.blue());   // 同工作台一致的暖中性底
+
+    // 中心落在玻璃态加号上：既不是页面背景白，也比底座更亮（玻璃受光面）。
+    const QColor mark = pixel(canvas, slot, 0.5, 0.5);
+    QVERIFY(mark != QColor(Qt::white));
+    QVERIFY(mark.lightness() + 40 < base.lightness()); // 轻量深色加号，拒绝塑料按键式高光
 }
 
 void RenderTest::missingFileShowsPlaceholderNotBlankPage()
@@ -147,9 +152,9 @@ void RenderTest::missingFileShowsPlaceholderNotBlankPage()
     const QImage canvas = PageRenderer::renderPage(page, doc.background,
                                                    kPageWidthMm, kPageHeightMm, 144);
     const QRectF slot = slotRectPixels(page.layout.slotRects.at(0), canvas);
-    // 读取失败仍是可解释的错误占位，而不是静默留白。
-    const QColor center = pixel(canvas, slot, 0.5, 0.5);
-    QVERIFY(center != QColor(Qt::white));
+    // 读取失败仍是可解释的错误占位，而不是静默留白：整块槽位都有内容。
+    QVERIFY(pixel(canvas, slot, 0.5, 0.5) != QColor(Qt::white));
+    QVERIFY(pixel(canvas, slot, 0.12, 0.5) != QColor(Qt::white));
 }
 
 void RenderTest::fitModeLeavesBackgroundMargins()
@@ -268,10 +273,14 @@ void RenderTest::allLayoutPresetsRender()
 
         for (int i = 0; i < count; ++i) {
             const QRectF slot = slotRectPixels(page.layout.slotRects.at(i), canvas);
-            // Fill 模式：槽位中心必为照片色，不是背景色也不是占位浅灰。
+            // Fill 模式：槽位中心必为照片色，不是背景色也不是空槽位占位
+            // （占位 = 浅灰 3D 底座 + 玻璃态加号，两者都是冷调中性灰）。
             const QColor center = pixel(canvas, slot, 0.5, 0.5);
             QVERIFY2(center != QColor(1, 2, 3), qPrintable(QStringLiteral("%1 slot %2 是背景").arg(presetId).arg(i)));
-            QVERIFY2(center != QColor(0xec, 0xef, 0xf4), qPrintable(QStringLiteral("%1 slot %2 是占位").arg(presetId).arg(i)));
+            QVERIFY2(!colorClose(center, QColor(0xe6, 0xe8, 0xef), 8),
+                     qPrintable(QStringLiteral("%1 slot %2 是占位底座").arg(presetId).arg(i)));
+            QVERIFY2(!colorClose(center, QColor(0xf1, 0xf4, 0xf9), 8),
+                     qPrintable(QStringLiteral("%1 slot %2 是占位加号").arg(presetId).arg(i)));
         }
     }
 }

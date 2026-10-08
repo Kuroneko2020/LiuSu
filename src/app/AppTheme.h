@@ -3,6 +3,7 @@
 #include <QColor>
 #include <QObject>
 #include <QEasingCurve>
+#include <QFontDatabase>
 
 // 界面设计基准（docs/设计/界面设计基准.md）的应用级单例。
 //
@@ -31,7 +32,7 @@ class AppTheme : public QObject
     Q_PROPERTY(QColor danger READ danger CONSTANT)
     Q_PROPERTY(QColor slotEmpty READ slotEmpty CONSTANT)
 
-    // ---- 亚克力材质 ----
+    // ---- 旧组件兼容参数；新工作台不再强制每个控件使用亚克力 ----
     Q_PROPERTY(QColor acrylicTop READ acrylicTop CONSTANT)
     Q_PROPERTY(QColor acrylicBottom READ acrylicBottom CONSTANT)
     Q_PROPERTY(QColor acrylicEdgeLight READ acrylicEdgeLight CONSTANT)
@@ -46,6 +47,12 @@ class AppTheme : public QObject
     Q_PROPERTY(int durSlow READ durSlow CONSTANT)
     Q_PROPERTY(int easingType READ easingType CONSTANT)
 
+    // ---- 按键形态控件的统一互动口径 ----
+    // 旧亚克力组件（工具按钮 / 玻璃按钮 / 色板 / 页卡 / 分段选择）
+    // 共用同一套悬停与按压动效，禁止各自另定时长、位移与缓动。
+    Q_PROPERTY(qreal hoverLift READ hoverLift CONSTANT)
+    Q_PROPERTY(qreal pressScale READ pressScale CONSTANT)
+
     // ---- 字体 ----
     Q_PROPERTY(QString fontFamily READ fontFamily CONSTANT)
     Q_PROPERTY(QString fontFallback READ fontFallback CONSTANT)
@@ -53,19 +60,19 @@ class AppTheme : public QObject
 public:
     explicit AppTheme(QObject* parent = nullptr) : QObject(parent) {}
 
-    QColor bgHi() const { return QColor(0xed, 0xea, 0xe4); }
-    QColor bgLo() const { return QColor(0xe0, 0xdc, 0xd2); }
-    QColor bench() const { return QColor(0xdc, 0xd7, 0xcb); }
-    QColor ink() const { return QColor(0x1c, 0x1a, 0x16); }
-    QColor ink2() const { return QColor(0x6f, 0x6a, 0x60); }
-    QColor ink3() const { return QColor(0xa3, 0x9c, 0x8e); }
+    QColor bgHi() const { return QColor(0xf6, 0xf6, 0xf1); }
+    QColor bgLo() const { return QColor(0xe8, 0xe9, 0xe0); }
+    QColor bench() const { return QColor(0xee, 0xee, 0xe8); }
+    QColor ink() const { return QColor(0x24, 0x2a, 0x26); }
+    QColor ink2() const { return QColor(0x6c, 0x75, 0x68); }
+    QColor ink3() const { return QColor(0x94, 0x9c, 0x8d); }
     QColor line() const { return QColor(28, 25, 18, 31); }       // ~0.12 透明度
     QColor lineSoft() const { return QColor(28, 25, 18, 8); }    // ~0.03
     QColor signalColor() const { return QColor(0xd9, 0x8e, 0x2b); }
     QColor signalDeep() const { return QColor(0xb9, 0x75, 0x17); }
     QColor signalSoft() const { return QColor(217, 142, 43, 38); } // ~0.15
     QColor danger() const { return QColor(0xb3, 0x40, 0x2e); }
-    QColor slotEmpty() const { return QColor(0xec, 0xef, 0xf4); }
+    QColor slotEmpty() const { return QColor(0xf0, 0xf1, 0xea); }
 
     QColor acrylicTop() const { return QColor(253, 253, 251, 204); }    // 0.80
     QColor acrylicBottom() const { return QColor(244, 243, 238, 148); } // 0.58
@@ -80,6 +87,17 @@ public:
     int durSlow() const { return 320; }
     int easingType() const { return static_cast<int>(QEasingCurve::OutCubic); }
 
-    QString fontFamily() const { return QStringLiteral("MiSans"); }
+    // 统一互动口径（界面设计基准·第七节）：
+    //   悬停 → 上浮 hoverLift px，时长 durBase，缓动 easingType；
+    //   按压 → 回缩到 pressScale，时长 durFast，缓动 easingType。
+    // 悬停不做缩放、不做变色（对照 RhineLabUI：浮起只走竖直位移）。
+    qreal hoverLift() const { return 2.0; }
+    qreal pressScale() const { return 0.96; }
+
+    QString fontFamily() const {
+        static const QString family = QFontDatabase::families().contains(QStringLiteral("MiSans"),Qt::CaseInsensitive)
+            ? QStringLiteral("MiSans") : QStringLiteral("Microsoft YaHei UI");
+        return family;
+    }
     QString fontFallback() const { return QStringLiteral("Microsoft YaHei UI"); }
 };

@@ -5,6 +5,7 @@ qt_add_library(liusu_domain STATIC
     Layout.cpp
     Page.cpp
     ProjectDocument.cpp
+    PageOperations.cpp
 )
 
 target_link_libraries(liusu_domain PUBLIC Qt6::Core)

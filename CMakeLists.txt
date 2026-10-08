@@ -25,11 +25,19 @@ qt_add_qml_module(LiuSu
     VERSION 1.0
     QML_FILES
         qml/Main.qml
-        qml/AcrylicPanel.qml
-        qml/AcrylicToolButton.qml
+        qml/GradientShadow.qml
         qml/LayoutBoard.qml
         qml/HomePage.qml
         qml/EditorPage.qml
+        qml/StudioButton.qml
+        qml/LineIcon.qml
+        qml/SectionLabel.qml
+        qml/TemplateMini.qml
+        qml/TemplatePicker.qml
+        qml/WorkspaceHeader.qml
+        qml/PageCanvas.qml
+        qml/PageQueue.qml
+        qml/EditorInspector.qml
 )
 
 # 预览演示图：EXIF 方向测试图集嵌入资源，供渲染管线可视化验证。
@@ -47,6 +55,9 @@ qt_add_resources(LiuSu "preview_images"
     PREFIX "/images"
     FILES ${LIUSU_PREVIEW_IMAGES}
 )
+
+set_source_files_properties(assets/photos/coast.png PROPERTIES QT_RESOURCE_ALIAS "coast.png")
+qt_add_resources(LiuSu "studio_photos" PREFIX "/photos" FILES assets/photos/coast.png)
 
 target_link_libraries(LiuSu PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::QuickShapes Qt6::QuickEffects)
 target_link_libraries(LiuSu PRIVATE liusu_services)

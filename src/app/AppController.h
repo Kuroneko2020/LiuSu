@@ -30,6 +30,14 @@ class AppController final : public QObject
     Q_PROPERTY(QString backgroundHex READ backgroundHex NOTIFY changed)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
     Q_PROPERTY(int currentSlotCount READ currentSlotCount NOTIFY changed)
+    Q_PROPERTY(QString currentLayoutId READ currentLayoutId NOTIFY changed)
+    Q_PROPERTY(QString currentLayoutName READ currentLayoutName NOTIFY changed)
+    Q_PROPERTY(int filledSlotCount READ filledSlotCount NOTIFY changed)
+    Q_PROPERTY(bool hasContent READ hasContent NOTIFY changed)
+    Q_PROPERTY(QVariantMap selectedSlotState READ selectedSlotState NOTIFY slotStateChanged)
+    Q_PROPERTY(int exportPpi READ exportPpi NOTIFY exportSettingsChanged)
+    Q_PROPERTY(bool exportJpeg READ exportJpeg NOTIFY exportSettingsChanged)
+    Q_PROPERTY(int exportQuality READ exportQuality NOTIFY exportSettingsChanged)
     // 页面物理尺寸（mm），来自页面档案；QML 显示用，几何真相仍在 domain。
     Q_PROPERTY(qreal pageWidthMm READ pageWidthMm CONSTANT)
     Q_PROPERTY(qreal pageHeightMm READ pageHeightMm CONSTANT)
@@ -49,6 +57,16 @@ public:
     QString backgroundHex() const { return m_document.background.colorHex; }
     QString statusMessage() const { return m_statusMessage; }
     int currentSlotCount() const;
+    QString currentLayoutId() const;
+    QString currentLayoutName() const;
+    int filledSlotCount() const;
+    bool hasContent() const;
+    QVariantMap selectedSlotState() const;
+    int exportPpi() const { return m_document.exportSettings.ppi; }
+    bool exportJpeg() const { return m_document.exportSettings.jpegFormat; }
+    int exportQuality() const { return m_document.exportSettings.jpegQuality; }
+    Q_INVOKABLE QVariantMap pageInfo(int pageIndex) const;
+    Q_INVOKABLE bool slotHasImage(int slotIndex) const;
     qreal pageWidthMm() const;
     qreal pageHeightMm() const;
     // 按 PPI 推导页面像素尺寸（mmToPixels 经由 domain::Units，QML 不自行换算）。
@@ -73,17 +91,22 @@ public:
 
     // ---- 槽位编辑（作用于当前页；fileUrls 为 QUrl） ----
     Q_INVOKABLE void assignFilesToEmptySlots(const QVariantList& fileUrls);
+    Q_INVOKABLE void importPhotos(const QVariantList& fileUrls);
     Q_INVOKABLE void assignFileToSlot(int slotIndex, const QUrl& fileUrl);
     Q_INVOKABLE void rotateSlot(int slotIndex);
     Q_INVOKABLE void mirrorSlot(int slotIndex);
     Q_INVOKABLE void toggleFillMode(int slotIndex);
     Q_INVOKABLE void clearSlot(int slotIndex);
+    Q_INVOKABLE void setCropOffset(int slotIndex, qreal x, qreal y);
     Q_INVOKABLE void selectSlotAt(qreal normalizedX, qreal normalizedY);
     Q_INVOKABLE void clearSelection();
     Q_INVOKABLE void clearStatus();
 
     // ---- 页面与背景 ----
     Q_INVOKABLE void addPage();
+    Q_INVOKABLE void addPages(const QString& presetId, int count);
+    Q_INVOKABLE void changeCurrentLayout(const QString& presetId);
+    Q_INVOKABLE void setExportSettings(int ppi, bool jpeg, int quality);
     Q_INVOKABLE void deleteCurrentPage();
     Q_INVOKABLE void setCurrentPage(int index);
     Q_INVOKABLE void setBackground(const QString& colorHex);
@@ -99,6 +122,8 @@ signals:
     void currentPageChanged();
     void selectionChanged();
     void statusMessageChanged();
+    void slotStateChanged();
+    void exportSettingsChanged();
 
 private:
     liusu::domain::ProjectPage* currentPage();
@@ -118,5 +143,6 @@ private:
     QVector<int> m_pageRevisions;      // 与 pages 对齐的逐页修订号
     int m_globalRevision = 0;          // 背景 / 档案级变化
     mutable QCache<QString, QImage> m_pageCache; // 页面预览缓存（key: page|ppi|rev）
+    bool m_projectStarted = false; // 用户建立/打开过项目，空页和设置也需要替换保护。
     QString m_statusMessage;
 };

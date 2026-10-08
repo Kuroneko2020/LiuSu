@@ -2,6 +2,7 @@
 
 #include "domain/Layout.h"
 #include "domain/Page.h"
+#include "domain/PageOperations.h"
 #include "domain/Units.h"
 #include "services/render/PageRenderer.h"
 
@@ -10,6 +11,7 @@
 #include <QFileInfo>
 #include <QSaveFile>
 #include <QUrl>
+#include <cmath>
 
 using liusu::domain::ProjectPage;
 using liusu::domain::ProjectDocument;
@@ -25,6 +27,18 @@ constexpr int kPreviewMinPpi = 48;
 constexpr int kPreviewMaxPpi = 300;
 // 页面预览缓存上限：约容纳十余张整页位图；超出按 LRU 淘汰。
 constexpr int kPageCacheCostBytes = 64 * 1024 * 1024;
+bool validExportSettings(int ppi, int quality)
+{
+    return ppi >= 72 && ppi <= 1200 && quality >= 1 && quality <= 100;
+}
+bool saveImage(const QImage& image, const QString& path, bool jpeg, int quality)
+{
+    // 完整编码成功后再提交，失败不留下半张图片，也不破坏已有文件。
+    QSaveFile file(path);
+    return file.open(QIODevice::WriteOnly)
+        && image.save(&file, jpeg ? "JPEG" : "PNG", jpeg ? quality : -1)
+        && file.commit();
+}
 } // namespace
 
 AppController::AppController(QObject* parent)
@@ -33,6 +47,8 @@ AppController::AppController(QObject* parent)
     m_document = ProjectDocument::createDefault();
     m_pageCache.setMaxCost(kPageCacheCostBytes);
     rebuildPageRevisions();
+    connect(this, &AppController::changed, this, &AppController::slotStateChanged);
+    connect(this, &AppController::selectionChanged, this, &AppController::slotStateChanged);
 
     // 开发预览：构建演示工程（四宫格 + 测试图集），供启动直达编辑页的目检。
     const QString presetId = demoPreset();
@@ -41,8 +57,8 @@ AppController::AppController(QObject* parent)
         ProjectPage* page = currentPage();
         if (page) {
             const QStringList demoImages = {
-                QStringLiteral(":/images/exif1.jpg"), QStringLiteral(":/images/exif6.jpg"),
-                QStringLiteral(":/images/exif3.jpg"), QStringLiteral(":/images/exif8.jpg"),
+                QStringLiteral(":/photos/coast.png"), QStringLiteral(":/photos/coast.png"),
+                QStringLiteral(":/photos/coast.png"), QStringLiteral(":/photos/coast.png"),
             };
             for (int i = 0; i < page->slotStates.size() && i < demoImages.size(); ++i) {
                 page->slotStates[i].imagePath = demoImages.at(i);
@@ -159,47 +175,58 @@ void AppController::startManual(const QString& presetId)
         page.slotStates.append(SlotImageState{});
     doc.pages = { page };
     m_document = doc;
+    m_projectStarted = true;
     m_currentPageIndex = 0;
     m_selectedSlot = -1;
     emit selectionChanged();
     emit currentPageChanged();
     bumpGlobalRevision();
     setStatus(QStringLiteral("已建立 %1 · 手动排版").arg(presetId));
+    emit exportSettingsChanged();
 }
 
 void AppController::startAutoFill(const QString& presetId, const QVariantList& fileUrls)
 {
-    bool ok = false;
-    const auto layout = LayoutPresets::create(presetId, &ok);
-    if (!ok) {
-        setStatus(QStringLiteral("未知布局预设"));
-        return;
-    }
+    if (!LayoutPresets::isBuiltin(presetId)) return;
+    startManual(presetId);
+    importPhotos(fileUrls);
+}
 
-    ProjectDocument doc = ProjectDocument::createDefault();
-    ProjectPage page;
-    page.layout = layout;
-    for (int i = 0; i < layout.slotRects.size(); ++i)
-        page.slotStates.append(SlotImageState{});
-
-    // 自动填充：按选择顺序循环填入所有槽位（铺满裁切为默认，符合打印裁切预期）。
-    int fileIndex = 0;
-    for (SlotImageState& state : page.slotStates) {
-        if (fileIndex >= fileUrls.size())
-            break;
-        const QUrl url = fileUrls.at(fileIndex).toUrl();
-        state.imagePath = url.toLocalFile();
-        state.fillMode = FillMode::Fill;
-        ++fileIndex;
+void AppController::importPhotos(const QVariantList& fileUrls)
+{
+    if (fileUrls.isEmpty() || !currentPage()) return;
+    QStringList paths;
+    for (const auto& value : fileUrls) {
+        const auto url = value.toUrl();
+        if (url.isLocalFile() && !url.toLocalFile().isEmpty()) paths.append(url.toLocalFile());
     }
-    doc.pages = { page };
-    m_document = doc;
-    m_currentPageIndex = 0;
-    m_selectedSlot = -1;
-    emit selectionChanged();
-    emit currentPageChanged();
-    bumpGlobalRevision();
-    setStatus(QStringLiteral("已自动填充 %1 张照片").arg(qMin(fileUrls.size(), layout.slotRects.size())));
+    if (paths.isEmpty()) return;
+    const auto newLayout = currentPage()->layout;
+    int next = 0;
+    QList<int> touched;
+    // 从当前页往后填空位，尊重每页独立布局；满了再增加同当前模板的新页。
+    // 导入顺序不改已有照片，不把超量照片静默截掉。
+    for (int i = m_currentPageIndex; next < paths.size(); ++i) {
+        if (i >= m_document.pages.size()) m_document.pages.append(liusu::domain::emptyPage(newLayout));
+        auto& page = m_document.pages[i];
+        bool modified = false;
+        for (auto& state : page.slotStates) {
+            if (next >= paths.size()) break;
+            if (!state.imagePath.isEmpty()) continue;
+            state = SlotImageState{};
+            state.imagePath = paths[next++];
+            modified = true;
+        }
+        if (modified) touched.append(i);
+    }
+    rebuildPageRevisions();
+    for (int i : touched) {
+        ++m_pageRevisions[i];
+        const QString prefix = QStringLiteral("%1|").arg(i);
+        for (const auto& key : m_pageCache.keys()) if (key.startsWith(prefix)) m_pageCache.remove(key);
+    }
+    emit changed();
+    setStatus(QStringLiteral("已导入 %1 张照片 · 共 %2 页").arg(next).arg(pageCount()));
 }
 
 void AppController::assignFilesToEmptySlots(const QVariantList& fileUrls)
@@ -228,7 +255,8 @@ void AppController::assignFilesToEmptySlots(const QVariantList& fileUrls)
 void AppController::assignFileToSlot(int slotIndex, const QUrl& fileUrl)
 {
     ProjectPage* page = currentPage();
-    if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size())
+    if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size()
+        || !fileUrl.isLocalFile() || fileUrl.toLocalFile().isEmpty())
         return;
     page->slotStates[slotIndex].imagePath = fileUrl.toLocalFile();
     page->slotStates[slotIndex].fillMode = FillMode::Fill;
@@ -272,6 +300,60 @@ void AppController::clearSlot(int slotIndex)
         return;
     page->slotStates[slotIndex] = SlotImageState{};
     bumpCurrentPageRevision();
+}
+
+void AppController::setCropOffset(int slotIndex, qreal x, qreal y)
+{
+    auto* page = currentPage();
+    if (!page || slotIndex < 0 || slotIndex >= page->slotStates.size() || !std::isfinite(x) || !std::isfinite(y)) return;
+    auto& state = page->slotStates[slotIndex];
+    x = qBound(-1.0, x, 1.0);
+    y = qBound(-1.0, y, 1.0);
+    if (state.cropOffsetX == x && state.cropOffsetY == y) return;
+    state.cropOffsetX = x;
+    state.cropOffsetY = y;
+    bumpCurrentPageRevision();
+}
+
+QVariantMap AppController::selectedSlotState() const
+{
+    const auto* page = currentPage();
+    if (!page || m_selectedSlot < 0 || m_selectedSlot >= page->slotStates.size()) return {};
+    const auto& state = page->slotStates[m_selectedSlot];
+    return {{"hasImage", !state.imagePath.isEmpty()}, {"name", QFileInfo(state.imagePath).fileName()},
+            {"fill", state.fillMode == FillMode::Fill}, {"cropX", state.cropOffsetX},
+            {"cropY", state.cropOffsetY}, {"rotation", state.rotationDegrees}, {"mirrored", state.mirrored}};
+}
+
+bool AppController::slotHasImage(int slotIndex) const
+{
+    const auto* page = currentPage();
+    return page && slotIndex >= 0 && slotIndex < page->slotStates.size() && !page->slotStates[slotIndex].imagePath.isEmpty();
+}
+
+QVariantMap AppController::pageInfo(int pageIndex) const
+{
+    if (pageIndex < 0 || pageIndex >= pageCount()) return {};
+    const auto& page = m_document.pages[pageIndex];
+    QString id, name = QStringLiteral("自定义");
+    for (const auto& info : LayoutPresets::builtinPresets()) {
+        if (LayoutPresets::create(info.id) == page.layout) { id = info.id; name = info.displayName; break; }
+    }
+    int filled = 0;
+    for (const auto& state : page.slotStates) if (!state.imagePath.isEmpty()) ++filled;
+    return {{"id", id}, {"name", name}, {"count", page.slotStates.size()}, {"filled", filled}};
+}
+
+QString AppController::currentLayoutId() const { return pageInfo(m_currentPageIndex).value("id").toString(); }
+QString AppController::currentLayoutName() const { return pageInfo(m_currentPageIndex).value("name").toString(); }
+int AppController::filledSlotCount() const { return pageInfo(m_currentPageIndex).value("filled").toInt(); }
+bool AppController::hasContent() const
+{
+    if (m_projectStarted) return true;
+    if (pageCount() > 1) return true;
+    for (const auto& page : m_document.pages)
+        for (const auto& state : page.slotStates) if (!state.imagePath.isEmpty()) return true;
+    return false;
 }
 
 void AppController::selectSlotAt(qreal normalizedX, qreal normalizedY)
@@ -343,22 +425,53 @@ int AppController::pagePixelHeight(int ppi) const
 
 void AppController::addPage()
 {
-    ProjectPage page;
-    // 新页沿用当前页布局；照片从空开始，避免下意识复制造成误导出。
-    if (const ProjectPage* current = currentPage())
-        page.layout = current->layout;
-    else
-        page.layout = LayoutPresets::create(QStringLiteral("single"));
-    for (int i = 0; i < page.layout.slotRects.size(); ++i)
-        page.slotStates.append(SlotImageState{});
-    m_document.pages.append(page);
-    m_currentPageIndex = m_document.pages.size() - 1;
+    addPages(currentLayoutId().isEmpty() ? QStringLiteral("single") : currentLayoutId(), 1);
+}
+
+void AppController::addPages(const QString& presetId, int count)
+{
+    bool ok = false;
+    const auto layout = LayoutPresets::create(presetId, &ok);
+    if (!ok || count < 1 || count > 100) { setStatus(QStringLiteral("请选择有效模板，页数为 1–100")); return; }
+    const int first = pageCount();
+    for (int i = 0; i < count; ++i) m_document.pages.append(liusu::domain::emptyPage(layout));
+    m_currentPageIndex = first;
     m_selectedSlot = -1;
     emit selectionChanged();
     emit currentPageChanged();
     rebuildPageRevisions();
     emit changed();
-    setStatus(QStringLiteral("已新建 %1").arg(pageLabel()));
+    setStatus(QStringLiteral("已添加 %1 个空页 · 每页可单独更换模板").arg(count));
+}
+
+void AppController::changeCurrentLayout(const QString& presetId)
+{
+    bool ok = false;
+    const auto layout = LayoutPresets::create(presetId, &ok);
+    auto* page = currentPage();
+    if (!ok || !page || page->layout == layout) return;
+    const auto replacements = liusu::domain::retemplatePage(*page, layout);
+    m_document.pages[m_currentPageIndex] = replacements.first();
+    for (int i = 1; i < replacements.size(); ++i) m_document.pages.insert(m_currentPageIndex + i, replacements[i]);
+    m_selectedSlot = -1;
+    emit selectionChanged();
+    // 只有插页才改变后续索引；普通模板调整仅更新当前页，保留其他页的缓存。
+    if (replacements.size() > 1) bumpGlobalRevision();
+    else bumpCurrentPageRevision();
+    setStatus(replacements.size() > 1
+        ? QStringLiteral("已更换模板，多出的照片已移入 %1 个新增页").arg(replacements.size() - 1)
+        : QStringLiteral("已更换当前页模板，照片与编辑状态已保留"));
+}
+
+void AppController::setExportSettings(int ppi, bool jpeg, int quality)
+{
+    if (ppi < 72 || ppi > 1200 || quality < 1 || quality > 100) return;
+    auto& settings = m_document.exportSettings;
+    if (settings.ppi == ppi && settings.jpegFormat == jpeg && settings.jpegQuality == quality) return;
+    settings.ppi = ppi;
+    settings.jpegFormat = jpeg;
+    settings.jpegQuality = quality;
+    emit exportSettingsChanged();
 }
 
 void AppController::deleteCurrentPage()
@@ -372,8 +485,7 @@ void AppController::deleteCurrentPage()
     m_selectedSlot = -1;
     emit selectionChanged();
     emit currentPageChanged();
-    m_pageCache.clear();
-    emit changed();
+    bumpGlobalRevision();
     setStatus(QStringLiteral("已删除页"));
 }
 
@@ -398,6 +510,10 @@ void AppController::setBackground(const QString& colorHex)
 
 bool AppController::exportCurrentPage(const QUrl& fileUrl, int ppi, bool jpeg, int quality)
 {
+    if (!validExportSettings(ppi,quality) || !fileUrl.isLocalFile()) {
+        setStatus(QStringLiteral("导出失败：请选择本地文件，PPI 为 72–1200"));
+        return false;
+    }
     if (m_currentPageIndex < 0 || m_currentPageIndex >= m_document.pages.size())
         return false;
     const QImage image = renderPageAt(m_currentPageIndex, ppi);
@@ -410,7 +526,7 @@ bool AppController::exportCurrentPage(const QUrl& fileUrl, int ppi, bool jpeg, i
         setStatus(QStringLiteral("导出失败：路径无效"));
         return false;
     }
-    const bool saved = jpeg ? image.save(path, "JPEG", quality) : image.save(path, "PNG");
+    const bool saved = saveImage(image,path,jpeg,quality);
     setStatus(saved ? QStringLiteral("已导出 %1 · %2 PPI").arg(QFileInfo(path).fileName()).arg(ppi)
                     : QStringLiteral("导出失败：%1").arg(path));
     return saved;
@@ -418,27 +534,42 @@ bool AppController::exportCurrentPage(const QUrl& fileUrl, int ppi, bool jpeg, i
 
 bool AppController::exportAllPages(const QUrl& directoryUrl, int ppi, bool jpeg, int quality)
 {
+    if (!directoryUrl.isLocalFile() || directoryUrl.toLocalFile().isEmpty() || !validExportSettings(ppi,quality)) {
+        setStatus(QStringLiteral("导出失败：目录或导出设置无效"));
+        return false;
+    }
     const QString dirPath = directoryUrl.toLocalFile();
     QDir dir(dirPath);
     if (!dir.exists()) {
         setStatus(QStringLiteral("导出失败：目录不存在"));
         return false;
     }
+    const QString extension = jpeg ? QStringLiteral("jpg") : QStringLiteral("png");
+    auto pageName = [&](const QString& prefix, int index) {
+        return QStringLiteral("%1-PG-%2.%3").arg(prefix).arg(index+1,3,10,QLatin1Char('0')).arg(extension);
+    };
+    // 一批页面共用同一前缀；重复导出自动换号，不静默覆盖之前的成品。
+    QString prefix = QStringLiteral("liusu");
+    for (int batch = 2; ; ++batch) {
+        bool collision = false;
+        for (int i=0; i<pageCount(); ++i)
+            if (QFileInfo::exists(dir.filePath(pageName(prefix,i)))) { collision = true; break; }
+        if (!collision) break;
+        prefix = QStringLiteral("liusu-%1").arg(batch);
+    }
     int exported = 0;
     for (int i = 0; i < m_document.pages.size(); ++i) {
         const QImage image = renderPageAt(i, ppi);
-        if (image.isNull())
-            continue;
-        const QString name = QStringLiteral("liusu-PG-%1.%2")
-                                 .arg(i + 1, 3, 10, QLatin1Char('0'))
-                                 .arg(jpeg ? QStringLiteral("jpg") : QStringLiteral("png"));
+        const QString name = pageName(prefix,i);
         const QString path = dir.filePath(name);
-        const bool saved = jpeg ? image.save(path, "JPEG", quality) : image.save(path, "PNG");
-        if (saved)
-            ++exported;
+        if (image.isNull() || !saveImage(image,path,jpeg,quality)) {
+            setStatus(QStringLiteral("导出中断：第 %1 页保存失败，已完成 %2 / %3 页").arg(i+1).arg(exported).arg(pageCount()));
+            return false;
+        }
+        ++exported;
     }
     setStatus(QStringLiteral("已导出 %1 页").arg(exported));
-    return exported > 0;
+    return exported == pageCount();
 }
 
 bool AppController::saveProject(const QUrl& fileUrl)
@@ -473,12 +604,14 @@ bool AppController::openProject(const QUrl& fileUrl)
         return false;
     }
     m_document = result.document;
+    m_projectStarted = true;
     m_currentPageIndex = 0;
     m_selectedSlot = -1;
     emit selectionChanged();
     emit currentPageChanged();
     bumpGlobalRevision();
     setStatus(QStringLiteral("已打开 %1").arg(QFileInfo(fileUrl.toLocalFile()).fileName()));
+    emit exportSettingsChanged();
     return true;
 }
 
@@ -576,10 +709,10 @@ QImage AppController::renderPageAt(int pageIndex, int ppi) const
     const QImage rendered = PageRenderer::renderPage(m_document.pages.at(pageIndex),
                                                      m_document.background,
                                                      widthMm, heightMm, ppi);
-    if (!rendered.isNull()) {
+    if (!rendered.isNull() && rendered.sizeInBytes() <= kPageCacheCostBytes) {
         const qint64 cost = rendered.sizeInBytes();
         m_pageCache.insert(key, new QImage(rendered),
-                           static_cast<int>(qMin<qint64>(cost, kPageCacheCostBytes)));
+                           static_cast<int>(cost));
     }
     return rendered;
 }
