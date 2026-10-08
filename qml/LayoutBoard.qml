@@ -215,6 +215,7 @@ Item {
 
     // 名称行
     Text {
+        id: nameRow
         anchors { horizontalCenter: parent.horizontalCenter; bottom: subtitleText.top; bottomMargin: 3 }
         text: board.name
         color: AppTheme.ink
@@ -233,11 +234,17 @@ Item {
         font.letterSpacing: 1.6
     }
 
-    // 操作按钮：位于页面预览下方（J 稿位置），悬停展示板即浮出。
+    // 操作按钮：位于预览与名称行之间的留白区（大致下方空白处），悬停展示板即浮出。
+    // 垂直位置取"预览底 → 名称顶"的中点略偏上，视觉上落在留白中央而不是贴边。
     // 鼠标移入按钮时：按钮放大、下投影加重、底色加深（悬停动效）。
     Row {
         id: actionRow
-        anchors { horizontalCenter: parent.horizontalCenter; top: pagePreview.bottom; topMargin: 14 }
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            top: pagePreview.bottom
+            // 留白区高度 = 名称行顶端 - 预览底端；取其中点作为按钮中心。
+            topMargin: Math.max(18, (nameRow.y - pagePreview.y - pagePreview.height) / 2 - height / 2)
+        }
         spacing: 10
         // 悬停板时淡入上浮；鼠标从板移到按钮途中不闪断（showActions 覆盖两处热区）。
         opacity: board.showActions ? 1 : 0
