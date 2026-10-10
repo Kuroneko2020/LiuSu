@@ -2,7 +2,8 @@ import QtQuick
 import LiuSu
 
 // 亚克力工具按钮（g3 次级材质）：比 AcrylicPanel 轻，不带螺丝。
-// 悬停浮起 1–2px、按压回缩，动效参数见界面设计基准·第七节。
+// 互动动效走全应用统一口径（AppTheme.hoverLift / pressScale）：
+// 悬停上浮、按压回缩，不做悬停缩放与变色。
 Item {
     id: btn
 
@@ -22,8 +23,16 @@ Item {
     readonly property bool hovered: hoverArea.containsMouse && interactive
     readonly property bool pressed: hoverArea.pressed && interactive
 
-    y: (hovered && !pressed) ? -1.5 : 0
-    Behavior on y {
+    // 位移走 transform 不走 y：工具按钮多在 Row / Column 里排位，绑 y 会把布局
+    // 算好的位置覆盖成 0，按钮跳到容器原点。transform 不参与布局排位。
+    transform: Translate {
+        y: (btn.hovered && !btn.pressed) ? -AppTheme.hoverLift : 0
+        Behavior on y {
+            NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
+        }
+    }
+    scale: pressed ? AppTheme.pressScale : 1.0
+    Behavior on scale {
         NumberAnimation { duration: AppTheme.durFast; easing.type: AppTheme.easingType }
     }
 
@@ -54,13 +63,16 @@ Item {
             visible: !btn.primary
         }
     }
-    // 悬停/主按钮：投影
-    Rectangle {
-        anchors { fill: parent; topMargin: 4 }
-        radius: 4
-        color: Qt.rgba(28 / 255, 25 / 255, 18 / 255, btn.hovered || btn.primary ? 0.18 : 0)
+    // 悬停/主按钮：渐变阴影（单层；深浅走 opacity，不逐帧重建渐变纹理）
+    GradientShadow {
+        anchors.fill: parent
         z: -1
-        Behavior on color { ColorAnimation { duration: AppTheme.durFast } }
+        cornerRadius: 4
+        strength: 0.18
+        spread: 3
+        offsetY: 3
+        opacity: btn.hovered || btn.primary ? 1.0 : 0.0
+        Behavior on opacity { NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType } }
     }
     // 激活（当前工具）标记：琥珀小横条
     Rectangle {

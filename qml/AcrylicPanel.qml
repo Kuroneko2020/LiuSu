@@ -10,41 +10,40 @@ Item {
     property bool showScrews: false
     property bool showSheen: false
     property bool hoverLift: false
-    property real hoverLiftAmount: 2
+    property real hoverLiftAmount: AppTheme.hoverLift
     property bool showShadow: true
     property real glassOpacity: 1.0
     readonly property bool hovered: hoverArea.containsMouse
 
     default property alias contentData: contentHolder.data
 
-    y: hoverLift && hovered ? -hoverLiftAmount : 0
-    Behavior on y {
-        NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
+    // 位移走 transform 不走 y：板常被 Row / Column / Grid 排位，绑 y 会把布局
+    // 算好的位置覆盖成 0，整块板跳到容器原点。transform 不参与布局排位。
+    transform: Translate {
+        y: root.hoverLift && root.hovered ? -root.hoverLiftAmount : 0
+        Behavior on y {
+            NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
+        }
     }
 
-    // 极轻柔影（3 层，总透明度 < 0.12）
-    Item {
+    // 渐变阴影：单层连续衰减，替代原先 3 层矩形叠加。
+    // 抬起时影子留在地面（反向补偿）并随之变淡。
+    GradientShadow {
         anchors.fill: parent
-        anchors.margins: -6
         z: -5
         visible: root.showShadow
+        cornerRadius: root.cornerRadius
+        strength: 0.13
+        spread: 6
+        offsetY: 5
         opacity: root.hoverLift && root.hovered ? 0.7 : 1.0
         Behavior on opacity { NumberAnimation { duration: AppTheme.durBase } }
-        y: root.hoverLift && root.hovered ? root.hoverLiftAmount : 0
-        Repeater {
-            model: [
-                { yo: 2, ex: 0, a: 0.060 },
-                { yo: 5, ex: 3, a: 0.040 },
-                { yo: 9, ex: 7, a: 0.022 }
-            ]
-            delegate: Rectangle {
-                required property var modelData
-                x: -modelData.ex + 6
-                y: modelData.yo + 6
-                width: root.width + modelData.ex * 2
-                height: root.height + modelData.ex * 2
-                radius: root.cornerRadius + modelData.ex
-                color: Qt.rgba(28/255, 25/255, 18/255, modelData.a)
+        // 反向补偿：本体被 transform 抬起时影子要留在地面，故走相反的 Translate
+        // 抵消（anchors.fill 会吃掉 y 绑定，只能用 transform）。
+        transform: Translate {
+            y: root.hoverLift && root.hovered ? root.hoverLiftAmount : 0
+            Behavior on y {
+                NumberAnimation { duration: AppTheme.durBase; easing.type: AppTheme.easingType }
             }
         }
     }
