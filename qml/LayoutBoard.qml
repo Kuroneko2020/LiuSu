@@ -9,8 +9,6 @@ Button {
     property string nameEn: ""
     property string subtitle: ""
     property string presetId: ""
-    property real restingY: 0
-    property real restingZ: 0
     implicitWidth: 260
     implicitHeight: 326
     hoverEnabled: true
@@ -19,16 +17,11 @@ Button {
     ToolTip.text: name
     ToolTip.delay: 650
     padding: 0
-    HoverHandler { id: pointer }
     background: Item {}
     contentItem: SpatialSurface {
         objectName: "cardSurface"
         active: board.hovered || board.visualFocus
         pressed: board.down
-        pointerX: board.hovered ? Math.max(-1,Math.min(1,pointer.point.position.x/board.width*2-1)) : 0
-        pointerY: board.hovered ? Math.max(-1,Math.min(1,pointer.point.position.y/board.height*2-1)) : 0
-        restingY: board.restingY
-        restingZ: board.restingZ
         Row {
             x: 18; y: 18; spacing: 9
             Text { text: board.code; color: AppTheme.ink; font.family: AppTheme.fontFamily; font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 1 }

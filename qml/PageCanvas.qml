@@ -26,22 +26,17 @@ Item {
         height: width / canvas.pageRatio
         x: (canvas.width-width)/2
         y: 66 + (canvas.height - 150-height)/2
-        property real arrival: 1
-        // 编辑面始终正视、位置固定；换页仅轻微更新图像明度，不变换命中区域。
-        function arrive() { landing.restart() }
-        Connections { target: app; function onCurrentPageChanged() { paper.arrive() } }
-        Connections { target: canvas; function onVisibleChanged() { if(canvas.visible) paper.arrive() } }
-        NumberAnimation { id: landing; target: paper; property: "arrival"; from: 0; to: 1; duration: 140; easing.type: Easing.OutCubic }
+        // 纸面及父容器均无装饰变换；材质反馈不能改变照片明暗或屏幕上的取景坐标。
         GradientShadow { anchors.fill: parent; strength: 0.09; spread: 8; offsetY: 8; cornerRadius: 0 }
         Rectangle { x: 1; y: parent.height; width: parent.width-2; height: 2; color: "#c6cbbf" }
         Image {
+            objectName: "pageImage"
             anchors.fill: parent
             source: app.previewUrl
             sourceSize.width: Math.ceil(paper.width * Screen.devicePixelRatio)
             sourceSize.height: Math.ceil(paper.height * Screen.devicePixelRatio)
             fillMode: Image.Stretch
             cache: false
-            opacity: 0.96+paper.arrival*0.04
         }
         readonly property var selectedRect: app.selectedSlotRect
         Rectangle {
@@ -64,10 +59,8 @@ Item {
             property bool dragged: false
             onPressed: (mouse) => {
                 app.selectSlotAt(mouse.x/paper.width, mouse.y/paper.height)
-                // 台面坐标始终稳定；开始取景时结束轻微换页明度反馈。
+                // 从稳定工作区计算拖动增量，用户主动取景仍更新照片内容。
                 startPoint = photoMouse.mapToItem(canvas,mouse.x,mouse.y)
-                landing.stop()
-                paper.arrival = 1
                 cropX = app.selectedSlotState.cropX || 0
                 cropY = app.selectedSlotState.cropY || 0
                 dragged = false
